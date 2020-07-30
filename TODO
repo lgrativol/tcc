@@ -12,8 +12,5 @@ TODO:
 - Python script -> performance analysis 
 
 *Overall
-- Improve signals readability 
-- Pass simulation to modelsim/questasim 
-- Include fixed-point libraries in project (fhdl)
 - Simulation construction script
 - Build demonstration
