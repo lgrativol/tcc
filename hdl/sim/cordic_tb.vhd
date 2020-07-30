@@ -13,10 +13,12 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
-library ieee_proposed;                      -- only simulation
-use ieee_proposed.fixed_float_types.all;    -- only simulation
-use ieee_proposed.fixed_pkg.all;            -- only simulation
+library ieee_proposed;                      
+use ieee_proposed.fixed_float_types.all;
+use ieee_proposed.fixed_pkg.all;         
 
+library work;
+use work.utils_pkg.all;
 
 entity cordic_tb is
 --  Port ( );
@@ -32,9 +34,6 @@ architecture Behavioral of cordic_tb is
     constant CLK_PERIOD                        : time := 10 ns; -- 100 MHz
 
     -- Architecture
-    constant CORDIC_INTEGER_PART               : integer := 1;
-    constant CORDIC_FRAC_PART                  : integer := -19;
-    constant N_CORDIC_ITERATIONS               : integer := 20;
     constant Z_ANGLE                           : integer := 30;
 
     constant ANGLE_INTEGER_PART                : natural := 3;
@@ -114,22 +113,16 @@ begin
    end process;
  
     UUT: entity work.cordic_core
-        generic map(
-            CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
-            CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
-            N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS
-        )
         port map(
             clock_i                             => clk,
             areset_i                            => areset,
             
             strb_i                              => strb_i,
-            strb_o                              => strb_o,
-            
             X_i                                 => x_i, -- Component X (vector)
             Y_i                                 => y_i, -- Component Y (vector)
             Z_i                                 => z_i, -- Angle
-    
+            
+            strb_o                              => strb_o,
             X_o                                 => x_o,
             Y_o                                 => y_o,
             Z_o                                 => z_o       

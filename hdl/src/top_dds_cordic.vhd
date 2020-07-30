@@ -25,10 +25,16 @@ entity top_dds_cordic is
         SYSTEM_FREQUENCY                    : positive := 100E6 -- 100 MHz
     );
     port(
+        -- Clock interface
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
-        strb_frequency_i                    : in  std_logic; -- Valid in
+        -- Input interface
+        strb_i                              : in  std_logic; -- Valid in
         target_frequency_i                  : in  std_logic_vector((ceil_log2(SYSTEM_FREQUENCY + 1) - 1) downto 0);
+        
+        -- Output interface
+        strb_o                              : out std_logic;
+        sine_phase_o                        : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         flag_full_cycle_o                   : out std_logic
     );
 end top_dds_cordic;
@@ -41,133 +47,117 @@ architecture behavioral of top_dds_cordic is
     ---------------
     -- Constants --
     ---------------
-    constant    FREQUENCY_WIDTH      : positive := target_frequency_i'length;
-    
-    constant    PHASE_INTEGER_PART   : natural  := 3;
-    constant    PHASE_FRAC_PART      : integer  := -30;
+    constant    FREQUENCY_WIDTH     : positive := target_frequency_i'length;
+    constant    CORDIC_FACTOR       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART) := to_sfixed( (0.607253) , CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
 
-    constant    CORDIC_INTEGER_PART  : natural  := 1;
-    constant    CORDIC_FRAC_PART     : integer  := -19;
-
-    constant    N_CORDIC_ITERATIONS  : positive := 20;
-
-    constant    CORDIC_FACTOR        : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART) := to_sfixed( (0.607253) , CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
-
-    
     -------------
     -- Signals --
     -------------
     
-    -- Stage 1
-    signal      strb_delta          : std_logic;
-    signal      delta_phase         : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    -- Stage 1 Phase accumulator
+    signal      phase_acc_strb_i            : std_logic;
+    signal      phase_acc_target_freq       : std_logic_vector( (FREQUENCY_WIDTH - 1) downto 0);
 
-    -- Stage 2
-    signal      strb_phase          : std_logic;
-    signal      phase               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    signal      phase_acc_strb_o            : std_logic;
+    signal      phase_acc_flag_full_cycle   : std_logic;
+    signal      phase_acc_phase             : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
 
-    -- Stage 3
-    signal      strb_reduc_phase    : std_logic;
-    signal      reduc_phase         : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    -- Stage 2 Preprocessor
+    signal      preproc_strb_i              : std_logic;
+    signal      preproc_phase               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    
+    signal      preproc_strb_o              : std_logic;
+    signal      preproc_reduced_phase       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
-    -- Stage 4
-    signal      strb_o              : std_logic;
-
-    signal      x_i                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      y_i                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      z_i                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-
-    signal      x_o                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      y_o                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      z_o                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    -- Stage 3 Cordic Core
+    signal      cordic_core_strb_i          : std_logic;
+    signal      cordic_core_x_i             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal      cordic_core_y_i             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal      cordic_core_z_i             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    
+    signal      cordic_core_strb_o          : std_logic;
+    signal      cordic_core_x_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal      cordic_core_y_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal      cordic_core_z_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
 begin
-    stage_1_frequency_definer : entity work.frequency_definer
-        generic map (
-            SAMPLING_FREQUENCY                 => SYSTEM_FREQUENCY, -- 100 MHz
-            FREQUENCY_WIDTH                    => FREQUENCY_WIDTH, --  log2(100 MHz)            
-            PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
-            PHASE_FRAC_PART                    => PHASE_FRAC_PART -- PI precision
-        )
-        port map(
-            -- Clock interface
-            clock_i                            => clock_i,
-            areset_i                           => areset_i,
-            
-            strb_frequency_i                   => strb_frequency_i,
-            target_frequency_i                 => target_frequency_i,
-    
-            -- Output interface
-            strb_delta_o                        => strb_delta,
-            delta_phase_o                       => delta_phase
-        );
 
-    stage_2_phase_acc : entity work.phase_acc 
-        generic map (
-            PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
-            PHASE_FRAC_PART                    => PHASE_FRAC_PART
-        )
+    -------------
+    -- Stage 1 --
+    -------------
+
+    phase_acc_strb_i        <= strb_i;
+    phase_acc_target_freq   <= target_frequency_i;
+
+    stage_1_phase_acc : entity work.phase_acc 
         port map(
             -- Clock interface
-            clock_i                            => clock_i,
-            areset_i                           => areset_i,
+            clock_i                             => clock_i,
+            areset_i                            => areset_i,
     
             -- Input interface
-            strb_phase_i                        => strb_delta,
-            delta_phase_i                       => delta_phase,
+            strb_i                              => phase_acc_strb_i,
+            target_frequency_i                  => phase_acc_target_freq,
     
             -- Output interface
-            strb_phase_o                        => strb_phase,
-            flag_full_cycle_o                   => flag_full_cycle_o,
-            phase_o                             => phase
+            strb_o                              => phase_acc_strb_o,
+            flag_full_cycle_o                   => phase_acc_flag_full_cycle,
+            phase_o                             => phase_acc_phase
         ); 
 
-    stage_3_pre_proc : entity work.pre_proc
-        generic map(
-            CORDIC_INTEGER_PART                => CORDIC_INTEGER_PART,
-            CORDIC_FRAC_PART                   => CORDIC_FRAC_PART,
-            PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
-            PHASE_FRAC_PART                    => PHASE_FRAC_PART
-        )
+    -------------
+    -- Stage 2 --
+    -------------
+
+    preproc_strb_i  <= phase_acc_strb_o;
+    preproc_phase   <= phase_acc_phase;
+
+    stage_2_preproc : entity work.preproc
         port map(
             -- Clock interface
             clock_i                            =>  clock_i, 
             areset_i                           =>  areset_i, -- Positive async reset
 
             -- Input interface
-            strb_phase_i                       =>  strb_phase, -- Valid in
-            phase_i                            =>  phase,
+            strb_i                             =>  preproc_strb_i, -- Valid in
+            phase_i                            =>  preproc_phase,
 
             -- Output interface
-            strb_reduc_phase_o                 => strb_reduc_phase,
-            reduc_phase_o                      => reduc_phase
+            strb_o                             => preproc_strb_o,
+            reduced_phase_o                    => preproc_reduced_phase
         ); 
 
+    --------------
+    -- Stage 3  --
+    --------------
+    
+    cordic_core_strb_i <= preproc_strb_o;
 
-        x_i <= CORDIC_FACTOR;
-        y_i <= (others => '0');
-        z_i <= reduc_phase;
+    cordic_core_x_i <= CORDIC_FACTOR;
+    cordic_core_y_i <= (others => '0');
+    cordic_core_z_i <= preproc_reduced_phase;
 
-        stage_4 : entity work.cordic_core
-            generic map(
-                CORDIC_INTEGER_PART             => CORDIC_INTEGER_PART,
-                CORDIC_FRAC_PART                => CORDIC_FRAC_PART,
-                N_CORDIC_ITERATIONS             => N_CORDIC_ITERATIONS 
-            )
-            port map (
-                clock_i                         => clock_i, 
-                areset_i                        => areset_i, -- Positive async reset
-                
-                strb_i                          => strb_reduc_phase, -- Valid in
-                strb_o                          => strb_o,
-                
-                X_i                             => x_i,
-                Y_i                             => y_i,
-                Z_i                             => z_i,
-        
-                X_o                             => x_o,
-                Y_o                             => y_o,
-                Z_o                             => z_o
-            );
+    stage_3_cordic_core : entity work.cordic_core
+        port map (
+            clock_i                         => clock_i, 
+            areset_i                        => areset_i, -- Positive async reset
+            
+            strb_i                          => cordic_core_strb_i, -- Valid in
+            X_i                             => cordic_core_x_i,   -- X initial coordinate
+            Y_i                             => cordic_core_y_i,   -- Y initial coordinate
+            Z_i                             => cordic_core_z_i,   -- angle to rotate
 
-end behavioral;
+            strb_o                          => cordic_core_strb_o,
+            X_o                             => cordic_core_x_o, -- cossine TODO: to use the cossine a posprocessor is needed 
+            Y_o                             => cordic_core_y_o, -- sine
+            Z_o                             => cordic_core_z_o  -- angle after rotation
+        );
+
+    ------------
+    -- Output --
+    ------------
+    strb_o              <= cordic_core_strb_o;
+    flag_full_cycle_o   <= phase_acc_flag_full_cycle;
+    sine_phase_o        <= cordic_core_y_o;
+
+    end behavioral;

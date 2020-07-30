@@ -6,35 +6,29 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
---use ieee.fixed_float_types.all; -- only synthesis
---use ieee.fixed_pkg.all;         -- only synthesis
 
-library ieee_proposed;                      -- only simulation
-use ieee_proposed.fixed_float_types.all;    -- only simulation
-use ieee_proposed.fixed_pkg.all;            -- only simulation
+library ieee_proposed;                     
+use ieee_proposed.fixed_float_types.all;    
+use ieee_proposed.fixed_pkg.all;          
 
+library work;
+use work.utils_pkg.all;
 
 ------------
 -- Entity --
 ------------
 
 entity cordic_core is
-    generic(
-        CORDIC_INTEGER_PART                 : natural :=   0;
-        CORDIC_FRAC_PART                    : integer := -19;
-        N_CORDIC_ITERATIONS                 : natural :=  20 
-    );
     port(
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
         
-        strb_i                              : in  std_logic; -- Valid in
-        strb_o                              : out std_logic; -- Valid out
-        
+        strb_i                              : in  std_logic; -- Valid in        
         X_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         Y_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         Z_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
+        strb_o                              : out std_logic; -- Valid out
         X_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         Y_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         Z_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)

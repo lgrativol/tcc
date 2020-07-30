@@ -5,12 +5,10 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
---use ieee.fixed_float_types.all; -- only synthesis
---use ieee.fixed_pkg.all;         -- only synthesis
 
-library ieee_proposed;                      -- only simulation
-use ieee_proposed.fixed_float_types.all;    -- only simulation
-use ieee_proposed.fixed_pkg.all;            -- only simulation
+library ieee_proposed;                      
+use ieee_proposed.fixed_float_types.all;
+use ieee_proposed.fixed_pkg.all;
 
 library work;
 use work.utils_pkg.all;
@@ -19,47 +17,42 @@ use work.utils_pkg.all;
 -- Entity --
 ------------
 
-entity pre_proc is
-    generic(
-        CORDIC_INTEGER_PART                : natural  :=   0;
-        CORDIC_FRAC_PART                   : integer  := -19;
-        PHASE_INTEGER_PART                 : natural  :=   2;
-        PHASE_FRAC_PART                    : integer  := -30
-    );
+entity preproc is
     port(
         -- Clock interface
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        strb_phase_i                        : in  std_logic; -- Valid in
+        strb_i                              : in  std_logic; -- Valid in
         phase_i                             : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
 
         -- Output interface
-        strb_reduc_phase_o                  : out std_logic;
-        reduc_phase_o                       : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)
+        strb_o                              : out std_logic;
+        reduced_phase_o                     : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)
     ); 
-end pre_proc;
+end preproc;
 
 ------------------
 -- Architecture --
 ------------------
 
-architecture behavioral of pre_proc is
+architecture behavioral of preproc is
 
     ---------------
     -- Constants --
     ---------------
-    constant        S_PI                    : sfixed((PHASE_INTEGER_PART) downto PHASE_FRAC_PART) := to_sfixed(PI);
+    constant        S_PI                    : sfixed((PHASE_INTEGER_PART) downto PHASE_FRAC_PART) := to_sfixed(PI); -- signed PI
     
-    constant        PI_2                    : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( (S_PI / 2.0) ,
+    constant        PI_2                    : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( (S_PI / 2.0) , -- signed PI/2
                                                                                                            PHASE_INTEGER_PART,
                                                                                                            PHASE_FRAC_PART);
 
-    constant        PI3_2                   : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( ((3.0 * S_PI) / 2.0) ,
+    constant        PI3_2                   : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( ((3.0 * S_PI) / 2.0), -- signed 3PI/2
                                                                                                            PHASE_INTEGER_PART,
                                                                                                            PHASE_FRAC_PART);
-    constant        PI2                     : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( (2.0 * S_PI) ,
+
+    constant        PI2                     : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( (2.0 * S_PI) ,      -- signed 2PI
                                                                                                            PHASE_INTEGER_PART,
                                                                                                            PHASE_FRAC_PART);
    
@@ -73,9 +66,10 @@ architecture behavioral of pre_proc is
     -- Behavioral
     signal phase_less_pi_2                  : std_logic;
     signal phase_less_3pi_2                 : std_logic;
+
     -- Output interface
     signal strb_reg                         : std_logic;
-    signal reduc_phase_reg                  : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    signal reduced_phase_reg                : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     
 begin
 
@@ -88,31 +82,31 @@ begin
             strb_reg <= '0';
         elsif ( rising_edge(clock_i) ) then
             
-            strb_reg <= strb_phase_i;
+            strb_reg <= strb_i;
 
-            if ( strb_phase_i = '1' ) then
+            if ( strb_i = '1' ) then
 
-                if ( phase_less_pi_2 = '1') then
-                    reduc_phase_reg <= resize(phase,PHASE_INTEGER_PART,PHASE_FRAC_PART);
-                elsif ( phase_less_3pi_2 = '1') then
-                    reduc_phase_reg <= resize((S_PI - phase),PHASE_INTEGER_PART,PHASE_FRAC_PART);
-                else
-                    reduc_phase_reg <= resize((phase - PI2),PHASE_INTEGER_PART,PHASE_FRAC_PART);
+                if ( phase_less_pi_2 = '1') then     -- phase in first quad
+                    reduced_phase_reg <= resize(phase,PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase
+                elsif ( phase_less_3pi_2 = '1') then -- phase in second or thrid
+                    reduced_phase_reg <= resize((S_PI - phase),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- PI - phase
+                else                                 -- phase in forth quad
+                    reduced_phase_reg <= resize((phase - PI2),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase - 2PI
                 end if;
                 
             end if;
         end if;
     end process;
 
-    phase_less_pi_2     <=          '1' when(phase <= PI_2)
+    phase_less_pi_2     <=          '1' when(phase <= PI_2) -- phase <= PI/2
                             else    '0';
 
-    phase_less_3pi_2     <=         '1' when(phase <= PI3_2)
+    phase_less_3pi_2     <=         '1' when(phase <= PI3_2) -- phase <= 3PI/2
                             else    '0';
                                   
                             
     -- Output
-    strb_reduc_phase_o  <= strb_reg;
-    reduc_phase_o       <= resize(reduc_phase_reg, CORDIC_INTEGER_PART,CORDIC_FRAC_PART);
+    strb_o                  <= strb_reg;
+    reduced_phase_o         <= resize(reduced_phase_reg, CORDIC_INTEGER_PART,CORDIC_FRAC_PART);
 
 end behavioral;
