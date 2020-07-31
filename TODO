@@ -1,7 +1,6 @@
 TODO:
 
 *New features (hdl):
-- Nb cycles(sine) to generate
 - Define "time zones" : -- Deadzone
                         -- Rx 
                         -- No signal 
@@ -14,3 +13,6 @@ TODO:
 *Overall
 - Simulation construction script
 - Build demonstration
+
+*Fix:
+- Restart signal for nb_cycles in phase_acc
