@@ -167,8 +167,12 @@ begin
             nb_cycles_counter          <= (others => '0');
         elsif (rising_edge(clock_i)) then
 
-            if( (cycles_done = '0') and (two_pi_phase = '1')) then
+            if((two_pi_phase = '1')) then
                 nb_cycles_counter <= nb_cycles_counter + 1;
+            end if;
+            
+            if((restart_cycles_i = '1')) then
+                nb_cycles_counter <= (others => '1');
             end if;
 
         end if;
