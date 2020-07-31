@@ -9,10 +9,8 @@ TODO:
 *New features (simulation):
 - Python script -> configurable parameters
 - Python script -> performance analysis 
+- HDL -> Add text.io module to save simulation data
 
 *Overall
 - Simulation construction script
 - Build demonstration
-
-*Fix:
-- Restart signal for nb_cycles in phase_acc
