@@ -82,9 +82,9 @@ begin
         if (areset_i = '1') then
             strb_r <= '0';
         elsif (rising_edge(clock_i)) then
-            if (strb_i = '1' and enable_i = '1') then 
+            strb_r  <=  strb_i;
 
-                strb_r  <=  strb_i;
+            if (strb_i = '1' and enable_i = '1') then 
                 -- Testing Angle sign
                 if (Z_i > 0) then -- Z>0, needs to rotatate clockwise (Z - current_rotation_angle)
                     X <= resize(X_i - (Y_i sra shift_value_i), CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
