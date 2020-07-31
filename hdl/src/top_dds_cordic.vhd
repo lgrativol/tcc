@@ -6,12 +6,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
---use ieee.fixed_float_types.all; -- only synthesis
---use ieee.fixed_pkg.all;         -- only synthesis
 
-library ieee_proposed;                      -- only simulation
-use ieee_proposed.fixed_float_types.all;    -- only simulation
-use ieee_proposed.fixed_pkg.all;            -- only simulation
+library ieee_proposed;                      
+use ieee_proposed.fixed_float_types.all;
+use ieee_proposed.fixed_pkg.all;         
 
 library work;
 use work.utils_pkg.all;
@@ -28,10 +26,16 @@ entity top_dds_cordic is
         -- Clock interface
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
+
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
         target_frequency_i                  : in  std_logic_vector((ceil_log2(SYSTEM_FREQUENCY + 1) - 1) downto 0);
-        
+        nb_cycles_i                         : in  std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
+
+        -- Control Interface
+        restart_cycles_i                    : in  std_logic;
+        done_cycles_o                       : out std_logic;
+
         -- Output interface
         strb_o                              : out std_logic;
         sine_phase_o                        : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
@@ -57,9 +61,14 @@ architecture behavioral of top_dds_cordic is
     -- Stage 1 Phase accumulator
     signal      phase_acc_strb_i            : std_logic;
     signal      phase_acc_target_freq       : std_logic_vector( (FREQUENCY_WIDTH - 1) downto 0);
+    signal      phase_acc_nb_cycles         : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
+    signal      phase_acc_phase_diff        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+
+    signal      phase_acc_restart_cycles    : std_logic;
+    signal      phase_acc_done_cycles       : std_logic;
+    signal      phase_acc_flag_full_cycle   : std_logic;
 
     signal      phase_acc_strb_o            : std_logic;
-    signal      phase_acc_flag_full_cycle   : std_logic;
     signal      phase_acc_phase             : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
 
     -- Stage 2 Preprocessor
@@ -86,10 +95,17 @@ begin
     -- Stage 1 --
     -------------
 
-    phase_acc_strb_i        <= strb_i;
-    phase_acc_target_freq   <= target_frequency_i;
+    phase_acc_strb_i            <= strb_i;
+    phase_acc_target_freq       <= target_frequency_i;
+    phase_acc_nb_cycles         <= nb_cycles_i;
+    phase_acc_phase_diff        <= (others => '0');
+
+    phase_acc_restart_cycles    <= restart_cycles_i;
 
     stage_1_phase_acc : entity work.phase_acc 
+        generic map(
+            SAMPLING_FREQUENCY                  => SYSTEM_FREQUENCY
+        )
         port map(
             -- Clock interface
             clock_i                             => clock_i,
@@ -98,10 +114,16 @@ begin
             -- Input interface
             strb_i                              => phase_acc_strb_i,
             target_frequency_i                  => phase_acc_target_freq,
+            nb_cycles_i                         => phase_acc_nb_cycles,
+            phase_diff_i                        => phase_acc_phase_diff,
+    
+            -- Control interface
+            restart_cycles_i                    => phase_acc_restart_cycles,
+            done_cycles_o                       => phase_acc_done_cycles,
+            flag_full_cycle_o                   => phase_acc_flag_full_cycle,
     
             -- Output interface
             strb_o                              => phase_acc_strb_o,
-            flag_full_cycle_o                   => phase_acc_flag_full_cycle,
             phase_o                             => phase_acc_phase
         ); 
 
@@ -159,5 +181,6 @@ begin
     strb_o              <= cordic_core_strb_o;
     flag_full_cycle_o   <= phase_acc_flag_full_cycle;
     sine_phase_o        <= cordic_core_y_o;
+    done_cycles_o       <= phase_acc_done_cycles;
 
     end behavioral;

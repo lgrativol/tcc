@@ -16,30 +16,33 @@ package utils_pkg is
     -- Functions --
     ---------------
 
-    --------------------------------------------------------------------------------------
-    -- Combine the ceil and log2 functions.  ceil_log2(x) then gives the minimum number --
-    -- of bits required to represent 'x'.  ceil_log2(4) = 2, ceil_log2(5) = 3, etc.     --
-    --------------------------------------------------------------------------------------
-    function ceil_log2 (arg : positive) return natural;
-
     ---------------
     -- Constants --
     ---------------
     
+    -- Common 
+    constant PHASE_INTEGER_PART     : natural  := 3;   -- for unsigned phase
+    constant PHASE_FRAC_PART        : integer  := -30; 
+
+    constant PI_INTEGER_PART        : integer  := 2; 
+    constant PI_FRAC_PART           : integer  := -30;
+
+    constant PI                     : ufixed(PI_INTEGER_PART downto PI_FRAC_PART) := to_ufixed(MATH_PI, PI_INTEGER_PART,PI_FRAC_PART);
+
+    -- Phase acc
+    constant NB_CYCLES_WIDTH        : positive := 3;
+
     -- Cordic
     constant CORDIC_INTEGER_PART    : natural  := 1;
     constant N_CORDIC_ITERATIONS    : natural  := 21;
     constant CORDIC_FRAC_PART       : integer  := -(N_CORDIC_ITERATIONS - (CORDIC_INTEGER_PART + 1));
-    
-    constant PHASE_INTEGER_PART     : natural  := 3;   -- for unsigned phase
-    constant PHASE_FRAC_PART        : integer  := -30; 
 
-    -- Obs.: Using the fixed_pkg
-    constant PI_INTEGER_PART        : integer := 2; 
-    constant PI_FRAC_PART           : integer := -30;
+    --------------------------------------------------------------------------------------
+    -- Combine the ceil and log2 functions.  ceil_log2(x) then gives the minimum number --
+    -- of bits required to represent 'x'.  ceil_log2(4) = 2, ceil_log2(5) = 3, etc.     --
+    --------------------------------------------------------------------------------------
+    function ceil_log2 (arg : positive) return natural;    
 
-    constant PI                     : ufixed(PI_INTEGER_PART downto PI_FRAC_PART) := to_ufixed(MATH_PI, PI_INTEGER_PART,PI_FRAC_PART);
-                             
 end utils_pkg;
 
 package body utils_pkg is

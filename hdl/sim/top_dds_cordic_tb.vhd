@@ -51,6 +51,10 @@ architecture testbench of top_dds_cordic_tb is
 
     signal strb_i                              : std_logic := '0';
     signal target_freq                         : std_logic_vector((FREQUENCY_WIDTH - 1) downto 0):= std_logic_vector(to_unsigned(20e3,FREQUENCY_WIDTH ));
+    signal nb_cycles                           : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
+
+    signal restart_cycles                      : std_logic;
+    signal done_cycles                         : std_logic;
 
     signal strb_o                              : std_logic := '0';
     signal sine_phase                          : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
@@ -81,10 +85,15 @@ begin
 
             strb_i                              => strb_i,
             target_frequency_i                  => target_freq,
+            nb_cycles_i                         => nb_cycles,
+
+            restart_cycles_i                    => restart_cycles,
+            done_cycles_o                       => done_cycles,
 
             strb_o                              => strb_o,
             sine_phase_o                        => sine_phase,
             flag_full_cycle_o                   => flag_full_cycle
+            
         );
 
     stim_proc : process
@@ -96,21 +105,30 @@ begin
         wait until (rising_edge(clk));
         
         areset <= '0';
-
+        restart_cycles <= '0';
         strb_i <= '1';
-        target_freq <=  std_logic_vector(to_unsigned(20e3,FREQUENCY_WIDTH ));
+        target_freq <=  std_logic_vector(to_unsigned( 20e3, FREQUENCY_WIDTH ));
+        nb_cycles   <=  std_logic_vector(to_unsigned(    4, NB_CYCLES_WIDTH ));
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
         strb_i <= '0';
 
-        for k in 0 to 47 loop
-            wait until (full_cycle = '1');
-            strb_i <= '1';
-            target_freq <=  std_logic_vector(to_unsigned(to_integer(unsigned(target_freq)) + 20e3,FREQUENCY_WIDTH ));
-            wait for CLK_PERIOD;
-            wait until (rising_edge(clk));
-            strb_i <= '0';
-        end loop;
+        wait until done_cycles = '1';
+        restart_cycles <= '1';
+        wait for CLK_PERIOD;
+        wait until (rising_edge(clk));
+        restart_cycles <= '0';
+
+        -- for k in 0 to 47 loop
+        --     wait until (full_cycle = '1');
+        --     strb_i <= '1';
+        --     target_freq <=  std_logic_vector(to_unsigned(to_integer(unsigned(target_freq)) + 20e3,FREQUENCY_WIDTH ));
+        --     wait for CLK_PERIOD;
+        --     wait until (rising_edge(clk));
+        --     strb_i <= '0';
+        -- end loop;
+        -- wait;
+
         wait;
         
     end process;
