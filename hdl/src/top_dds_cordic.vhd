@@ -98,7 +98,7 @@ begin
     phase_acc_strb_i            <= strb_i;
     phase_acc_target_freq       <= target_frequency_i;
     phase_acc_nb_cycles         <= nb_cycles_i;
-    phase_acc_phase_diff        <= (others => '0');
+    phase_acc_phase_diff        <= resize((PI / 2.0),PHASE_INTEGER_PART, PHASE_FRAC_PART);
 
     phase_acc_restart_cycles    <= restart_cycles_i;
 

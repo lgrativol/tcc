@@ -21,10 +21,10 @@ package utils_pkg is
     ---------------
     
     -- Common 
-    constant PHASE_INTEGER_PART     : natural  := 3;   -- for unsigned phase
+    constant PHASE_INTEGER_PART     : natural  := 4;   -- for unsigned phase
     constant PHASE_FRAC_PART        : integer  := -30; 
 
-    constant PI_INTEGER_PART        : integer  := 2; 
+    constant PI_INTEGER_PART        : integer  := 3; 
     constant PI_FRAC_PART           : integer  := -30;
 
     constant PI                     : ufixed(PI_INTEGER_PART downto PI_FRAC_PART) := to_ufixed(MATH_PI, PI_INTEGER_PART,PI_FRAC_PART);

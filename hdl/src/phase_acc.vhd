@@ -31,10 +31,10 @@ entity phase_acc is
         strb_i                              : in  std_logic; -- Valid in
         target_frequency_i                  : in  std_logic_vector((ceil_log2(SAMPLING_FREQUENCY + 1) - 1) downto 0);
         nb_cycles_i                         : in  std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-        phase_diff_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+        phase_diff_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  -- For the first sine, max: 2PI
 
         -- Control interface
-        restart_cycles_i                    : in  std_logic;
+        restart_cycles_i                    : in  std_logic; 
         done_cycles_o                       : out std_logic;
         flag_full_cycle_o                   : out std_logic;
 
@@ -65,8 +65,7 @@ architecture behavioral of phase_acc is
 
     constant        TWO_PI                              : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( (2.0 * PI) ,
                                                                                                                         PHASE_INTEGER_PART,
-                                                                                                                        PHASE_FRAC_PART);
-   
+                                                                                                                        PHASE_FRAC_PART);   
     -------------
     -- Signals --
     -------------
@@ -74,8 +73,9 @@ architecture behavioral of phase_acc is
     -- Input frequency
     signal target_frequency                 : std_logic_vector((FREQUENCY_WIDTH - 1) downto 0);
     signal nb_cycles                        : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-    signal phase_diff                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
-
+    signal phase_diff                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    signal final_phase                      : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    signal final_phase_diff_delta           : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
 
     -- Behavioral
     signal delta_phase_reg                  : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
@@ -115,6 +115,9 @@ begin
             if (strb_i = '1') then
                 delta_phase_reg <= resize( ( DELTA_PHASE_FACTOR * to_ufixed( unsigned(target_frequency) )) ,
                                              PHASE_INTEGER_PART , PHASE_FRAC_PART );
+
+                final_phase     <= resize( (TWO_PI + phase_diff) ,
+                                             PHASE_INTEGER_PART , PHASE_FRAC_PART );
             end if;
 
         end if;
@@ -132,7 +135,7 @@ begin
             if (strb_output = '1') then
 
                 if(set_zero_phase = '1') then
-                    phase_reg <= (others => '0');
+                    phase_reg <= phase_diff;
                 else
                     phase_reg <= resize( (phase_reg + delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART);
                 end if;
@@ -141,11 +144,11 @@ begin
         end if;
     end process;
 
-    two_diff_delta  <= resize( (TWO_PI - delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART); 
+    final_phase_diff_delta  <= resize( (final_phase - delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART); 
     
     -- TODO: check impact from phase_reg >= TWO_PI to phase_reg >= (TWO_PI - delta_phase_reg)
 
-    two_pi_phase    <=          '1'     when (phase_reg >= two_diff_delta) -- Checking full cycle
+    two_pi_phase    <=          '1'     when (phase_reg >= final_phase_diff_delta) -- Checking full cycle
                         else    '0';
     
     flag_full_cycle <=          two_pi_phase;                      -- Full cycle indicator
@@ -180,7 +183,7 @@ begin
 
     cycles_done     <=              '1' when (unsigned(nb_cycles) = (nb_cycles_counter))
                             else    '0';
-                                   
+                                  
     -- Output
     done_cycles_o      <= cycles_done;
     flag_full_cycle_o <= flag_full_cycle;
