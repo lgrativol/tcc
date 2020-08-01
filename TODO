@@ -4,7 +4,6 @@ TODO:
 - Define "time zones" : -- Deadzone
                         -- Rx 
                         -- No signal 
-- Phase difference
 
 *New features (simulation):
 - Python script -> configurable parameters
