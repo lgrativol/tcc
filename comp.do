@@ -31,5 +31,6 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top_dds_cordic.vhd
 ################################
 ## Checking for vhdl-93 rules
 
+vcom -93 -check_synthesis -novopt -O0 ../hdl/sim/sim_write2file.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/sim/cordic_tb.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/sim/top_dds_cordic_tb.vhd

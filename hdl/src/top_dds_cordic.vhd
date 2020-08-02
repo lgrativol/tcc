@@ -31,6 +31,7 @@ entity top_dds_cordic is
         strb_i                              : in  std_logic; -- Valid in
         target_frequency_i                  : in  std_logic_vector((ceil_log2(SYSTEM_FREQUENCY + 1) - 1) downto 0);
         nb_cycles_i                         : in  std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
+        phase_diff_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
 
         -- Control Interface
         restart_cycles_i                    : in  std_logic;
@@ -98,7 +99,7 @@ begin
     phase_acc_strb_i            <= strb_i;
     phase_acc_target_freq       <= target_frequency_i;
     phase_acc_nb_cycles         <= nb_cycles_i;
-    phase_acc_phase_diff        <= resize((PI / 2.0),PHASE_INTEGER_PART, PHASE_FRAC_PART);
+    phase_acc_phase_diff        <= phase_diff_i; 
 
     phase_acc_restart_cycles    <= restart_cycles_i;
 
