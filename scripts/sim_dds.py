@@ -159,9 +159,10 @@ class SimDDS:
         plt.show()    
 
 def main():
-    sim = SimDDS(100e3,200)
-
-    sim.do(compile=True)
+    target_frequency = 500e3 
+    number_cycles =  1
+    sim = SimDDS(target_frequency,number_cycles)
+    sim.do()
 
 if __name__ == "__main__":
     main()
