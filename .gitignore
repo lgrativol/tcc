@@ -5,3 +5,4 @@ transcript
 scripts/test.py
 .vscode/launch.json
 scripts/pylib/__pycache__/FixedPoint.cpython-38.pyc
+fig_*
