@@ -12,6 +12,7 @@ use ieee_proposed.fixed_pkg.all;
 
 library work;
 use work.utils_pkg.all;
+use work.sim_input_pkg.all;
 
 ------------
 -- Entity --
@@ -112,9 +113,9 @@ begin
         areset <= '0';
         restart_cycles <= '0';
         strb_i <= '1';
-        target_freq <=  std_logic_vector(to_unsigned( 200e3, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
-        nb_cycles   <=  std_logic_vector(to_unsigned(   1, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
-        phase_diff  <=  (others => '0');
+        target_freq <=  std_logic_vector(to_unsigned( SIM_INPUT_TARGETFREQ, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
+        nb_cycles   <=  std_logic_vector(to_unsigned( SIM_INPUT_NBCYCLES, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
+        phase_diff  <=  (others => '0'); -- TODO: add support in sim_input
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
         strb_i <= '0';
