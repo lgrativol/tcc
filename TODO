@@ -8,6 +8,9 @@ TODO:
 *New features (simulation):
 - Python script -> configurable parameters
 - Python script -> performance analysis -> improve
+- Make NB_CYCLES_WIDTH configurable
+- Add PHASE_FRAC_PART configuration in sim_dds.py
+- Add N_CORDIC_ITERATIONS configuration in sim_dds.py
 
 *Overall
 - Build demonstration
