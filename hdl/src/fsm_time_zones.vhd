@@ -106,7 +106,8 @@ begin
     time_zones_fsm : process (clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            time_state   <= ST_INPUT;
+            time_state      <= ST_INPUT;
+            restart_cycles  <= '0';
             
         elsif (rising_edge(clock_i)) then
 
@@ -125,7 +126,7 @@ begin
 
                 when ST_TX =>
                     
-                    restart_cycles <= '1';
+                    --restart_cycles <= '1';
 
                     if(output_strb_i = '1') then
                         if (counter_tx_time_done = '1') then
@@ -143,49 +144,38 @@ begin
 
                     restart_cycles <= '1';
 
-                    if(output_strb_i = '1') then
-                        if (counter_tx_off_time_done = '1') then
-                            time_state       <= ST_RX;
-                            counter_rx_time <= (others => '0');
-                        else
-                            time_state       <= ST_TX_OFF;
-                            counter_tx_off_time <= counter_tx_off_time + 1 ;
-                        end if;
+                    if (counter_tx_off_time_done = '1') then
+                        time_state       <= ST_RX;
+                        counter_rx_time <= (others => '0');
                     else
                         time_state       <= ST_TX_OFF;
-                    end if;                
+                        counter_tx_off_time <= counter_tx_off_time + 1 ;
+                    end if;
 
                 when ST_RX =>
 
                     restart_cycles <= '1';
 
-                    if(output_strb_i = '1') then
-                        if (counter_rx_time_done = '1') then
-                            time_state       <= ST_OFF;
-                            counter_off_time <= (others => '0');
-                        else
-                            time_state       <= ST_RX;
-                            counter_rx_time <= counter_rx_time + 1 ;
-                        end if;
+                    if (counter_rx_time_done = '1') then
+                        time_state       <= ST_OFF;
+                        counter_off_time <= (others => '0');
                     else
                         time_state       <= ST_RX;
-                    end if;                       
+                        counter_rx_time <= counter_rx_time + 1 ;
+                    end if;
 
                 when ST_OFF =>
 
-                    restart_cycles <= '1';
-
-                    if(output_strb_i = '1') then
-                        if (counter_off_time_done = '1') then
-                            time_state       <= ST_TX;
-                            counter_tx_time <= (others => '0');
-                        else
-                            time_state       <= ST_OFF;
-                            counter_off_time <= counter_off_time + 1 ;
-                        end if;
+                    if (counter_off_time_done = '1') then
+                        time_state       <= ST_TX;
+                        counter_tx_time  <= (others => '0');
+                        restart_cycles   <= '0';
                     else
                         time_state       <= ST_OFF;
-                    end if;   
+                        counter_off_time <= counter_off_time + 1 ;
+                        restart_cycles   <= '1';
+                    end if;
+
                 when others =>
                     time_state   <= ST_INPUT;
             end case;
