@@ -83,6 +83,9 @@ architecture behavioral of phase_acc is
     signal strb_new_delta_reg               : std_logic;
     signal strb_output                      : std_logic;
 
+    signal neg_edge_detector_restart_cycles : std_logic;
+    signal restart_cycles_reg               : std_logic;
+
     signal start_new_cycle                  : std_logic;
     signal two_diff_delta                   : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal two_pi_phase                     : std_logic;
@@ -93,7 +96,6 @@ architecture behavioral of phase_acc is
 
     -- Output interface
     signal strb_output_reg                  : std_logic;
-    signal flag_full_cycle                  : std_logic;
     signal phase_reg                        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     
 begin
@@ -132,6 +134,8 @@ begin
 
             strb_output_reg <= strb_output;
 
+            restart_cycles_reg  <= restart_cycles_i;
+
             if (strb_output = '1') then
 
                 if(set_zero_phase = '1') then
@@ -144,17 +148,19 @@ begin
         end if;
     end process;
 
-    final_phase_diff_delta  <= resize( (final_phase - delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART); 
+    final_phase_diff_delta  <= resize( (final_phase - delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART);  --TODO : Pass to reg (better timing)
     
     -- TODO: check impact from phase_reg >= TWO_PI to phase_reg >= (TWO_PI - delta_phase_reg)
 
     two_pi_phase    <=          '1'     when (phase_reg >= final_phase_diff_delta) -- Checking full cycle
                         else    '0';
     
-    flag_full_cycle <=          two_pi_phase;                      -- Full cycle indicator
+
+    neg_edge_detector_restart_cycles <=         restart_cycles_reg
+                                            and (not restart_cycles_i);
 
     start_new_cycle <=                  strb_new_delta_reg  -- New frequency
-                                    or  restart_cycles_i;   -- start new cycle
+                                    or  neg_edge_detector_restart_cycles;   -- start new cycle
 
     -- resets phase to zero upon
     set_zero_phase  <=                  two_pi_phase       -- Full cycle, wrap back to phase = 0
@@ -175,7 +181,7 @@ begin
             end if;
             
             if((restart_cycles_i = '1')) then
-                nb_cycles_counter <= (others => '1');
+                nb_cycles_counter <= (others => '0');
             end if;
 
         end if;
@@ -186,7 +192,7 @@ begin
                                   
     -- Output
     done_cycles_o      <= cycles_done;
-    flag_full_cycle_o <= flag_full_cycle;
+    flag_full_cycle_o <= two_pi_phase; -- Full cycle indicator
 
     strb_o            <= strb_output_reg;
     phase_o           <= phase_reg;
