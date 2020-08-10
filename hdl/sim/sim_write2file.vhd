@@ -21,6 +21,7 @@ entity sim_write2file is
     );
     port(
         clock           : in std_logic;
+        hold            : in std_logic;
         data_valid      : in std_logic;
         data_in         : in std_logic_vector((INPUT_WIDTH - 1) downto 0)
 ); 
@@ -60,7 +61,7 @@ begin
     begin
         if ( rising_edge(clock) ) then
 
-            if (data_valid = '1') then
+            if (data_valid = '1' and hold = '0') then
 
                 write(line_out, data_string);
                 writeline(F,line_out);
