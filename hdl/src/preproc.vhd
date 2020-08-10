@@ -61,7 +61,8 @@ architecture behavioral of preproc is
     -------------
     
     -- Input interface
-    signal phase                            : sfixed((PHASE_INTEGER_PART + 1) downto PHASE_FRAC_PART);
+    signal strb_i_reg                        : std_logic;
+    signal sphase_reg                        : sfixed((PHASE_INTEGER_PART + 1) downto PHASE_FRAC_PART);
 
     -- Behavioral
     signal phase_less_pi_2                  : std_logic;
@@ -74,7 +75,19 @@ architecture behavioral of preproc is
 begin
 
     -- Input
-    phase <= to_sfixed(phase_i);
+    input_registering : process(clock_i,areset_i)
+    begin
+        if (areset_i = '1') then
+            strb_i_reg <= '0';
+        elsif (rising_edge(clock_i)) then
+            strb_i_reg <= strb_i;
+
+            if (strb_i = '1') then
+                sphase_reg <= to_sfixed(phase_i);
+            end if;
+        end if;
+    end process;
+
 
     phase_reducer_proc : process(clock_i,areset_i)
     begin
@@ -87,21 +100,21 @@ begin
             if ( strb_i = '1' ) then
 
                 if ( phase_less_pi_2 = '1') then     -- phase in first quad
-                    reduced_phase_reg <= resize(phase,PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase
+                    reduced_phase_reg <= resize(sphase_reg,PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase
                 elsif ( phase_less_3pi_2 = '1') then -- phase in second or thrid
-                    reduced_phase_reg <= resize((S_PI - phase),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- PI - phase
+                    reduced_phase_reg <= resize((S_PI - sphase_reg),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- PI - phase
                 else                                 -- phase in forth quad
-                    reduced_phase_reg <= resize((phase - PI2),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase - 2PI
+                    reduced_phase_reg <= resize((sphase_reg - PI2),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase - 2PI
                 end if;
                 
             end if;
         end if;
     end process;
 
-    phase_less_pi_2     <=          '1' when(phase <= PI_2) -- phase <= PI/2
+    phase_less_pi_2     <=          '1' when(sphase_reg <= PI_2) -- phase <= PI/2
                             else    '0';
 
-    phase_less_3pi_2     <=         '1' when(phase <= PI3_2) -- phase <= 3PI/2
+    phase_less_3pi_2     <=         '1' when(sphase_reg <= PI3_2) -- phase <= 3PI/2
                             else    '0';
                                   
                             
