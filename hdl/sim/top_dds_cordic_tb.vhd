@@ -32,18 +32,16 @@ architecture testbench of top_dds_cordic_tb is
 
     -- Clock
     constant CLK_PERIOD                        : time     := 10 ns; -- 100 MHz
+    
+    -- Input target frequency
     constant SYSTEM_FREQUENCY                  : positive := 100E6;
     constant FREQUENCY_WIDTH                   : positive := ceil_log2(SYSTEM_FREQUENCY + 1);
+
+    -- Input TX time (nb 100 MHz cycles)
+    constant TX_TIME_CONSTANT                  : positive := ( (SYSTEM_FREQUENCY / SIM_INPUT_TARGETFREQ) * SIM_INPUT_NBCYCLES );
     
-    constant FULL_CYCLE_LATENCY                : positive := 1;
-
+    -- Write txt
     constant CORDIC_OUTPUT_WIDTH               : positive := (N_CORDIC_ITERATIONS );
-
-    ----------
-    -- Type --
-    ----------
-    type tp_shift_latency   is array ( 0 to(FULL_CYCLE_LATENCY - 1)) of std_logic; 
-
 
     -------------
     -- Signals --
@@ -57,7 +55,11 @@ architecture testbench of top_dds_cordic_tb is
     signal nb_cycles                           : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
     signal phase_diff                          : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
 
-    signal restart_cycles                      : std_logic;
+    signal tx_time                             : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
+    signal tx_off_time                         : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
+    signal rx_time                             : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
+    signal off_time                            : std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
+
     signal done_cycles                         : std_logic;
 
     signal strb_o                              : std_logic := '0';
@@ -65,8 +67,6 @@ architecture testbench of top_dds_cordic_tb is
     signal flag_full_cycle                     : std_logic;
 
     -- Simulation
-    signal shift_latency                       : tp_shift_latency;
-    signal full_cycle                          : std_logic;
     signal write_data_in                       : std_logic_vector((CORDIC_OUTPUT_WIDTH - 1) downto 0);
     
 begin
@@ -92,8 +92,12 @@ begin
             target_frequency_i                  => target_freq,
             nb_cycles_i                         => nb_cycles,
             phase_diff_i                        => phase_diff,
+            
+            tx_time_i                           => tx_time,    
+            tx_off_time_i                       => tx_off_time,
+            rx_time_i                           => rx_time,    
+            off_time_i                          => off_time,   
 
-            restart_cycles_i                    => restart_cycles,
             done_cycles_o                       => done_cycles,
 
             strb_o                              => strb_o,
@@ -107,24 +111,31 @@ begin
         areset <= '1';
         strb_i <= '0';
         
-        wait for 4*CLK_PERIOD;
-        wait until (rising_edge(clk));
+        for I in 0 to 3 loop
+            wait for CLK_PERIOD;
+            wait until (rising_edge(clk));
+        end loop;
         
         areset <= '0';
-        restart_cycles <= '0';
         strb_i <= '1';
-        target_freq <=  std_logic_vector(to_unsigned( SIM_INPUT_TARGETFREQ, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
-        nb_cycles   <=  std_logic_vector(to_unsigned( SIM_INPUT_NBCYCLES, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
-        phase_diff  <=  (others => '0'); -- TODO: add support in sim_input
+
+        -- Inputs --
+        target_freq     <=  std_logic_vector(to_unsigned( SIM_INPUT_TARGETFREQ, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
+        nb_cycles       <=  std_logic_vector(to_unsigned( SIM_INPUT_NBCYCLES, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
+        phase_diff      <=  (others => '0');
+        
+        tx_time         <=  std_logic_vector(to_unsigned( TX_TIME_CONSTANT , tx_time'length));
+        tx_off_time     <=  std_logic_vector(to_unsigned( 80 , tx_off_time'length ));  -- Extra time 
+        rx_time         <=  std_logic_vector(to_unsigned( 10000 , rx_time'length )); -- A huge amount of time
+        off_time        <=  std_logic_vector(to_unsigned( 100 , off_time'length )); -- Extra time 
+        -- Inputs --
+        
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
         strb_i <= '0';
 
-        wait until done_cycles = '1';
-        restart_cycles <= '0';
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
-        restart_cycles <= '0';
 
         wait;
         
@@ -132,22 +143,6 @@ begin
 
     -- Simulation 
     
-    shift_latency_proc : process(clk,areset)
-    begin
-        if( areset = '1') then
-            shift_latency <= (others => '0');
-        elsif ( rising_edge(clk)) then
-            shift_latency(0) <= flag_full_cycle;
-            
-            for i in 1 to (FULL_CYCLE_LATENCY - 1) loop
-                shift_latency(i)    <= shift_latency(i-1) ;
-            end loop;
-        end if;
-    end process;
-    
-    full_cycle <= shift_latency(FULL_CYCLE_LATENCY - 1);
-
-
     write_data_in <= to_slv(sine_phase);
 
     write2file : entity work.sim_write2file
@@ -157,6 +152,7 @@ begin
         )
         port map (
             clock           => clk,
+            hold            => '1',
             data_valid      => strb_o,
             data_in         => write_data_in
         ); 
