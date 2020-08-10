@@ -1,9 +1,6 @@
 TODO:
 
 *New features (hdl):
-- Define "time zones" : -- Deadzone
-                        -- Rx 
-                        -- No signal 
 
 *New features (simulation):
 - Python script -> configurable parameters
@@ -11,6 +8,8 @@ TODO:
 - Make NB_CYCLES_WIDTH configurable
 - Add PHASE_FRAC_PART configuration in sim_dds.py
 - Add N_CORDIC_ITERATIONS configuration in sim_dds.py
+- Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
 
 *Overall
 - Build demonstration
+- HDL -> Break critical path in <preprocessor>
