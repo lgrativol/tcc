@@ -19,6 +19,7 @@ use ieee_proposed.fixed_pkg.all;            -- only simulation
 
 entity cordic_slice is
     generic(
+        SIDEBAND_WIDTH                  : integer;
         CORDIC_INTEGER_PART             : integer; -- sfixed integer part;    ex: sfixed(0 downto -19) --> 0.1111111111111111111 ~ +1.000 
         CORDIC_FRAC_PART                : integer; -- sfixed fractional part; ex: sfixed(0 downto -19) --> 1.1010000000000000000 = -0.750
         N_CORDIC_ITERATIONS             : natural  -- number of cordic iterations
@@ -32,6 +33,9 @@ entity cordic_slice is
         enable_i                        : in  std_logic; -- Hold signal
         strb_i                          : in  std_logic; -- Data valid in
         strb_o                          : out std_logic; -- Data valid out
+
+        sideband_data_i                 : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+        sideband_data_o                 : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
         
         -- Rotational angle values
         shift_value_i                   : in  integer range 0 to N_CORDIC_ITERATIONS; -- TODO: move to generic
@@ -62,6 +66,8 @@ architecture Behavioral of cordic_slice is
     signal Y                                : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     signal Z                                : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); 
     signal strb_r                           : std_logic;
+
+    signal sideband_data_reg                : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
         
 begin
     --TODO: Improve comment
@@ -102,6 +108,15 @@ begin
             end if;
         end if;        
     end process;
+
+    sideband_proc : process(clock_i)
+    begin
+        if ( rising_edge(clock_i) )then
+            if (strb_i = '1' and enable_i = '1') then 
+                sideband_data_reg <= sideband_data_i;
+            end if;
+        end if;
+    end process;
     
     ------------
     -- Output --
@@ -110,5 +125,6 @@ begin
     Y_o <= Y;
     Z_o <= Z;
     strb_o <= strb_r;
-
+    sideband_data_o <= sideband_data_reg;
+    
 end Behavioral;

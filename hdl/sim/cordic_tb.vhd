@@ -59,6 +59,8 @@ architecture Behavioral of cordic_tb is
     signal strb_i                              : std_logic; -- valid
     signal strb_o                              : std_logic; -- valid
 
+    signal sideband_data                       : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+
     signal x_i                                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     signal y_i                                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     signal z_i                                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
@@ -116,6 +118,9 @@ begin
         port map(
             clock_i                             => clk,
             areset_i                            => areset,
+
+            sideband_data_i                     => sideband_data,
+            sideband_data_o                     => open,
             
             strb_i                              => strb_i,
             X_i                                 => x_i, -- Component X (vector)

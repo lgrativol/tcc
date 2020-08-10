@@ -23,11 +23,14 @@ entity cordic_core is
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
         
+        sideband_data_i                     : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+        sideband_data_o                     : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+        
         strb_i                              : in  std_logic; -- Valid in        
         X_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         Y_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         Z_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-
+        
         strb_o                              : out std_logic; -- Valid out
         X_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         Y_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
@@ -45,6 +48,7 @@ architecture behavioral of cordic_core is
     ---------------
     component cordic_slice
         generic(
+            SIDEBAND_WIDTH                  : integer;
             CORDIC_INTEGER_PART             : integer; -- sfixed integer part 
             CORDIC_FRAC_PART                : integer; -- sfixed fractional part
             N_CORDIC_ITERATIONS             : natural  -- number of cordic iterations
@@ -58,6 +62,9 @@ architecture behavioral of cordic_core is
             enable_i                        : in  std_logic; -- Hold signal
             strb_i                          : in  std_logic; -- Data valid in
             strb_o                          : out std_logic; -- Data valid out
+
+            sideband_data_i                 : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+            sideband_data_o                 : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
             
             -- Rotational angle values
             shift_value_i                   : in  integer range 0 to N_CORDIC_ITERATIONS; -- TODO: move to generic
@@ -80,6 +87,7 @@ architecture behavioral of cordic_core is
     -----------
     type sfixed_connecting_array is array (0 to N_CORDIC_ITERATIONS) of sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     type rotation_angles_type is array (0 to N_CORDIC_ITERATIONS-1) of sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    type sideband_vector_type is array (0 to N_CORDIC_ITERATIONS) of std_logic_vector((SIDEBAND_WIDTH - 1) downto 0); 
     
     ---------------
     -- Functions --
@@ -103,21 +111,25 @@ architecture behavioral of cordic_core is
     -------------
     -- Signals --
     -------------
+
     -- Cordic-slices vectors
     signal X_vector                         : sfixed_connecting_array; -- X coordinate
     signal Y_vector                         : sfixed_connecting_array; -- Y coordinate
     signal Z_vector                         : sfixed_connecting_array; -- Z angle
     signal strb                             : std_logic_vector(0 to N_CORDIC_ITERATIONS) := (others => '0'); -- Data_valid vector, used in "for generate" to connect
-    
+
+    -- Sideband vector
+    signal sideband_data_vector             : sideband_vector_type;
     
 begin
     -----------
     -- Input --
     -----------
-    X_vector(0) <= X_i; 
-    Y_vector(0) <= Y_i;
-    Z_vector(0) <= Z_i;
-    strb(0)     <= strb_i;
+    X_vector(0)             <= X_i; 
+    Y_vector(0)             <= Y_i;
+    Z_vector(0)             <= Z_i;
+    strb(0)                 <= strb_i;
+    sideband_data_vector(0) <= sideband_data_i;
 
     -----------------------------
     -- Cordic slices instances --
@@ -126,6 +138,7 @@ begin
     cordic_array : for cordic_index in 0 to (N_CORDIC_ITERATIONS - 1) generate
         cordic_element : cordic_slice
             generic map(
+                SIDEBAND_WIDTH         => SIDEBAND_WIDTH,
                 CORDIC_INTEGER_PART    => CORDIC_INTEGER_PART,
                 CORDIC_FRAC_PART       => CORDIC_FRAC_PART,
                 N_CORDIC_ITERATIONS    => N_CORDIC_ITERATIONS
@@ -139,6 +152,9 @@ begin
                 enable_i               => '1',
                 strb_i                 => strb(cordic_index),
                 strb_o                 => strb(cordic_index+1),
+
+                sideband_data_i        => sideband_data_vector(cordic_index),
+                sideband_data_o        => sideband_data_vector(cordic_index + 1),
 
                 -- Rotational angle values
                 shift_value_i          => cordic_index,
@@ -159,9 +175,10 @@ begin
     ------------
     -- Output --
     ------------
-    X_o         <= X_vector(N_CORDIC_ITERATIONS);
-    Y_o         <= Y_vector(N_CORDIC_ITERATIONS);
-    Z_o         <= Z_vector(N_CORDIC_ITERATIONS);
-    strb_o      <= strb(N_CORDIC_ITERATIONS);
-    
+    X_o                 <= X_vector(N_CORDIC_ITERATIONS);
+    Y_o                 <= Y_vector(N_CORDIC_ITERATIONS);
+    Z_o                 <= Z_vector(N_CORDIC_ITERATIONS);
+    strb_o              <= strb(N_CORDIC_ITERATIONS);
+    sideband_data_o     <= sideband_data_vector(N_CORDIC_ITERATIONS);
+     
 end behavioral;
