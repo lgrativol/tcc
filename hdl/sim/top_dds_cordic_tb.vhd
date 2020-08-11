@@ -123,7 +123,6 @@ begin
         target_freq     <=  std_logic_vector(to_unsigned( SIM_INPUT_TARGETFREQ, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
         nb_cycles       <=  std_logic_vector(to_unsigned( SIM_INPUT_NBCYCLES, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
         phase_diff      <=  to_ufixed(SIM_INPUT_PHASE_DIFF,phase_diff);
-        
         tx_time         <=  std_logic_vector(to_unsigned( TX_TIME_CONSTANT , tx_time'length));
         tx_off_time     <=  std_logic_vector(to_unsigned( 80 , tx_off_time'length ));  -- Extra time 
         rx_time         <=  std_logic_vector(to_unsigned( 10000 , rx_time'length )); -- A huge amount of time
