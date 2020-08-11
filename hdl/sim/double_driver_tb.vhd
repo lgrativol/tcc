@@ -5,6 +5,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.math_real.all;
 
 library ieee_proposed;                      
 use ieee_proposed.fixed_float_types.all; 
@@ -44,7 +45,7 @@ architecture testbench of double_driver_tb is
     
     -- Write txt
     constant CORDIC_OUTPUT_WIDTH               : positive := (N_CORDIC_ITERATIONS );
-
+    
     -------------
     -- Signals --
     -------------
@@ -151,8 +152,7 @@ begin
         -- Inputs --
         target_freq     <=  std_logic_vector(to_unsigned( SIM_INPUT_TARGETFREQ, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
         nb_cycles       <=  std_logic_vector(to_unsigned( SIM_INPUT_NBCYCLES, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
-        phase_diff      <=  resize(PI / 2.0 ,PHASE_INTEGER_PART, PHASE_FRAC_PART);
-        
+        phase_diff      <=  to_ufixed(SIM_INPUT_PHASE_DIFF,phase_diff);
         tx_time         <=  std_logic_vector(to_unsigned( SIM_INPUT_TX_TIME , tx_time'length));
         tx_off_time     <=  std_logic_vector(to_unsigned( SIM_INPUT_TX_OFF_TIME , tx_off_time'length ));  -- Extra time 
         rx_time         <=  std_logic_vector(to_unsigned( SIM_INPUT_RX_TIME , rx_time'length )); -- A huge amount of time

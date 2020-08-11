@@ -10,6 +10,7 @@ from   pylib.FixedPoint import FXfamily, FXnum
 import fileinput
 import sys
 import shutil
+import math
 
 ###########
 ## Class ##
@@ -29,9 +30,10 @@ class SimDDS:
     TX_OFF_TIME_WIDTH     = 18 # bits
     RX_TIME_WIDTH         = 18 # bits
     OFF_TIME_WIDTH        = 18 # bits
+    PHASE_FRAC_PART       = 35 # bits
     ACCEPTABLE_TIME_UNIT  = ['ns','us','ms']
     
-    def __init__(self,target_freq, nb_cycles):
+    def __init__(self,target_freq, nb_cycles, phase_diff):
         """
         target_freq = Generated sine frequency
         nb_cycles   = Number of periods of the generated sine 
@@ -52,6 +54,7 @@ class SimDDS:
         """
         self._target_freq = target_freq
         self._nb_cycles = nb_cycles
+        self._phase_diff = phase_diff
         self._tx_time = ""
         self._tx_off_time = 300 
         self._rx_time = "0.1 ms"
@@ -68,7 +71,6 @@ class SimDDS:
 
     @target_freq.setter
     def target_freq(self,value):
-        self._need_reconfig = True
         if(value > self.SAMPLING_FREQ/2):
             print("WARNING: Maximum frequency = SAMPLING_FREQ/2 : %d [Nyquist]" %(self.SAMPLING_FREQ/2))
             self._target_freq = self.SAMPLING_FREQ/2
@@ -81,7 +83,6 @@ class SimDDS:
 
     @nb_cycles.setter
     def nb_cycles(self,value):
-        self._need_reconfig = True
         if(value < 0):
             self._nb_cycles = 1
         else:
@@ -89,6 +90,15 @@ class SimDDS:
                 self._nb_cycles = (2** self.NB_CYCLES_WIDTH - 1)
             else:
                 self._nb_cycles = value
+
+    @property
+    def phase_diff(self):
+        return self._phase_diff
+
+    @phase_diff.setter
+    def phase_diff(self,value):
+        self._phase_diff = value
+
     @property
     def cordic_word_interger_width(self):
         return self._cordic_word_interger_width
@@ -189,6 +199,11 @@ class SimDDS:
             else:
                 self._off_time = value if value > 0 else 1
 
+    def _format_phase(self):
+        phase = int( self.phase_diff * 2**(self.PHASE_FRAC_PART))
+        phase_str = '%010x' %(phase)
+        return phase_str
+
 
     def _replace_all (self,file,replace_search,replace_term):
         """
@@ -207,21 +222,23 @@ class SimDDS:
         
         search_freq        = "SIM_INPUT_TARGETFREQ"
         search_nbcycles    = "SIM_INPUT_NBCYCLES"
+        search_phase_diff  = "SIM_INPUT_PHASE_DIFF"
         search_tx_time     = "SIM_INPUT_TX_TIME"     
         search_tx_off_time = "SIM_INPUT_TX_OFF_TIME"
         search_rx_time     = "SIM_INPUT_RX_TIME"      
         search_off_time    = "SIM_INPUT_OFF_TIME"   
 
-        search_list = [search_freq,search_nbcycles,search_tx_time,search_tx_off_time,search_rx_time,search_off_time]
+        search_list = [search_freq,search_nbcycles,search_phase_diff,search_tx_time,search_tx_off_time,search_rx_time,search_off_time]
         
         term_target_frequency = "   constant SIM_INPUT_TARGETFREQ     : positive  := %d;\n" %(self.target_freq)
         term_nb_cycles        = "   constant SIM_INPUT_NBCYCLES       : natural   := %d;\n" %(self.nb_cycles)
+        term_phase_diff       = "   constant SIM_INPUT_PHASE_DIFF     : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase())
         term_tx_time          = "   constant SIM_INPUT_TX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.tx_time))
         term_tx_off_time      = "   constant SIM_INPUT_TX_OFF_TIME    : positive  := %d;\n" %(self._format_time_zone(self.tx_off_time))
         term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.rx_time))
         term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self._format_time_zone(self.off_time))
  
-        term_list = [term_target_frequency,term_nb_cycles,term_tx_time,term_tx_off_time,term_rx_time,term_off_time]
+        term_list = [term_target_frequency,term_nb_cycles,term_phase_diff,term_tx_time,term_tx_off_time,term_rx_time,term_off_time]
 
         self._replace_all(self.SIM_INPUT_FILE,search_list,term_list)
 
@@ -330,7 +347,7 @@ class SimDDS:
         sample_spacing = 1.0 / self.SAMPLING_FREQ # sample spacing
 
         x_axis = np.linspace(0.0, (nb_samplepoints*sample_spacing), nb_samplepoints)
-        ref_sin_y = np.sin(self.target_freq * 2.0 * np.pi * x_axis)
+        ref_sin_y = np.sin(self.target_freq * 2.0 * np.pi * x_axis + self.phase_diff)
 
         mae = np.abs(cordic_data - ref_sin_y) / nb_samplepoints # Mean absolute error
         x_axis_rad = self.target_freq * 2.0 * x_axis
@@ -455,9 +472,10 @@ class SimDDS:
 def main():
     target_frequency = 500e3 
     number_cycles =  10
-    sim = SimDDS(target_frequency,number_cycles)
-    #sim.do_dds(compile=True)
-    sim.do_double_driver(compile=False)
+    phase_diff = math.pi / 2
+    sim = SimDDS(target_frequency,number_cycles,phase_diff)
+    sim.do_dds(compile=True)
+    #sim.do_double_driver(compile=False)
 
 if __name__ == "__main__":
     main()
