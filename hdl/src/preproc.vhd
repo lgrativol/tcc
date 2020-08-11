@@ -42,7 +42,9 @@ architecture behavioral of preproc is
     ---------------
     -- Constants --
     ---------------
-    constant        S_PI                    : sfixed((PHASE_INTEGER_PART) downto PHASE_FRAC_PART) := to_sfixed(PI); -- signed PI
+    constant        S_PI                    : sfixed((PHASE_INTEGER_PART) downto PHASE_FRAC_PART) := resize(to_sfixed(PI),
+                                                                                                                PHASE_INTEGER_PART,
+                                                                                                                PHASE_FRAC_PART); -- signed PI
     
     constant        PI_2                    : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( (S_PI / 2.0) , -- signed PI/2
                                                                                                            PHASE_INTEGER_PART,
