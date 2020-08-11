@@ -54,6 +54,7 @@ architecture testbench of fsm_time_zones_tb is
     signal output_strb                         : std_logic;
 
     signal restart_cycles                      : std_logic;
+    signal end_zones_cycle                     : std_logic;
 
 begin
 
@@ -85,7 +86,8 @@ begin
         output_strb_i                       =>output_strb,
         
         -- Control Interface
-        restart_cycles_o                    => restart_cycles
+        restart_cycles_o                    => restart_cycles,
+        end_zones_cycle_o                   => end_zones_cycle
     );
 
     stim_proc : process

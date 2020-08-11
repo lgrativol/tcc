@@ -31,8 +31,8 @@ entity fsm_time_zones is
         output_strb_i                       : in  std_logic;
         
         -- Control Interface
-        restart_cycles_o                    : out std_logic
-
+        restart_cycles_o                    : out std_logic;
+        end_zones_cycle_o                   : out std_logic
     );
 end fsm_time_zones;
 
@@ -80,6 +80,7 @@ architecture behavioral of fsm_time_zones is
 
     -- Output
     signal  restart_cycles                      : std_logic;
+    signal  end_zones_cycle                     : std_logic;
 
 
 begin
@@ -111,7 +112,8 @@ begin
             
         elsif (rising_edge(clock_i)) then
 
-            restart_cycles <= '0';
+            restart_cycles      <= '0';
+            end_zones_cycle     <= '0';
                                     
             case time_state is
                 
@@ -170,6 +172,7 @@ begin
                         time_state       <= ST_TX;
                         counter_tx_time  <= (others => '0');
                         restart_cycles   <= '0';
+                        end_zones_cycle  <= '1';
                     else
                         time_state       <= ST_OFF;
                         counter_off_time <= counter_off_time + 1 ;
@@ -195,6 +198,7 @@ begin
                                     else    '0';  
 
     -- Output
-    restart_cycles_o <= restart_cycles;
+    restart_cycles_o   <= restart_cycles;
+    end_zones_cycle_o  <= end_zones_cycle;
 
 end behavioral;
