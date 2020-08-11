@@ -27,6 +27,8 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/preproc.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_time_zones.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top_dds_cordic.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/double_driver.vhd
+
 
 ################################
 ##  Compile simulation files  ##
@@ -38,3 +40,4 @@ vcom -93  -novopt -O0 ../hdl/sim/sim_write2file.vhd
 vcom -93  -novopt -O0 ../hdl/sim/cordic_tb.vhd
 vcom -93  -novopt -O0 ../hdl/sim/top_dds_cordic_tb.vhd
 vcom -93  -novopt -O0 ../hdl/sim/fsm_time_zones_tb.vhd
+vcom  -novopt -O0 ../hdl/sim/double_driver_tb.vhd
