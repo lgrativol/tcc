@@ -2,6 +2,7 @@ TODO:
 
 *New features (hdl):
 - Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
+- Fix external interface to "std_logic" "std_logic_vector" only
 
 *New features (simulation):
 - Python script -> configurable parameters
