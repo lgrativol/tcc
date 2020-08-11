@@ -130,6 +130,7 @@ begin
     begin
         if (areset_i = '1') then
             strb_output_reg            <= '0';
+            restart_cycles_reg         <= '0';
         elsif ( rising_edge(clock_i) ) then
 
             strb_output_reg <= strb_output;
