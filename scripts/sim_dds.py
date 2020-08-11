@@ -4,12 +4,12 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import subprocess as sb
 from   pylib.FixedPoint import FXfamily, FXnum
 import fileinput
 import sys
 import shutil
-
 
 ###########
 ## Class ##
@@ -22,6 +22,8 @@ class SimDDS:
     SIM_INPUT_FILE        = "hdl/sim/sim_input_pkg.vhd"
     CONFIG_FILE           = "hdl/pkg/utils_pkg.vhd"
     SRC_FILE_PATH         = "work/output.txt"
+    SRC_FILEA_PATH        = "work/outputA.txt"
+    SRC_FILEB_PATH        = "work/outputB.txt"
     NB_CYCLES_WIDTH       = 10 # bits
     TX_TIME_WIDTH         = 18 # bits
     TX_OFF_TIME_WIDTH     = 18 # bits
@@ -51,15 +53,14 @@ class SimDDS:
         self._target_freq = target_freq
         self._nb_cycles = nb_cycles
         self._tx_time = ""
-        self._tx_off_time = 20 
-        self._rx_time = "10 us"
-        self._off_time = 15
+        self._tx_off_time = 300 
+        self._rx_time = "0.1 ms"
+        self._off_time = 100
         self._cordic_word_interger_width = 2 # bits FIX VALUE
         self._cordic_word_frac_width = 19 # bits
         self._cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
         self._nb_cordic_stages = 21
         self._need_reconfig = False
-
 
     @property
     def target_freq(self):
@@ -67,6 +68,7 @@ class SimDDS:
 
     @target_freq.setter
     def target_freq(self,value):
+        self._need_reconfig = True
         if(value > self.SAMPLING_FREQ/2):
             print("WARNING: Maximum frequency = SAMPLING_FREQ/2 : %d [Nyquist]" %(self.SAMPLING_FREQ/2))
             self._target_freq = self.SAMPLING_FREQ/2
@@ -79,6 +81,7 @@ class SimDDS:
 
     @nb_cycles.setter
     def nb_cycles(self,value):
+        self._need_reconfig = True
         if(value < 0):
             self._nb_cycles = 1
         else:
@@ -92,6 +95,7 @@ class SimDDS:
 
     @cordic_word_interger_width.setter
     def cordic_word_interger_width(self,value):
+        self._need_reconfig = True
         self._cordic_word_interger_width = value
     
     @property
@@ -109,6 +113,7 @@ class SimDDS:
     
     @cordic_word_width.setter
     def cordic_word_width(self,value):
+        self._need_reconfig = True
         self._cordic_word_width = value
     
     @property
@@ -126,6 +131,7 @@ class SimDDS:
 
     @tx_time.setter
     def tx_time(self,value):
+        self._need_reconfig = True
         if (value != "" and value != 0):
             if (type(value) is str):
                 if(value[-2:] in self.ACCEPTABLE_TIME_UNIT):
@@ -141,7 +147,7 @@ class SimDDS:
 
     @tx_off_time.setter
     def tx_off_time(self,value):
-
+        self._need_reconfig = True
         if (type(value) is str):
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._tx_off_time = value
@@ -157,7 +163,7 @@ class SimDDS:
 
     @rx_time.setter
     def rx_time(self,value):
-
+        self._need_reconfig = True
         if (type(value) is str):
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._rx_time = value
@@ -173,7 +179,7 @@ class SimDDS:
     
     @off_time.setter
     def off_time(self,value):
-
+        self._need_reconfig = True
         if (type(value) is str):
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._off_time = value
@@ -239,7 +245,6 @@ class SimDDS:
         search_cordic_frac_part     = "CORDIC_FRAC_PART"     
         search_nb_cordic_iterations = "N_CORDIC_ITERATIONS"
 
-
         search_list = [search_cordic_frac_part,search_nb_cordic_iterations]
 
         term_cordic_frac_part     = "    constant N_CORDIC_ITERATIONS    : natural  := %d;\n" %(self._cordic_word_frac_width)
@@ -290,23 +295,34 @@ class SimDDS:
                 return "%1.5f %s" %(time,time_cte[i])
             time *= 1000
 
-    def do(self,compile = True , save_plot = True, dB_fft = True, normalized_freq = False):
+    def _compile_hdl(self,sim_entity,run_all = False):
+        self._write_sim_input()
+
+        if (self._need_reconfig):
+            self._write_config() 
+
+        time = (1.0/self._target_freq) * float(self._nb_cycles)
+        
+        sim_time = ""
+        
+        if (not run_all):
+            sim_time = self._time_stringformat(time)
+        else:
+            sim_time = "-all"
+
+        print("Simulating ....")
+
+        vsim_cmd = "vsim -batch -do \"cd work ; do ../comp.do ; vsim work.%s ; run %s ; quit -f \" " % (sim_entity,sim_time)
+        sb.call(vsim_cmd) ## TODO: add support for compilation errors
+
+        print("Simulation done!")
+
+
+    def do_dds(self,compile = True , save_plot = True, dB_fft = True, normalized_freq = False):
 
         if (compile):
-            self._write_sim_input()
-
-            if (self._need_reconfig):
-                self._write_config() 
-
-            time = (1.0/self._target_freq) * float(self._nb_cycles)
-            sim_time = self._time_stringformat(time)
-
-            print("Simulating ....")
-
-            vsim_cmd = "vsim -batch -do \"cd work ; do ../comp.do ; vsim work.top_dds_cordic_tb ; run %s ; quit -f \" " % (sim_time)
-            sb.call(vsim_cmd) ## TODO: add support for compilation errors
-
-            print("Simulation done!")
+            sim_entity = "top_dds_cordic_tb"
+            self._compile_hdl(sim_entity)
 
         cordic_data = np.loadtxt(self.SRC_FILE_PATH, converters={0 : self.conv})
 
@@ -333,20 +349,27 @@ class SimDDS:
             cordic_fft_plot = 10.0 * np.log10(cordic_fft_plot)
 
         ## Plot
+
+        pi_char = str("\u03C0") ## Pi character 
+
         fig, ax = plt.subplots(2,2)
+        rads_xlabel = " rads"
 
         ax[0][0].grid(True)
         ax[0][0].set_title("DDS vs Python Sine %sHz" % (self._freq_stringformat(self.target_freq)))
         ax[0][0].plot(x_axis_rad,cordic_data,"-b", label="DDS")
         ax[0][0].plot(x_axis_rad,ref_sin_y,"-r", label="Python")
-        ax[0][0].set_xlabel("Pi radians")
+        ax[0][0].set_xlabel(rads_xlabel)
+        ax[0][0].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'+pi_char))
+
         ax[0][0].legend(loc='best')
         
         ax[0][1].grid(True)
         ax[0][1].set_title("Mean Absolute Error")
         ax[0][1].plot(x_axis_rad,mae)
-        ax[0][1].set_xlabel("Pi radians")
-        self._annot_max(x_axis_rad,mae,ax[0][1],xlabel="rads")
+        ax[0][1].set_xlabel(rads_xlabel)
+        ax[0][1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'+pi_char))
+        self._annot_max(x_axis_rad,mae,ax[0][1],xlabel=(pi_char + rads_xlabel))
 
         ax[1][0].grid(True)
         ax[1][0].set_title("Magnitude")
@@ -357,8 +380,49 @@ class SimDDS:
         ax[1][1].set_visible(False)
 
         if(save_plot):
-            fig_name = "fig_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
+            fig_name = "fig_dds_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
             plt.savefig(fig_name)
+
+        plt.tight_layout()
+        plt.show()    
+    
+    def do_double_driver(self, compile = True,save_plot = True):
+        
+        if (compile):
+            sim_entity = "double_driver_tb"
+            self._compile_hdl(sim_entity,run_all=True)
+
+        cordic_dataA = np.loadtxt(self.SRC_FILEA_PATH, converters={0 : self.conv})
+        cordic_dataB = np.loadtxt(self.SRC_FILEB_PATH, converters={0 : self.conv})
+
+        nb_samplepoints = len(cordic_dataA) # Number of samplepoints
+        sample_spacing = 1.0 / self.SAMPLING_FREQ # sample spacing
+
+        x_axis = np.linspace(0.0, (nb_samplepoints*sample_spacing), nb_samplepoints)
+
+        ## Plot
+
+        fig, ax = plt.subplots(2,1)
+
+        time_xlabel = "seconds"
+
+        ax[0].grid(True)
+        ax[0].set_title("Driver A signal %sHz" % (self._freq_stringformat(self.target_freq)))
+        ax[0].plot(x_axis,cordic_dataA,"-b")
+        ax[0].set_xlabel(time_xlabel)
+        ax[0].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
+
+
+        ax[1].grid(True)
+        ax[1].set_title("Driver B signal %sHz" % (self._freq_stringformat(self.target_freq)))
+        ax[1].plot(x_axis,cordic_dataB,"-r")
+        ax[1].set_xlabel(time_xlabel)
+        ax[1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
+
+        if(save_plot):
+            fig_name = "fig_double_driver_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
+            plt.savefig(fig_name)
+
         plt.tight_layout()
         plt.show()    
 
@@ -370,7 +434,8 @@ def main():
     target_frequency = 500e3 
     number_cycles =  10
     sim = SimDDS(target_frequency,number_cycles)
-    sim.do(compile=False)
+    sim.do_dds(compile=False)
+    #sim.do_double_driver(compile=False)
 
 if __name__ == "__main__":
     main()
