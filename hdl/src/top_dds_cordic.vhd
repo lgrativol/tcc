@@ -62,52 +62,32 @@ architecture behavioral of top_dds_cordic is
     -- Signals --
     -------------
 
-    -- Stage 0 Control
-    signal      control_strb_i              : std_logic;
-    signal      control_tx_time             : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
-    signal      control_tx_off_time         : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
-    signal      control_rx_time             : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
-    signal      control_off_time            : std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
-    signal      control_output_strb         : std_logic;
+    -- Stage 1 Control
+    signal      control_strb_i                  : std_logic;
+    signal      control_tx_time                 : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
+    signal      control_tx_off_time             : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
+    signal      control_rx_time                 : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
+    signal      control_off_time                : std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
+    signal      control_output_strb             : std_logic;
 
-    signal      control_restart_cycles      : std_logic;
+    signal      control_restart_cycles          : std_logic;
     
-    -- Stage 1 Phase accumulator
-    signal      phase_acc_strb_i            : std_logic;
-    signal      phase_acc_target_freq       : std_logic_vector( (FREQUENCY_WIDTH - 1) downto 0);
-    signal      phase_acc_nb_cycles         : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-    signal      phase_acc_phase_diff        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    -- Stage 2 DDS Cordic
+    signal      dds_cordic_strb_i               : std_logic;
+    signal      dds_cordic_target_freq          : std_logic_vector( (FREQUENCY_WIDTH - 1) downto 0);
+    signal      dds_cordic_nb_cycles            : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
+    signal      dds_cordic_phase_diff           : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal      dds_cordic_restart_cycles       : std_logic;
+   
+    signal      dds_cordic_strb_o               : std_logic;
+    signal      dds_cordic_sine_phase           : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal      dds_cordic_done_cycles          : std_logic;
+    signal      dds_cordic_flag_full_cycle      : std_logic;
 
-    signal      phase_acc_restart_cycles    : std_logic;
-    signal      phase_acc_done_cycles       : std_logic;
-    signal      phase_acc_flag_full_cycle   : std_logic;
-
-    signal      phase_acc_strb_o            : std_logic;
-    signal      phase_acc_phase             : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
-
-    -- Stage 2 Preprocessor
-    signal      preproc_strb_i              : std_logic;
-    signal      preproc_phase               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
-    
-    signal      preproc_strb_o              : std_logic;
-    signal      preproc_reduced_phase       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-
-    -- Stage 3 Cordic Core
-    signal      cordic_core_strb_i          : std_logic;
-    signal      cordic_core_x_i             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      cordic_core_y_i             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      cordic_core_z_i             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    
-    signal      cordic_core_strb_o          : std_logic;
-    signal      cordic_core_x_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      cordic_core_y_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal      cordic_core_z_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-
-    signal      cordic_core_sideband_i      : std_logic_vector((SIDEBAND_WIDTH -1) downto 0);
 begin
 
     -------------
-    -- Stage 0 --
+    -- Stage 1 --
     -------------
 
     control_strb_i        <=   strb_i;
@@ -115,9 +95,9 @@ begin
     control_tx_off_time   <=   tx_off_time_i;
     control_rx_time       <=   rx_time_i;
     control_off_time      <=   off_time_i;
-    control_output_strb   <=   cordic_core_strb_o;
+    control_output_strb   <=   dds_cordic_strb_o;
 
-    stage_0_control: entity work.fsm_time_zones
+    stage_1_control: entity work.fsm_time_zones
     generic map(
         SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
     )
@@ -135,103 +115,49 @@ begin
         output_strb_i                       => control_output_strb,
         
         -- Control Interface
-        restart_cycles_o                    => control_restart_cycles
+        restart_cycles_o                    => control_restart_cycles,
+        end_zones_cycle_o                   => open
     );
-
-    -------------
-    -- Stage 1 --
-    -------------
-
-    phase_acc_strb_i            <= strb_i;
-    phase_acc_target_freq       <= target_frequency_i;
-    phase_acc_nb_cycles         <= nb_cycles_i;
-    phase_acc_phase_diff        <= phase_diff_i; 
-
-    phase_acc_restart_cycles    <= control_restart_cycles;
-
-    stage_1_phase_acc : entity work.phase_acc 
-        generic map(
-            SAMPLING_FREQUENCY                  => SYSTEM_FREQUENCY
-        )
-        port map(
-            -- Clock interface
-            clock_i                             => clock_i,
-            areset_i                            => areset_i,
-    
-            -- Input interface
-            strb_i                              => phase_acc_strb_i,
-            target_frequency_i                  => phase_acc_target_freq,
-            nb_cycles_i                         => phase_acc_nb_cycles,
-            phase_diff_i                        => phase_acc_phase_diff,
-    
-            -- Control interface
-            restart_cycles_i                    => phase_acc_restart_cycles,
-            done_cycles_o                       => phase_acc_done_cycles,
-            flag_full_cycle_o                   => phase_acc_flag_full_cycle,
-    
-            -- Output interface
-            strb_o                              => phase_acc_strb_o,
-            phase_o                             => phase_acc_phase
-        ); 
 
     -------------
     -- Stage 2 --
     -------------
+    
+    dds_cordic_strb_i               <= control_strb_i;
+    dds_cordic_target_freq          <= target_frequency_i;
+    dds_cordic_nb_cycles            <= nb_cycles_i;
+    dds_cordic_phase_diff           <= phase_diff_i;
+    dds_cordic_restart_cycles       <= control_restart_cycles;
 
-    preproc_strb_i  <= phase_acc_strb_o;
-    preproc_phase   <= phase_acc_phase;
-
-    stage_2_preproc : entity work.preproc
+    stage_2_dds_cordic: entity work.dds_cordic
+        generic map(
+            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
+        )
         port map(
             -- Clock interface
-            clock_i                            =>  clock_i, 
-            areset_i                           =>  areset_i, -- Positive async reset
-
-            -- Input interface
-            strb_i                             =>  preproc_strb_i, -- Valid in
-            phase_i                            =>  preproc_phase,
-
-            -- Output interface
-            strb_o                             => preproc_strb_o,
-            reduced_phase_o                    => preproc_reduced_phase
-        ); 
-
-    --------------
-    -- Stage 3  --
-    --------------
+            clock_i                             => clock_i,
+            areset_i                            => areset_i, 
     
-    cordic_core_strb_i <= preproc_strb_o;
-
-    cordic_core_x_i <= CORDIC_FACTOR;
-    cordic_core_y_i <= (others => '0');
-    cordic_core_z_i <= preproc_reduced_phase;
-
-    stage_3_cordic_core : entity work.cordic_core
-        port map (
-            clock_i                         => clock_i, 
-            areset_i                        => areset_i, -- Positive async reset
-
-            sideband_data_i                 => cordic_core_sideband_i,
-            sideband_data_o                 => open,
+            -- Input interface
+            strb_i                              => dds_cordic_strb_i,
+            target_frequency_i                  => dds_cordic_target_freq,
+            nb_cycles_i                         => dds_cordic_nb_cycles,
+            phase_diff_i                        => dds_cordic_phase_diff,
+            restart_cycles_i                    => dds_cordic_restart_cycles,
             
-            strb_i                          => cordic_core_strb_i, -- Valid in
-            
-            X_i                             => cordic_core_x_i,   -- X initial coordinate
-            Y_i                             => cordic_core_y_i,   -- Y initial coordinate
-            Z_i                             => cordic_core_z_i,   -- angle to rotate
-            
-            strb_o                          => cordic_core_strb_o,
-            X_o                             => cordic_core_x_o, -- cossine NOTE: to use the cossine a posprocessor is needed 
-            Y_o                             => cordic_core_y_o, -- sine
-            Z_o                             => cordic_core_z_o  -- angle after rotation
+            -- Output interface
+            strb_o                              => dds_cordic_strb_o,
+            sine_phase_o                        => dds_cordic_sine_phase,
+            done_cycles_o                       => dds_cordic_done_cycles,
+            flag_full_cycle_o                   => dds_cordic_flag_full_cycle
         );
 
     ------------
     -- Output --
     ------------
-    strb_o              <= cordic_core_strb_o;
-    flag_full_cycle_o   <= phase_acc_flag_full_cycle;
-    sine_phase_o        <= cordic_core_y_o;
-    done_cycles_o       <= phase_acc_done_cycles;
+    strb_o              <= dds_cordic_strb_o;
+    sine_phase_o        <= dds_cordic_sine_phase;
+    done_cycles_o       <= dds_cordic_done_cycles;
+    flag_full_cycle_o   <= dds_cordic_flag_full_cycle;
 
     end behavioral;
