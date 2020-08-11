@@ -109,6 +109,7 @@ begin
         if (areset_i = '1') then
             time_state      <= ST_INPUT;
             restart_cycles  <= '0';
+            end_zones_cycle <= '0';
             
         elsif (rising_edge(clock_i)) then
 
