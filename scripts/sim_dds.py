@@ -27,7 +27,7 @@ class SimDDS:
     TX_OFF_TIME_WIDTH     = 18 # bits
     RX_TIME_WIDTH         = 18 # bits
     OFF_TIME_WIDTH        = 18 # bits
-    ACCEPTABLE_TIME_UNIT  = ["ns","us","ms"]
+    ACCEPTABLE_TIME_UNIT  = ['ns','us','ms']
     
     def __init__(self,target_freq, nb_cycles):
         """
@@ -48,135 +48,140 @@ class SimDDS:
         If <tx_time> is an empty string "" or zero 0, tx_time = ((SAMPLING_FREQ/target_freq) * nb_cycles)
         
         """
-        self.target_freq = self.target_freq(target_freq)
-        self.nb_cycles = nb_cycles(nb_cycles)
-        self.tx_time = ""
-        self.tx_off_time = 20 
-        self.rx_time = "10 us"
-        self.off_time = 15
-        self.cordic_word_interger_width = 2 # bits FIX VALUE
-        self.cordic_word_frac_width = 19 # bits
-        self.cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
-        self.nb_cordic_stages = 21
-        self.need_reconfig = False
+        self._target_freq = target_freq
+        self._nb_cycles = nb_cycles
+        self._tx_time = ""
+        self._tx_off_time = 20 
+        self._rx_time = "10 us"
+        self._off_time = 15
+        self._cordic_word_interger_width = 2 # bits FIX VALUE
+        self._cordic_word_frac_width = 19 # bits
+        self._cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
+        self._nb_cordic_stages = 21
+        self._need_reconfig = False
 
-    @property
-    def SAMPLING_FREQ(self):
-        return self.__SAMPLING_FREQ
 
     @property
     def target_freq(self):
-        return self.__target_freq
+        return self._target_freq
 
     @target_freq.setter
-    def target_freq(self,target_freq):
-        if(target_freq > self.SAMPLING_FREQ/2):
+    def target_freq(self,value):
+        if(value > self.SAMPLING_FREQ/2):
             print("WARNING: Maximum frequency = SAMPLING_FREQ/2 : %d [Nyquist]" %(self.SAMPLING_FREQ/2))
-            self.__target_freq = self.SAMPLING_FREQ/2
+            self._target_freq = self.SAMPLING_FREQ/2
         else:
-            self.__target_freq = self.SAMPLING_FREQ/2
+            self._target_freq = self.SAMPLING_FREQ/2
 
     @property
     def nb_cycles(self):
-        return self.__nb_cycles
+        return self._nb_cycles
 
-    @nb_cycles.setterr
-    def nb_cycles(self,nb_cycles):
-        if(nb_cycles < 0):
-            self.__nb_cycles = 1
+    @nb_cycles.setter
+    def nb_cycles(self,value):
+        if(value < 0):
+            self._nb_cycles = 1
         else:
-            if(nb_cycles > (2** self.NB_CYCLES_WIDTH - 1)):
-                self.__nb_cycles = (2** self.NB_CYCLES_WIDTH - 1)
+            if(value > (2** self.NB_CYCLES_WIDTH - 1)):
+                self._nb_cycles = (2** self.NB_CYCLES_WIDTH - 1)
             else:
-                self.__nb_cycles = nb_cycles
+                self._nb_cycles = value
     @property
     def cordic_word_interger_width(self):
-        return self.__cordic_word_interger_width
+        return self._cordic_word_interger_width
+
+    @cordic_word_interger_width.setter
+    def cordic_word_interger_width(self,value):
+        self._cordic_word_interger_width = value
     
     @property
     def cordic_word_frac_width(self):
-        return self.__cordic_word_frac_width
+        return self._cordic_word_frac_width
 
     @cordic_word_frac_width.setter
-    def cordic_word_frac_width(self,cordic_word_frac_width):
-        self.need_reconfig = True
-        self.__cordic_word_frac_width = cordic_word_frac_width
+    def cordic_word_frac_width(self,value):
+        self._need_reconfig = True
+        self._cordic_word_frac_width = value
 
     @property
     def cordic_word_width(self):
-        return self.__cordic_word_width
-
+        return self._cordic_word_width
+    
+    @cordic_word_width.setter
+    def cordic_word_width(self,value):
+        self._cordic_word_width = value
+    
     @property
     def nb_cordic_stages(self):
-        return self.__nb_cordic_stages
+        return self._nb_cordic_stages
 
     @nb_cordic_stages.setter
-    def nb_cordic_stages(self,nb_cordic_stages):
-        self.need_reconfig = True
-        self.__nb_cordic_stages = nb_cordic_stages
+    def nb_cordic_stages(self,value):
+        self._need_reconfig = True
+        self._nb_cordic_stages = value
 
     @property
     def tx_time(self):
-        return self.__tx_time
+        return self._tx_time
 
     @tx_time.setter
-    def tx_time(self,tx_time):
-        if (tx_time != "" and tx_time != 0):
-            if (type(tx_time) is str):
-                if(tx_time[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
-                    self.__tx_time = tx_time
+    def tx_time(self,value):
+        if (value != "" and value != 0):
+            if (type(value) is str):
+                if(value[-2:] in self.ACCEPTABLE_TIME_UNIT):
+                    self._tx_time = value
             else:
-                if (tx_time > (2** self.TX_TIME_WIDTH - 1)):
-                    self.__tx_time = (2** self.TX_TIME_WIDTH - 1)
+                if (value > (2** self.TX_TIME_WIDTH - 1)):
+                    self._tx_time = (2** self.TX_TIME_WIDTH - 1)
                 else:
-                    self.__tx_time = tx_time 
+                    self._tx_time = value 
     @property
     def tx_off_time(self):
-        return self.__tx_off_time
+        return self._tx_off_time
 
     @tx_off_time.setter
-    def tx_off_time(self,tx_off_time):
+    def tx_off_time(self,value):
 
-        if (type(tx_off_time) is str):
-            if(tx_off_time[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
-                self.__tx_off_time = tx_off_time
+        if (type(value) is str):
+            if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
+                self._tx_off_time = value
         else:
-            if (tx_off_time > (2** self.TX_OFF_TIME_WIDTH - 1)):
-                self.__tx_off_time = (2** self.TX_OFF_TIME_WIDTH - 1)
+            if (value > (2** self.TX_OFF_TIME_WIDTH - 1)):
+                self._tx_off_time = (2** self.TX_OFF_TIME_WIDTH - 1)
             else:
-                self.__tx_off_time = tx_off_time if tx_off_time > 0 else 1
+                self._tx_off_time = value if value > 0 else 1
 
     @property
     def rx_time(self):
-        return self.__rx_time
+        return self._rx_time
 
     @rx_time.setter
-    def rx_time(self,rx_time):
+    def rx_time(self,value):
 
-        if (type(rx_time) is str):
-            if(rx_time[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
-                self.__rx_time = rx_time
+        if (type(value) is str):
+            if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
+                self._rx_time = value
         else:
-            if (rx_time > (2** self.RX_TIME_WIDTH - 1)):
-                self.__rx_time = (2** self.RX_TIME_WIDTH - 1)
+            if (value > (2** self.RX_TIME_WIDTH - 1)):
+                self._rx_time = (2** self.RX_TIME_WIDTH - 1)
             else:
-                self.__rx_time = rx_time if rx_time > 0 else 1
+                self._rx_time = value if value > 0 else 1
 
     @property
     def off_time(self):
-        return self.__off_time
+        return self._off_time
     
     @off_time.setter
-    def off_time(self,off_time):
+    def off_time(self,value):
 
-        if (type(off_time) is str):
-            if(off_time[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
-                self.__off_time = off_time
+        if (type(value) is str):
+            if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
+                self._off_time = value
         else:
-            if (off_time > (2** self.OFF_TIME_WIDTH - 1)):
-                self.__off_time = (2** self.OFF_TIME_WIDTH - 1)
+            if (value > (2** self.OFF_TIME_WIDTH - 1)):
+                self._off_time = (2** self.OFF_TIME_WIDTH - 1)
             else:
-                self.__off_time = off_time if off_time > 0 else 1
+                self._off_time = value if value > 0 else 1
 
 
     def _replace_all (self,file,replace_search,replace_term):
@@ -185,15 +190,11 @@ class SimDDS:
         replace_search : LIST with elements to be search on one line
         replace_term : LIST with elements to be replaced on one line
         """
-        count_findings = 0
         for line in fileinput.input(file, inplace=1):
             for i, search_exp in enumerate(replace_search):
                 if search_exp in line:
                     line = replace_term[i]
-                    count_findings += 1
             sys.stdout.write(line)
-            if(count_findings == len(replace_search)):
-                break
         
 
     def _write_sim_input(self):
@@ -201,18 +202,18 @@ class SimDDS:
         search_freq        = "SIM_INPUT_TARGETFREQ"
         search_nbcycles    = "SIM_INPUT_NBCYCLES"
         search_tx_time     = "SIM_INPUT_TX_TIME"     
-        search_tx_off_time = "SIM_INPUT_TX__OFF_TIME"
+        search_tx_off_time = "SIM_INPUT_TX_OFF_TIME"
         search_rx_time     = "SIM_INPUT_RX_TIME"      
         search_off_time    = "SIM_INPUT_OFF_TIME"   
 
         search_list = [search_freq,search_nbcycles,search_tx_time,search_tx_off_time,search_rx_time,search_off_time]
         
-        term_target_frequency = "   constant SIM_INPUT_TARGETFREQ     : positive  := %d;\n" %(self.target_freq)
-        term_nb_cycles        = "   constant SIM_INPUT_NBCYCLES       : natural   := %d;\n" %(self.nb_cycles)
-        term_tx_time          = "   constant SIM_INPUT_TX_TIME        : positive  := %d;\n" %(self.tx_time)
-        term_tx_off_time      = "   constant SIM_INPUT_TX_OFF_TIME    : positive  := %d;\n" %(self.tx_off_time)
-        term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self.rx_time)
-        term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self.off_time)
+        term_target_frequency = "   constant SIM_INPUT_TARGETFREQ     : positive  := %d;\n" %(self._target_freq)
+        term_nb_cycles        = "   constant SIM_INPUT_NBCYCLES       : natural   := %d;\n" %(self._nb_cycles)
+        term_tx_time          = "   constant SIM_INPUT_TX_TIME        : positive  := %d;\n" %(self._format_time_zone(self._tx_time))
+        term_tx_off_time      = "   constant SIM_INPUT_TX_OFF_TIME    : positive  := %d;\n" %(self._format_time_zone(self._tx_off_time))
+        term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self._format_time_zone(self._rx_time))
+        term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self._format_time_zone(self._off_time))
  
         term_list = [term_target_frequency,term_nb_cycles,term_tx_time,term_tx_off_time,term_rx_time,term_off_time]
 
@@ -224,8 +225,8 @@ class SimDDS:
             if (time_zone == ""):
                 return ((self.SAMPLING_FREQ/self.target_freq) * self.nb_cycles)
             else:
-                index = self.ACCEPTABLE_TIME_UNIT.index[time_zone[-2:-1]]
-                time_in_ns = float(time_zone[0:-3]) * (1000**index)
+                index = self.ACCEPTABLE_TIME_UNIT.index(time_zone[-2:])
+                time_in_ns = ( float(time_zone[0:-3]) * (10**(-9)) ) * (1000**index)
                 return time_in_ns * self.SAMPLING_FREQ
         else:
             if (time_zone == 0):
@@ -241,13 +242,13 @@ class SimDDS:
 
         search_list = [search_cordic_frac_part,search_nb_cordic_iterations]
 
-        term_cordic_frac_part     = "    constant N_CORDIC_ITERATIONS    : natural  := %d;\n" %(self.cordic_word_frac_width)
-        term_nb_cordic_iterations = "    constant CORDIC_FRAC_PART       : integer  := %d;\n" %(self.nb_cordic_stages)
+        term_cordic_frac_part     = "    constant N_CORDIC_ITERATIONS    : natural  := %d;\n" %(self._cordic_word_frac_width)
+        term_nb_cordic_iterations = "    constant CORDIC_FRAC_PART       : integer  := %d;\n" %(self._nb_cordic_stages)
 
         term_list = [term_cordic_frac_part,term_nb_cordic_iterations]
 
         self._replace_all(self.CONFIG_FILE,search_list,term_list)
-        self.need_reconfig = False      
+        self._need_reconfig = False      
 
     def conv (self,shex):
 
@@ -294,10 +295,10 @@ class SimDDS:
         if (compile):
             self._write_sim_input()
 
-            if (self.need_reconfig):
+            if (self._need_reconfig):
                 self._write_config() 
 
-            time = (1.0/self.target_freq) * float(self.nb_cycles)
+            time = (1.0/self._target_freq) * float(self._nb_cycles)
             sim_time = self._time_stringformat(time)
 
             print("Simulating ....")
@@ -310,7 +311,7 @@ class SimDDS:
         cordic_data = np.loadtxt(self.SRC_FILE_PATH, converters={0 : self.conv})
 
         nb_samplepoints = len(cordic_data) # Number of samplepoints
-        sample_spacing = 1.0 / self. SAMPLING_FREQ # sample spacing
+        sample_spacing = 1.0 / self.SAMPLING_FREQ # sample spacing
 
         x_axis = np.linspace(0.0, (nb_samplepoints*sample_spacing), nb_samplepoints)
         ref_sin_y = np.sin(self.target_freq * 2.0 * np.pi * x_axis)
@@ -338,16 +339,19 @@ class SimDDS:
         ax[0][0].set_title("DDS vs Python Sine %sHz" % (self._freq_stringformat(self.target_freq)))
         ax[0][0].plot(x_axis_rad,cordic_data,"-b", label="DDS")
         ax[0][0].plot(x_axis_rad,ref_sin_y,"-r", label="Python")
+        ax[0][0].set_xlabel("Pi radians")
         ax[0][0].legend(loc='best')
         
         ax[0][1].grid(True)
         ax[0][1].set_title("Mean Absolute Error")
         ax[0][1].plot(x_axis_rad,mae)
+        ax[0][1].set_xlabel("Pi radians")
         self._annot_max(x_axis_rad,mae,ax[0][1],xlabel="rads")
 
         ax[1][0].grid(True)
         ax[1][0].set_title("Magnitude")
         ax[1][0].semilogx(cordic_freqs[:nb_samplepoints//2],cordic_fft_plot[:nb_samplepoints//2]) ## Only the real half
+        ax[1][0].set_xlabel("Frequency")
         self._annot_max(cordic_freqs[:nb_samplepoints//2],cordic_fft_plot,ax[1][0],xlabel=" Hz",ylabel=y_fftlabel)
 
         ax[1][1].set_visible(False)
@@ -355,6 +359,7 @@ class SimDDS:
         if(save_plot):
             fig_name = "fig_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
             plt.savefig(fig_name)
+        plt.tight_layout()
         plt.show()    
 
 ##########
@@ -363,9 +368,9 @@ class SimDDS:
 
 def main():
     target_frequency = 500e3 
-    number_cycles =  1
+    number_cycles =  10
     sim = SimDDS(target_frequency,number_cycles)
-    sim.do(compile= False, save_plot= False)
+    sim.do(compile=False)
 
 if __name__ == "__main__":
     main()

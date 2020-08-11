@@ -152,7 +152,7 @@ begin
         )
         port map (
             clock           => clk,
-            hold            => '1',
+            hold            => '0',
             data_valid      => strb_o,
             data_in         => write_data_in
         ); 
