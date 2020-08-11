@@ -60,7 +60,7 @@ class SimDDS:
         self._cordic_word_frac_width = 19 # bits
         self._cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
         self._nb_cordic_stages = 21
-        self._need_reconfig = False
+        self.need_reconfig = False
 
     @property
     def target_freq(self):
@@ -214,12 +214,12 @@ class SimDDS:
 
         search_list = [search_freq,search_nbcycles,search_tx_time,search_tx_off_time,search_rx_time,search_off_time]
         
-        term_target_frequency = "   constant SIM_INPUT_TARGETFREQ     : positive  := %d;\n" %(self._target_freq)
-        term_nb_cycles        = "   constant SIM_INPUT_NBCYCLES       : natural   := %d;\n" %(self._nb_cycles)
-        term_tx_time          = "   constant SIM_INPUT_TX_TIME        : positive  := %d;\n" %(self._format_time_zone(self._tx_time))
-        term_tx_off_time      = "   constant SIM_INPUT_TX_OFF_TIME    : positive  := %d;\n" %(self._format_time_zone(self._tx_off_time))
-        term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self._format_time_zone(self._rx_time))
-        term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self._format_time_zone(self._off_time))
+        term_target_frequency = "   constant SIM_INPUT_TARGETFREQ     : positive  := %d;\n" %(self.target_freq)
+        term_nb_cycles        = "   constant SIM_INPUT_NBCYCLES       : natural   := %d;\n" %(self.nb_cycles)
+        term_tx_time          = "   constant SIM_INPUT_TX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.tx_time))
+        term_tx_off_time      = "   constant SIM_INPUT_TX_OFF_TIME    : positive  := %d;\n" %(self._format_time_zone(self.tx_off_time))
+        term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.rx_time))
+        term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self._format_time_zone(self.off_time))
  
         term_list = [term_target_frequency,term_nb_cycles,term_tx_time,term_tx_off_time,term_rx_time,term_off_time]
 
@@ -247,8 +247,8 @@ class SimDDS:
 
         search_list = [search_cordic_frac_part,search_nb_cordic_iterations]
 
-        term_cordic_frac_part     = "    constant N_CORDIC_ITERATIONS    : natural  := %d;\n" %(self._cordic_word_frac_width)
-        term_nb_cordic_iterations = "    constant CORDIC_FRAC_PART       : integer  := %d;\n" %(self._nb_cordic_stages)
+        term_cordic_frac_part     = "    constant N_CORDIC_ITERATIONS    : natural  := %d;\n" %(self.cordic_word_frac_width)
+        term_nb_cordic_iterations = "    constant CORDIC_FRAC_PART       : integer  := %d;\n" %(self.nb_cordic_stages)
 
         term_list = [term_cordic_frac_part,term_nb_cordic_iterations]
 
@@ -298,10 +298,10 @@ class SimDDS:
     def _compile_hdl(self,sim_entity,run_all = False):
         self._write_sim_input()
 
-        if (self._need_reconfig):
+        if (self.need_reconfig):
             self._write_config() 
 
-        time = (1.0/self._target_freq) * float(self._nb_cycles)
+        time = (1.0/self.target_freq) * float(self.nb_cycles)
         
         sim_time = ""
         
@@ -400,6 +400,17 @@ class SimDDS:
 
         x_axis = np.linspace(0.0, (nb_samplepoints*sample_spacing), nb_samplepoints)
 
+        tx_pos = self._format_time_zone(self.tx_time)
+        tx_off_pos = tx_pos + self._format_time_zone(self.tx_off_time)
+        rx_pos = tx_off_pos + self._format_time_zone(self.rx_time)
+        off_pos = rx_pos + self._format_time_zone(self.off_time)
+
+        x_line_annots = [ [0," "],
+                          [tx_pos, "TX ZONE"],
+                          [tx_off_pos, "TX_OFF_ZONE"],
+                          [rx_pos, "RX ZONE"] ,
+                          [off_pos, "OFF ZONE" ]]
+
         ## Plot
 
         fig, ax = plt.subplots(2,1)
@@ -419,6 +430,17 @@ class SimDDS:
         ax[1].set_xlabel(time_xlabel)
         ax[1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
 
+        for axis in ax:
+            for annot in x_line_annots :
+                xline_point = annot[0] * sample_spacing
+
+                xtext_point = (annot[0] - 100) * sample_spacing
+                
+                xtext       = annot[1]
+                
+                axis.axvline(x=xline_point, linestyle=':', color = 'black', alpha=0.7)
+                #axis.text(x=xtext_point, y=1, s=xtext, alpha=1, color='black')
+
         if(save_plot):
             fig_name = "fig_double_driver_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
             plt.savefig(fig_name)
@@ -434,8 +456,8 @@ def main():
     target_frequency = 500e3 
     number_cycles =  10
     sim = SimDDS(target_frequency,number_cycles)
-    sim.do_dds(compile=False)
-    #sim.do_double_driver(compile=False)
+    #sim.do_dds(compile=True)
+    sim.do_double_driver(compile=False)
 
 if __name__ == "__main__":
     main()
