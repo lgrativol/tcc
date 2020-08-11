@@ -24,6 +24,7 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_core.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_slice.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/phase_acc.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/preproc.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_time_zones.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top_dds_cordic.vhd
 
