@@ -1,14 +1,14 @@
 TODO:
 
 *New features (hdl):
+- Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
 
 *New features (simulation):
 - Python script -> configurable parameters
 - Python script -> performance analysis -> improve
-
 - Make NB_CYCLES_WIDTH configurable
 - Add PHASE_FRAC_PART configuration in sim_dds.py
-- Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
+- Python script -> rethink "need_reconfig" option
 
 *Overall
 - Build demonstration
