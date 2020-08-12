@@ -1,15 +1,20 @@
 TODO:
 
 *New features (hdl):
+- "Time" phase option (check Alan's email 11/08)
+- Check windows implementation (check Alan's email 11/08)
 - Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
-- Fix external interface to "std_logic" "std_logic_vector" only
 
 *New features (simulation):
-- Python script -> configurable parameters
-- Python script -> performance analysis -> improve
-- Make NB_CYCLES_WIDTH configurable
 - Add PHASE_FRAC_PART configuration in sim_dds.py
-- Python script -> rethink "need_reconfig" option
+- Make NB_CYCLES_WIDTH configurable
 
-*Overall
+* Problems/Fix:
+- DDS(hdl) -> First sine result always "0" not sine(phase + phase_diff)
+- DDS(hdl) -> Last (in last period) sine result not ending in sine(2pi + phase_diff) or sine(phase_diff)
+- Python script -> rethink "need_reconfig" option
+- Fix external interface to "std_logic" "std_logic_vector" only
+
+*Overall:
 - Build demonstration
+- Python script -> performance analysis -> improve
