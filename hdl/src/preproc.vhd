@@ -97,9 +97,9 @@ begin
             strb_reg <= '0';
         elsif ( rising_edge(clock_i) ) then
             
-            strb_reg <= strb_i;
+            strb_reg <= strb_i_reg;
 
-            if ( strb_i = '1' ) then
+            if ( strb_i_reg = '1' ) then
 
                 if ( phase_less_pi_2 = '1') then     -- phase in first quad
                     reduced_phase_reg <= resize(sphase_reg,PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase
