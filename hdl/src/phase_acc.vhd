@@ -87,7 +87,6 @@ architecture behavioral of phase_acc is
     signal restart_cycles_reg               : std_logic;
 
     signal start_new_cycle                  : std_logic;
-    signal two_diff_delta                   : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal two_pi_phase                     : std_logic;
     signal set_zero_phase                   : std_logic;
 
