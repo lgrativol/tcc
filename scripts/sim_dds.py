@@ -31,6 +31,7 @@ class SimDDS:
     RX_TIME_WIDTH         = 18 # bits
     OFF_TIME_WIDTH        = 18 # bits
     PHASE_FRAC_PART       = 35 # bits
+    FIX_LATENCY           = 4  
     ACCEPTABLE_TIME_UNIT  = ['ns','us','ms']
     
     def __init__(self,target_freq, nb_cycles, phase_diff):
@@ -201,7 +202,7 @@ class SimDDS:
 
     def _format_phase(self):
         phase = int( self.phase_diff * 2**(self.PHASE_FRAC_PART))
-        phase_str = '%010x' %(phase)
+        phase_str = '%010x' %(phase) ## TODO: Pass it to generic f(PHASE_FRAC_PART)
         return phase_str
 
 
@@ -318,14 +319,15 @@ class SimDDS:
         if (self.need_reconfig):
             self._write_config() 
 
-        time = (1.0/self.target_freq) * float(self.nb_cycles)
+        dds_latency_time = (self.nb_cordic_stages + self.FIX_LATENCY) * (1/self.SAMPLING_FREQ)
+        time = (1.0/self.target_freq) * float(self.nb_cycles + 1) + dds_latency_time
         
         sim_time = ""
         
-        if (not run_all):
-            sim_time = self._time_stringformat(time)
-        else:
+        if (run_all):
             sim_time = "-all"
+        else:
+            sim_time = self._time_stringformat(time)
 
         print("Simulating ....")
 
@@ -471,11 +473,10 @@ class SimDDS:
 
 def main():
     target_frequency = 500e3 
-    number_cycles =  10
+    number_cycles =  4
     phase_diff = math.pi / 2
     sim = SimDDS(target_frequency,number_cycles,phase_diff)
-    sim.do_dds(compile=False)
-    #sim.do_double_driver(compile=False)
+    sim.do_dds(compile=True)
 
 if __name__ == "__main__":
     main()
