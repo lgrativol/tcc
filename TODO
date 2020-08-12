@@ -2,7 +2,13 @@ TODO:
 
 * New features (hdl):
 - "Time" phase option (check Alan's email 11/08)
-- Check windows implementation (check Alan's email 11/08)
+- Check windows implementation (check Alan's email 11/08) : - Tukey (maybe)
+                                                            - Hanning (OK)
+                                                            - Hamming (OK)
+                                                            - Blackman  (OK)
+                                                            - Blackman–Harris (OK)
+                                                            - Gaussian -> exp(-(2*pi*freq/cycles*(t-pos)).^2/2).*cos(2*pi*freq*(t)-phase)
+
 - Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
 
 * New features (simulation):
@@ -10,8 +16,6 @@ TODO:
 - Make NB_CYCLES_WIDTH configurable
 
 * Problems/Fix:
-- DDS(hdl) -> First sine result always "0" not sine(phase + phase_diff)
-- DDS(hdl) -> Last (in last period) sine result not ending in sine(2pi + phase_diff) or sine(phase_diff)
 - Python script -> rethink "need_reconfig" option
 - Fix external interface to "std_logic" "std_logic_vector" only
 
