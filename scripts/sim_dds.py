@@ -329,7 +329,7 @@ class SimDDS:
 
         print("Simulating ....")
 
-        vsim_cmd = "vsim -batch -do \"cd work ; do ../comp.do ; vsim work.%s ; run %s ; quit -f \" " % (sim_entity,sim_time)
+        vsim_cmd = "vsim -batch -do \"cd work ; do ../comp.do ; vsim work.%s ; run %s ; quit -f \" " % (sim_entity,sim_time) ## TODO: Separate compilation and simulation
         sb.call(vsim_cmd) ## TODO: add support for compilation errors
 
         print("Simulation done!")
@@ -392,7 +392,7 @@ class SimDDS:
         ax[1][0].set_title("Magnitude")
         ax[1][0].semilogx(cordic_freqs[:nb_samplepoints//2],cordic_fft_plot[:nb_samplepoints//2]) ## Only the real half
         ax[1][0].set_xlabel("Frequency")
-        self._annot_max(cordic_freqs[:nb_samplepoints//2],cordic_fft_plot,ax[1][0],xlabel=" Hz",ylabel=y_fftlabel)
+        self._annot_max(cordic_freqs[:nb_samplepoints//2],cordic_fft_plot[:nb_samplepoints//2],ax[1][0],xlabel=" Hz",ylabel=y_fftlabel)
 
         ax[1][1].set_visible(False)
 
@@ -474,7 +474,7 @@ def main():
     number_cycles =  10
     phase_diff = math.pi / 2
     sim = SimDDS(target_frequency,number_cycles,phase_diff)
-    sim.do_dds(compile=True)
+    sim.do_dds(compile=False)
     #sim.do_double_driver(compile=False)
 
 if __name__ == "__main__":
