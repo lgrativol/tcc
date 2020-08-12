@@ -1,11 +1,11 @@
 TODO:
 
-*New features (hdl):
+* New features (hdl):
 - "Time" phase option (check Alan's email 11/08)
 - Check windows implementation (check Alan's email 11/08)
 - Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
 
-*New features (simulation):
+* New features (simulation):
 - Add PHASE_FRAC_PART configuration in sim_dds.py
 - Make NB_CYCLES_WIDTH configurable
 
@@ -15,6 +15,6 @@ TODO:
 - Python script -> rethink "need_reconfig" option
 - Fix external interface to "std_logic" "std_logic_vector" only
 
-*Overall:
+* Overall:
 - Build demonstration
 - Python script -> performance analysis -> improve
