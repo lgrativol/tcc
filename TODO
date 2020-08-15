@@ -16,7 +16,6 @@ TODO:
 - Make NB_CYCLES_WIDTH configurable
 
 * Problems/Fix:
-- Python script -> rethink "need_reconfig" option
 - Fix external interface to "std_logic" "std_logic_vector" only
 
 * Overall:
