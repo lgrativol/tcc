@@ -106,7 +106,7 @@ class SimDDS:
 
     @cordic_word_interger_width.setter
     def cordic_word_interger_width(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         self._cordic_word_interger_width = value
     
     @property
@@ -115,7 +115,7 @@ class SimDDS:
 
     @cordic_word_frac_width.setter
     def cordic_word_frac_width(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         self._cordic_word_frac_width = value
 
     @property
@@ -124,7 +124,7 @@ class SimDDS:
     
     @cordic_word_width.setter
     def cordic_word_width(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         self._cordic_word_width = value
     
     @property
@@ -133,7 +133,7 @@ class SimDDS:
 
     @nb_cordic_stages.setter
     def nb_cordic_stages(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         self._nb_cordic_stages = value
 
     @property
@@ -142,7 +142,7 @@ class SimDDS:
 
     @tx_time.setter
     def tx_time(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         if (value != "" and value != 0):
             if (type(value) is str):
                 if(value[-2:] in self.ACCEPTABLE_TIME_UNIT):
@@ -158,7 +158,7 @@ class SimDDS:
 
     @tx_off_time.setter
     def tx_off_time(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         if (type(value) is str):
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._tx_off_time = value
@@ -174,7 +174,7 @@ class SimDDS:
 
     @rx_time.setter
     def rx_time(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         if (type(value) is str):
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._rx_time = value
@@ -190,7 +190,7 @@ class SimDDS:
     
     @off_time.setter
     def off_time(self,value):
-        self._need_reconfig = True
+        self.need_reconfig = True
         if (type(value) is str):
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._off_time = value
@@ -271,7 +271,7 @@ class SimDDS:
         term_list = [term_cordic_frac_part,term_nb_cordic_iterations]
 
         self._replace_all(self.CONFIG_FILE,search_list,term_list)
-        self._need_reconfig = False      
+        self.need_reconfig = False      
 
     def conv (self,shex):
 
@@ -313,17 +313,13 @@ class SimDDS:
                 return "%1.5f %s" %(time,time_cte[i])
             time *= 1000
 
-    def _compile_hdl(self,sim_entity,run_all = False):
+    def _sim_hdl(self,hdl_entity,run_all = False):
         self._write_sim_input()
-
-        if (self.need_reconfig):
-            self._write_config() 
 
         dds_latency_time = (self.nb_cordic_stages + self.FIX_LATENCY) * (1/self.SAMPLING_FREQ)
         time = (1.0/self.target_freq) * float(self.nb_cycles + 1) + dds_latency_time
-        
         sim_time = ""
-        
+
         if (run_all):
             sim_time = "-all"
         else:
@@ -331,17 +327,32 @@ class SimDDS:
 
         print("Simulating ....")
 
-        vsim_cmd = "vsim -batch -do \"cd work ; do ../comp.do ; vsim work.%s ; run %s ; quit -f \" " % (sim_entity,sim_time) ## TODO: Separate compilation and simulation
-        sb.call(vsim_cmd) ## TODO: add support for compilation errors
+        vsim_cmd_sim = "vsim -batch -do \"cd work ; vsim work.%s ; run %s ; quit -f \" " % (hdl_entity,sim_time)
+        sb.call(vsim_cmd_sim) 
 
         print("Simulation done!")
 
 
+    def _compile_hdl(self):
+
+        if( self.need_reconfig):
+            self._write_config() 
+
+        print("Compiling ....")
+
+        vsim_cmd_compile = "vsim -batch -do \" cd work ; do ../comp.do ; quit -f \" "
+        sb.call(vsim_cmd_compile) ## TODO: add support for compilation errors
+
+        print("Compilation done!")
+
     def do_dds(self,compile = True , save_plot = True, dB_fft = True, normalized_freq = False):
 
+        hdl_entity = "top_dds_cordic_tb"
+
         if (compile):
-            sim_entity = "top_dds_cordic_tb"
-            self._compile_hdl(sim_entity)
+            self._compile_hdl()
+        
+        self._sim_hdl(hdl_entity)
 
         cordic_data = np.loadtxt(self.SRC_FILE_PATH, converters={0 : self.conv})
 
@@ -354,18 +365,18 @@ class SimDDS:
         mae = np.abs(cordic_data - ref_sin_y) / nb_samplepoints # Mean absolute error
         x_axis_rad = self.target_freq * 2.0 * x_axis
 
-        cordic_fft = np.fft.fft(cordic_data,nb_samplepoints) / nb_samplepoints
+        cordic_fft = np.fft.fft(cordic_data,nb_samplepoints)
         cordic_freqs = np.fft.fftfreq(nb_samplepoints,sample_spacing)
 
         if (normalized_freq):
             cordic_freqs /= self.SAMPLING_FREQ
 
-        cordic_fft_plot = np.abs(cordic_fft)
+        cordic_fft_plot = np.abs(cordic_fft)  / nb_samplepoints
         y_fftlabel = ""
 
         if (dB_fft):
             y_fftlabel = "dB"
-            cordic_fft_plot = 10.0 * np.log10(cordic_fft_plot)
+            cordic_fft_plot = 20.0 * np.log10(2*cordic_fft_plot)
 
         ## Plot
 
@@ -407,9 +418,11 @@ class SimDDS:
     
     def do_double_driver(self, compile = True,save_plot = True):
         
+        hdl_entity = "double_driver_tb"
         if (compile):
-            sim_entity = "double_driver_tb"
-            self._compile_hdl(sim_entity,run_all=True)
+            self._compile_hdl()
+
+        self._sim_hdl(hdl_entity,run_all=True)
 
         cordic_dataA = np.loadtxt(self.SRC_FILEA_PATH, converters={0 : self.conv})
         cordic_dataB = np.loadtxt(self.SRC_FILEB_PATH, converters={0 : self.conv})
@@ -473,10 +486,10 @@ class SimDDS:
 
 def main():
     target_frequency = 500e3 
-    number_cycles =  4
+    number_cycles =  10
     phase_diff = math.pi / 2
     sim = SimDDS(target_frequency,number_cycles,phase_diff)
-    sim.do_dds(compile=True)
+    sim.do_dds(compile=False)
 
 if __name__ == "__main__":
     main()
