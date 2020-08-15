@@ -79,6 +79,9 @@ architecture behavioral of phase_acc is
 
     -- Behavioral
     signal delta_phase_reg                  : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    
+    signal nb_cycles_reg                    : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
+    signal phase_diff_reg                   : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
 
     signal strb_new_delta_reg               : std_logic;
     signal strb_output                      : std_logic;
@@ -119,6 +122,9 @@ begin
 
                 final_phase     <= resize( (TWO_PI + phase_diff) ,
                                              PHASE_INTEGER_PART , PHASE_FRAC_PART );
+
+                nb_cycles_reg   <= nb_cycles;
+                phase_diff_reg  <= phase_diff;
             end if;
 
         end if;
@@ -139,7 +145,7 @@ begin
             if (strb_output = '1') then
 
                 if(set_zero_phase = '1') then
-                    phase_reg <= phase_diff;
+                    phase_reg <= phase_diff_reg;
                 else
                     phase_reg <= resize( (phase_reg + delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART);
                 end if;
@@ -187,7 +193,7 @@ begin
         end if;
     end process;
 
-    cycles_done     <=              '1' when (unsigned(nb_cycles) = (nb_cycles_counter))
+    cycles_done     <=              '1' when (unsigned(nb_cycles_reg) = (nb_cycles_counter))
                             else    '0';
                                   
     -- Output
