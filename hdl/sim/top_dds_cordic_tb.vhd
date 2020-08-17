@@ -55,10 +55,7 @@ architecture testbench of top_dds_cordic_tb is
     signal nb_cycles                           : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
     signal phase_diff                          : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
 
-    signal tx_time                             : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
-    signal tx_off_time                         : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
-    signal rx_time                             : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
-    signal off_time                            : std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
+    signal restart_cycles                      : std_logic;
 
     signal done_cycles                         : std_logic;
 
@@ -82,7 +79,8 @@ begin
 
     UUT : entity work.top_dds_cordic
         generic map (
-            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
+            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
+            MODE_TIME                           => SIM_INPUT_MODE_TIME
         )
         port map(
             clock_i                             => clk,  
@@ -93,10 +91,7 @@ begin
             nb_cycles_i                         => nb_cycles,
             phase_diff_i                        => phase_diff,
             
-            tx_time_i                           => tx_time,    
-            tx_off_time_i                       => tx_off_time,
-            rx_time_i                           => rx_time,    
-            off_time_i                          => off_time,   
+            restart_cycles_i                    => restart_cycles,
 
             done_cycles_o                       => done_cycles,
 
@@ -118,15 +113,12 @@ begin
         
         areset <= '0';
         strb_i <= '1';
+        restart_cycles  <= '0';
 
         -- Inputs --
         target_freq     <=  std_logic_vector(to_unsigned( SIM_INPUT_TARGETFREQ, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
         nb_cycles       <=  std_logic_vector(to_unsigned( SIM_INPUT_NBCYCLES, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
         phase_diff      <=  to_ufixed(SIM_INPUT_PHASE_DIFF,phase_diff);
-        tx_time         <=  std_logic_vector(to_unsigned( TX_TIME_CONSTANT , tx_time'length));
-        tx_off_time     <=  std_logic_vector(to_unsigned( 80 , tx_off_time'length ));  -- Extra time 
-        rx_time         <=  std_logic_vector(to_unsigned( 10000 , rx_time'length )); -- A huge amount of time
-        off_time        <=  std_logic_vector(to_unsigned( 100 , off_time'length )); -- Extra time 
         -- Inputs --
         
         wait for CLK_PERIOD;

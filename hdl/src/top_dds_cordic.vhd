@@ -20,7 +20,8 @@ use work.utils_pkg.all;
 
 entity top_dds_cordic is
     generic(
-        SYSTEM_FREQUENCY                    : positive := 100E6 -- 100 MHz
+        SYSTEM_FREQUENCY                    : positive := 100E6, -- 100 MHz
+        MODE_TIME                           : boolean  := FALSE
     );
     port(
         -- Clock interface
@@ -34,10 +35,7 @@ entity top_dds_cordic is
         phase_diff_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
 
         -- Control Interface
-        tx_time_i                           : in  std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
-        tx_off_time_i                       : in  std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
-        rx_time_i                           : in  std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
-        off_time_i                          : in  std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
+        restart_cycles_i                    : in  std_logic;
         done_cycles_o                       : out std_logic;
 
         -- Output interface
@@ -61,18 +59,8 @@ architecture behavioral of top_dds_cordic is
     -------------
     -- Signals --
     -------------
-
-    -- Stage 1 Control
-    signal      control_strb_i                  : std_logic;
-    signal      control_tx_time                 : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
-    signal      control_tx_off_time             : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
-    signal      control_rx_time                 : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
-    signal      control_off_time                : std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
-    signal      control_output_strb             : std_logic;
-
-    signal      control_restart_cycles          : std_logic;
-    
-    -- Stage 2 DDS Cordic
+  
+    -- Stage 1 DDS Cordic
     signal      dds_cordic_strb_i               : std_logic;
     signal      dds_cordic_target_freq          : std_logic_vector( (FREQUENCY_WIDTH - 1) downto 0);
     signal      dds_cordic_nb_cycles            : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
@@ -90,48 +78,16 @@ begin
     -- Stage 1 --
     -------------
 
-    control_strb_i        <=   strb_i;
-    control_tx_time       <=   tx_time_i;
-    control_tx_off_time   <=   tx_off_time_i;
-    control_rx_time       <=   rx_time_i;
-    control_off_time      <=   off_time_i;
-    control_output_strb   <=   dds_cordic_strb_o;
-
-    stage_1_control: entity work.fsm_time_zones
-    generic map(
-        SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
-    )
-    port map(
-        -- Clock interface
-        clock_i                             => clock_i,
-        areset_i                            => areset_i,
-
-        -- Input interface
-        strb_i                              => control_strb_i,
-        tx_time_i                           => control_tx_time,
-        tx_off_time_i                       => control_tx_off_time,
-        rx_time_i                           => control_rx_time,
-        off_time_i                          => control_off_time,
-        output_strb_i                       => control_output_strb,
-        
-        -- Control Interface
-        restart_cycles_o                    => control_restart_cycles,
-        end_zones_cycle_o                   => open
-    );
-
-    -------------
-    -- Stage 2 --
-    -------------
-    
-    dds_cordic_strb_i               <= control_strb_i;
+    dds_cordic_strb_i               <= strb_i;
     dds_cordic_target_freq          <= target_frequency_i;
     dds_cordic_nb_cycles            <= nb_cycles_i;
     dds_cordic_phase_diff           <= phase_diff_i;
-    dds_cordic_restart_cycles       <= control_restart_cycles;
+    dds_cordic_restart_cycles       <= restart_cycles_i;
 
     stage_2_dds_cordic: entity work.dds_cordic
         generic map(
-            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
+            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
+            MODE_TIME                           => MODE_TIME
         )
         port map(
             -- Clock interface

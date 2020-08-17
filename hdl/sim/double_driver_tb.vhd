@@ -103,6 +103,7 @@ begin
    UUT: entity work.double_driver
     generic map (
         SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
+        MODE_TIME                           => SIM_INPUT_MODE_TIME
     )
     port map(
         -- Clock interface

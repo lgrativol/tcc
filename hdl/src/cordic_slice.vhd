@@ -39,7 +39,7 @@ entity cordic_slice is
         
         -- Rotational angle values
         shift_value_i                   : in  integer range 0 to N_CORDIC_ITERATIONS; -- TODO: move to generic
-        current_rotation_angle          : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --TODO: move to internal room
+        current_rotation_angle          : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --TODO: move to internal memory (ROM/LUT)
         
         --Input vector + angle
         X_i                             : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);

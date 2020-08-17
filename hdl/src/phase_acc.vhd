@@ -20,7 +20,8 @@ use work.utils_pkg.all;
 
 entity phase_acc is
     generic(
-        SAMPLING_FREQUENCY                 : positive := 100E6 -- 100 MHz
+        SAMPLING_FREQUENCY                 : positive := 100E6; -- 100 MHz
+        MODE_TIME                          : boolean  := TRUE 
     );
     port(
         -- Clock interface
@@ -66,6 +67,7 @@ architecture behavioral of phase_acc is
     constant        TWO_PI                              : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART) := resize( (2.0 * PI) ,
                                                                                                                         PHASE_INTEGER_PART,
                                                                                                                         PHASE_FRAC_PART);   
+    constant        ZERO_COUNTER_CTE                    : unsigned((NB_CYCLES_WIDTH - 1) downto 0)          := (others => '0'); 
     -------------
     -- Signals --
     -------------
@@ -83,22 +85,27 @@ architecture behavioral of phase_acc is
     signal nb_cycles_reg                    : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
     signal phase_diff_reg                   : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
 
-    signal strb_new_delta_reg               : std_logic;
-    signal strb_output                      : std_logic;
+    signal strb_new_delta_reg                           : std_logic;
+    signal strb_output                                  : std_logic;
 
-    signal neg_edge_detector_restart_cycles : std_logic;
-    signal restart_cycles_reg               : std_logic;
+    signal neg_edge_detector_restart_cycles             : std_logic;
+    signal restart_cycles_reg                           : std_logic;
 
-    signal start_new_cycle                  : std_logic;
-    signal two_pi_phase                     : std_logic;
-    signal set_zero_phase                   : std_logic;
+    signal start_new_cycle                              : std_logic;
+    signal two_pi_phase                                 : std_logic;
+    signal set_phase                                    : std_logic;
 
-    signal nb_cycles_counter                : unsigned((NB_CYCLES_WIDTH - 1) downto 0);
-    signal cycles_done                      : std_logic;
+    signal nb_cycles_counter                            : unsigned((NB_CYCLES_WIDTH - 1) downto 0);
+    signal cycles_done                                  : std_logic;
 
+    --Phase time (experimental)
+    signal phase_time_counter                           : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    signal phase_time_counter_not_done                  : std_logic;
+    signal phase_time_counter_not_done_reg              : std_logic;
+    
     -- Output interface
-    signal strb_output_reg                  : std_logic;
-    signal phase_reg                        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    signal strb_output_reg                              : std_logic;
+    signal phase_reg                                    : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     
 begin
 
@@ -124,6 +131,7 @@ begin
                                              PHASE_INTEGER_PART , PHASE_FRAC_PART );
 
                 nb_cycles_reg   <= nb_cycles;
+                
                 phase_diff_reg  <= phase_diff;
             end if;
 
@@ -138,24 +146,30 @@ begin
             restart_cycles_reg         <= '0';
         elsif ( rising_edge(clock_i) ) then
 
-            strb_output_reg <= strb_output;
-
+            strb_output_reg     <= strb_output;
             restart_cycles_reg  <= restart_cycles_i;
 
             if (strb_output = '1') then
 
-                if(set_zero_phase = '1') then
-                    phase_reg <= phase_diff_reg;
+                if (set_phase = '1') then
+
+                    if (MODE_TIME) then
+                        phase_reg <= (others => '0');
+                    else
+                        phase_reg <= phase_diff_reg;
+                    end if;
+
                 else
                     phase_reg <= resize( (phase_reg + delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART);
                 end if;
-
+                
             end if;
         end if;
     end process;
 
-    final_phase_diff_delta  <= resize( (final_phase - delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART);  --TODO : Pass to reg (better timing)
-    
+    final_phase_diff_delta  <=              resize( (TWO_PI - delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART)             when (MODE_TIME)
+                                    else    resize( (final_phase - delta_phase_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART);  --TODO : Pass to reg (better timing)
+     
     -- TODO: check impact from phase_reg >= TWO_PI to phase_reg >= (TWO_PI - delta_phase_reg)
 
     two_pi_phase    <=          '1'     when (phase_reg >= final_phase_diff_delta) -- Checking full cycle
@@ -165,17 +179,45 @@ begin
     neg_edge_detector_restart_cycles <=         restart_cycles_reg
                                             and (not restart_cycles_i);
 
-    start_new_cycle <=                  strb_new_delta_reg  -- New frequency
-                                    or  neg_edge_detector_restart_cycles;   -- start new cycle
-
+    start_new_cycle <=                  strb_new_delta_reg                          -- New frequency
+                                    or  neg_edge_detector_restart_cycles;           -- start new cycle
     -- resets phase to zero upon
-    set_zero_phase  <=                  two_pi_phase       -- Full cycle, wrap back to phase = 0
-                                    or  start_new_cycle;   -- Reset cycle signal
+    set_phase       <=                  two_pi_phase                   -- Full cycle, wrap back to phase = 0
+                                    or  start_new_cycle                -- Reset cycle signal
+                                    or  phase_time_counter_not_done_reg;   
 
     strb_output     <=          (       (not cycles_done)        
                                     and strb_output_reg )  
                             or  start_new_cycle;
     
+    -- Phase time
+    phase_time_counter_proc : process(clock_i,areset_i)
+    begin
+        if (areset_i = '1') then
+            phase_time_counter          <= (others => '0');
+        elsif (rising_edge(clock_i)) then
+
+            phase_time_counter_not_done_reg <=  phase_time_counter_not_done;
+
+            if((strb_output = '1')) then
+
+                if( phase_time_counter_not_done = '1') then
+                    phase_time_counter      <= resize( (phase_time_counter + delta_phase_reg) 
+                                                       ,PHASE_INTEGER_PART,PHASE_FRAC_PART);
+                end if;
+
+                if((restart_cycles_i = '1')) then
+                    phase_time_counter <= (others => '0'); --TODO: check synthesis (maybe generate~VHDL-2008)
+                end if;
+
+            end if;
+        end if;
+    end process;
+
+    phase_time_counter_not_done     <=          '0' when (              phase_time_counter >= (phase_diff_reg)
+                                                                    or  not(MODE_TIME)                          )
+                                        else    '1';
+
     count_nb_cycles : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
@@ -198,7 +240,7 @@ begin
                                   
     -- Output
     done_cycles_o      <= cycles_done;
-    flag_full_cycle_o <= two_pi_phase; -- Full cycle indicator
+    flag_full_cycle_o  <= two_pi_phase; -- Full cycle indicator
 
     strb_o            <= strb_output_reg;
     phase_o           <= phase_reg;

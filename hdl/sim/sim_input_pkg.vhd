@@ -12,4 +12,5 @@ package sim_input_pkg is
    constant SIM_INPUT_TX_OFF_TIME    : positive  := 300;
    constant SIM_INPUT_RX_TIME        : positive  := 10000;
    constant SIM_INPUT_OFF_TIME       : positive  := 100;
+   constant SIM_INPUT_MODE_TIME      : boolean   := True;
 end sim_input_pkg;

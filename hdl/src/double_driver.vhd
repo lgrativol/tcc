@@ -20,7 +20,8 @@ use work.utils_pkg.all;
 
 entity double_driver is
     generic(
-        SYSTEM_FREQUENCY                    : positive := 100E6 -- 100 MHz
+        SYSTEM_FREQUENCY                    : positive := 100E6, -- 100 MHz
+        MODE_TIME                           : boolean  := FALSE
     );
     port(
         -- Clock interface
@@ -155,7 +156,8 @@ begin
 
     driver_a : entity work.dds_cordic
         generic map (
-            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
+            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
+            MODE_TIME                           => FALSE
         )
         port map(
             clock_i                             => clock_i,  
@@ -186,7 +188,8 @@ begin
 
     driver_b : entity work.dds_cordic
         generic map (
-            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
+            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
+            MODE_TIME                           => MODE_TIME
         )
         port map(
             clock_i                             => clock_i,  
@@ -216,7 +219,8 @@ begin
     
     -- Output driver B interface
     B_strb_o                            <= driver_b_strb_o;
-    B_sine_phase_o                      <= driver_b_sine_phase;
+    B_sine_phase_o                      <=              driver_b_sine_phase     when (driver_b_strb_o = '1') -- Idle mode => output = 0
+                                                else    (others => '0');     -- TODO: check output register need (probably a yes)
     B_done_cycles_o                     <= driver_b_done_cycles;
     B_flag_full_cycle_o                 <= driver_b_flag_full_cycle;
 
