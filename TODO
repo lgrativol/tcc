@@ -1,7 +1,6 @@
 TODO:
 
 * New features (hdl):
-- "Time" phase option (check Alan's email 11/08)
 - Check windows implementation (check Alan's email 11/08) : - Tukey (maybe)
                                                             - Hanning (OK)
                                                             - Hamming (OK)
@@ -17,6 +16,7 @@ TODO:
 
 * Problems/Fix:
 - Fix external interface to "std_logic" "std_logic_vector" only
+- Convert phase_time option to if...generate (MODE_TIME)
 
 * Overall:
 - Build demonstration
