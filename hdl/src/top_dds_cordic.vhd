@@ -20,7 +20,7 @@ use work.utils_pkg.all;
 
 entity top_dds_cordic is
     generic(
-        SYSTEM_FREQUENCY                    : positive := 100E6, -- 100 MHz
+        SYSTEM_FREQUENCY                    : positive := 100E6; -- 100 MHz
         MODE_TIME                           : boolean  := FALSE
     );
     port(
@@ -84,8 +84,9 @@ begin
     dds_cordic_phase_diff           <= phase_diff_i;
     dds_cordic_restart_cycles       <= restart_cycles_i;
 
-    stage_2_dds_cordic: entity work.dds_cordic
+    stage_1_dds_cordic: entity work.dds_cordic
         generic map(
+            EN_POSPROC                          => TRUE,
             SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
             MODE_TIME                           => MODE_TIME
         )

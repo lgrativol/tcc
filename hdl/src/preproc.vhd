@@ -27,6 +27,9 @@ entity preproc is
         strb_i                              : in  std_logic; -- Valid in
         phase_i                             : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
 
+        -- Control Interface
+        phase_info_o                        : out std_logic_vector(1 downto 0);
+
         -- Output interface
         strb_o                              : out std_logic;
         reduced_phase_o                     : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)
@@ -70,6 +73,9 @@ architecture behavioral of preproc is
     signal phase_less_pi_2                  : std_logic;
     signal phase_less_3pi_2                 : std_logic;
 
+    -- Control interface
+    signal phase_info                       : std_logic_vector(1 downto 0);
+
     -- Output interface
     signal strb_reg                         : std_logic;
     signal reduced_phase_reg                : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
@@ -90,7 +96,6 @@ begin
         end if;
     end process;
 
-
     phase_reducer_proc : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
@@ -102,10 +107,13 @@ begin
             if ( strb_i_reg = '1' ) then
 
                 if ( phase_less_pi_2 = '1') then     -- phase in first quad
+                    phase_info        <= "00";
                     reduced_phase_reg <= resize(sphase_reg,PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase
                 elsif ( phase_less_3pi_2 = '1') then -- phase in second or thrid
+                    phase_info        <= "01";
                     reduced_phase_reg <= resize((S_PI - sphase_reg),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- PI - phase
                 else                                 -- phase in forth quad
+                    phase_info        <= "10";
                     reduced_phase_reg <= resize((sphase_reg - PI2),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase - 2PI
                 end if;
                 
@@ -122,6 +130,7 @@ begin
                             
     -- Output
     strb_o                  <= strb_reg;
+    phase_info_o            <= phase_info;
     reduced_phase_o         <= resize(reduced_phase_reg, CORDIC_INTEGER_PART,CORDIC_FRAC_PART);
 
 end behavioral;

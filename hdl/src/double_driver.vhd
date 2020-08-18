@@ -20,7 +20,7 @@ use work.utils_pkg.all;
 
 entity double_driver is
     generic(
-        SYSTEM_FREQUENCY                    : positive := 100E6, -- 100 MHz
+        SYSTEM_FREQUENCY                    : positive := 100E6; -- 100 MHz
         MODE_TIME                           : boolean  := FALSE
     );
     port(
@@ -156,6 +156,7 @@ begin
 
     driver_a : entity work.dds_cordic
         generic map (
+            EN_POSPROC                          => FALSE,
             SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
             MODE_TIME                           => FALSE
         )
@@ -188,6 +189,7 @@ begin
 
     driver_b : entity work.dds_cordic
         generic map (
+            EN_POSPROC                          => FALSE,
             SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
             MODE_TIME                           => MODE_TIME
         )
