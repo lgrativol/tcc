@@ -30,7 +30,6 @@ package utils_pkg is
     constant NB_CYCLES_WIDTH        : positive := 10;
 
     -- Cordic
-    constant SIDEBAND_WIDTH         : integer  := 0;
     constant CORDIC_INTEGER_PART    : natural  := 1;
     constant N_CORDIC_ITERATIONS    : natural  := 21;
     constant CORDIC_FRAC_PART       : integer  := -(N_CORDIC_ITERATIONS - (CORDIC_INTEGER_PART + 1));
