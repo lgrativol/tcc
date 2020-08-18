@@ -155,6 +155,12 @@ begin
     preproc_phase   <= phase_acc_phase;
 
     stage_2_preproc : entity work.preproc
+        generic map(
+            PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+            PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+            OUTPUT_INTEGER_PART                 => CORDIC_INTEGER_PART,
+            OUTPUT_FRAC_PART                    => CORDIC_FRAC_PART
+        )
         port map(
             -- Clock interface
             clock_i                            =>  clock_i, 
@@ -222,6 +228,10 @@ begin
     POSPROC_GEN_TRUE: 
         if (EN_POSPROC) generate
             stage_4_posproc : entity work.posproc
+                generic map(
+                    WORD_INTEGER_PART                   => CORDIC_INTEGER_PART,
+                    WORD_FRAC_PART                      => CORDIC_FRAC_PART
+                )
                 port map(
                     -- Clock interface
                     clock_i                             => clock_i, 

@@ -18,6 +18,12 @@ use work.utils_pkg.all;
 ------------
 
 entity preproc is
+    generic(
+        PHASE_INTEGER_PART                  : natural;
+        PHASE_FRAC_PART                     : integer;
+        OUTPUT_INTEGER_PART                 : natural; -- sfixed integer part 
+        OUTPUT_FRAC_PART                    : integer  -- sfixed fractional part
+    );
     port(
         -- Clock interface
         clock_i                             : in  std_logic; 
@@ -32,7 +38,7 @@ entity preproc is
 
         -- Output interface
         strb_o                              : out std_logic;
-        reduced_phase_o                     : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)
+        reduced_phase_o                     : out sfixed(OUTPUT_INTEGER_PART downto OUTPUT_FRAC_PART)
     ); 
 end preproc;
 
@@ -131,6 +137,6 @@ begin
     -- Output
     strb_o                  <= strb_reg;
     phase_info_o            <= phase_info;
-    reduced_phase_o         <= resize(reduced_phase_reg, CORDIC_INTEGER_PART,CORDIC_FRAC_PART);
+    reduced_phase_o         <= resize(reduced_phase_reg, OUTPUT_INTEGER_PART,OUTPUT_FRAC_PART);
 
 end behavioral;

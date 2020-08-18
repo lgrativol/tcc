@@ -18,6 +18,10 @@ use work.utils_pkg.all;
 ------------
 
 entity posproc is
+    generic (
+        WORD_INTEGER_PART                   : natural; -- sfixed integer part 
+        WORD_FRAC_PART                      : integer  -- sfixed fractional part
+    );
     port(
         -- Clock interface
         clock_i                             : in  std_logic; 
@@ -25,16 +29,16 @@ entity posproc is
 
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
-        sin_phase_i                         : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-        cos_phase_i                         : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+        sin_phase_i                         : in  sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
+        cos_phase_i                         : in  sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
 
         -- Control Interface
         phase_info_i                        : in  std_logic_vector(1 downto 0);
 
         -- Output interface
         strb_o                              : out std_logic;
-        sin_phase_o                         : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-        cos_phase_o                         : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)
+        sin_phase_o                         : out sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
+        cos_phase_o                         : out sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART)
     ); 
 end posproc;
 
@@ -51,16 +55,16 @@ architecture behavioral of posproc is
     
     -- Input interface
     signal strb_i_reg                       : std_logic;
-    signal sin_phase_reg                    : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal cos_phase_reg                    : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal sin_phase_reg                    : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
+    signal cos_phase_reg                    : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
 
     -- Control interface
     signal phase_info_reg                   : std_logic_vector(1 downto 0);
 
     -- Output interface
     signal strb_reg                         : std_logic;
-    signal sin_phase                        : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    signal cos_phase                        : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);   
+    signal sin_phase                        : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
+    signal cos_phase                        : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);   
 begin
 
     -- Input
