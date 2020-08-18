@@ -96,14 +96,15 @@ begin
                     X <= resize(X_i - (Y_i sra shift_value_i), CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
                     Y <= resize(Y_i + (X_i sra shift_value_i), CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
                     Z <= resize(Z_i - current_rotation_angle,  CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
-                elsif (Z_i < 0) then -- Z>0, needs to rotatate anticlockwise (Z + current_rotation_angle)
+                --elsif (Z_i < 0) then -- Z>0, needs to rotatate anticlockwise (Z + current_rotation_angle)
+                else
                     X <= resize(X_i + (Y_i sra shift_value_i), CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
                     Y <= resize(Y_i - (X_i sra shift_value_i), CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
                     Z <= resize(Z_i + current_rotation_angle,  CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
-                else -- When Z= 0, nothing needs to be done
-                    X <= X_i;
-                    Y <= Y_i;
-                    Z <= Z_i;
+                --else -- When Z= 0, nothing needs to be done
+                --    X <= X_i;
+                --    Y <= Y_i;
+                --    Z <= Z_i;
                 end if;
             end if;
         end if;        

@@ -11,14 +11,17 @@ library ieee_proposed;
 use ieee_proposed.fixed_float_types.all;    
 use ieee_proposed.fixed_pkg.all;          
 
-library work;
-use work.utils_pkg.all;
-
 ------------
 -- Entity --
 ------------
 
 entity cordic_core is
+    generic (
+        SIDEBAND_WIDTH                      : integer;
+        CORDIC_INTEGER_PART                 : integer; -- sfixed integer part;    ex: sfixed(0 downto -19) --> 0.1111111111111111111 ~ +1.000 
+        CORDIC_FRAC_PART                    : integer; -- sfixed fractional part; ex: sfixed(0 downto -19) --> 1.1010000000000000000 = -0.750
+        N_CORDIC_ITERATIONS                 : natural  -- number of cordic iterations
+    );
     port(
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
@@ -68,7 +71,7 @@ architecture behavioral of cordic_core is
             
             -- Rotational angle values
             shift_value_i                   : in  integer range 0 to N_CORDIC_ITERATIONS; -- TODO: move to generic
-            current_rotation_angle          : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --TODO: move to internal room
+            current_rotation_angle          : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --TODO: move to internal memory (ROM/LUT)
             
             --Input vector + angle
             X_i                             : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);

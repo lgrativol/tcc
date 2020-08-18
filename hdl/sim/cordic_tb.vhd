@@ -47,7 +47,8 @@ architecture Behavioral of cordic_tb is
     constant NB_POINTS                         : positive := (F_S/F_OUT);
     constant DELTA_ANGLE                       : sfixed(ANGLE_INTEGER_PART downto ANGLE_FRAC_PART) := to_sfixed(((2.0 * MATH_PI) / 5000.0),ANGLE_INTEGER_PART,ANGLE_FRAC_PART);
     constant SATURATION_CTE                    : sfixed(ANGLE_INTEGER_PART  downto ANGLE_FRAC_PART) := (others => '1') ;
-    
+    constant SIDEBAND_WIDTH                    : natural  := 0;
+
 
     -------------
     -- Signals --
@@ -115,6 +116,12 @@ begin
    end process;
  
     UUT: entity work.cordic_core
+        generic map(
+            SIDEBAND_WIDTH         => SIDEBAND_WIDTH,
+            CORDIC_INTEGER_PART    => CORDIC_INTEGER_PART,
+            CORDIC_FRAC_PART       => CORDIC_FRAC_PART,
+            N_CORDIC_ITERATIONS    => N_CORDIC_ITERATIONS
+        )
         port map(
             clock_i                             => clk,
             areset_i                            => areset,
