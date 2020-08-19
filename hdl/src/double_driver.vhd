@@ -120,7 +120,7 @@ begin
     control_tx_off_time   <=   tx_off_time_i;
     control_rx_time       <=   rx_time_i;
     control_off_time      <=   off_time_i;
-    control_output_strb   <=   driver_a_strb_o;
+    control_output_strb   <=   driver_b_strb_o;
 
     stage_1_control: entity work.fsm_time_zones
     generic map(

@@ -58,7 +58,7 @@ class SimDDS:
         self._phase_diff = phase_diff
         self._tx_time = ""
         self._tx_off_time = 300 
-        self._rx_time = "0.1 ms"
+        self._rx_time = "3 us"
         self._off_time = 100
         self._mode_time = mode_time
         self._cordic_word_interger_width = 2 # bits FIX VALUE
@@ -257,14 +257,24 @@ class SimDDS:
 
         if(type(time_zone) is str):
             if (time_zone == ""):
-                return ((self.SAMPLING_FREQ/self.target_freq) * self.nb_cycles)
+                amount = ((self.SAMPLING_FREQ/self.target_freq) * self.nb_cycles) 
+                
+                if (self.mode_time):
+                    amount +=  int( ((self.phase_diff/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
+
+                return amount 
             else:
                 index = self.ACCEPTABLE_TIME_UNIT.index(time_zone[-2:])
                 time_in_ns = ( float(time_zone[0:-3]) * (10**(-9)) ) * (1000**index)
                 return time_in_ns * self.SAMPLING_FREQ
         else:
             if (time_zone == 0):
-                return ((self.SAMPLING_FREQ/self.target_freq) * self.nb_cycles)
+                amount = ((self.SAMPLING_FREQ/self.target_freq) * self.nb_cycles) 
+                
+                if (self.mode_time):
+                    amount +=  int( ((self.phase_diff/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
+
+                return amount             
             else:
                 return int(time_zone)
  
@@ -377,11 +387,18 @@ class SimDDS:
             zeros_array = np.zeros(nb_samplepoints_mode_time)
             ref_sin_y_resized = ref_sin_y[0:(nb_samplepoints-nb_samplepoints_mode_time)]
             ref_sin_y=np.concatenate((zeros_array,ref_sin_y_resized))
+            pi_char =""
+            axis_formater = mtick.FormatStrFormatter('%.2e')
+            text_xlabel = " seconds"
         else:
             ref_sin_y = np.sin(self.target_freq * 2.0 * np.pi * x_axis + self.phase_diff)
+            pi_char = str("\u03C0") ## Pi character 
+            axis_formater = mtick.FormatStrFormatter('%.3f'+pi_char)
+            x_axis = self.target_freq * 2.0 * x_axis
+            text_xlabel = " rads"
+        
 
         mae = np.abs(cordic_data - ref_sin_y) / nb_samplepoints # Mean absolute error
-        x_axis_rad = self.target_freq * 2.0 * x_axis
 
         cordic_fft = np.fft.fft(cordic_data,nb_samplepoints)
         cordic_freqs = np.fft.fftfreq(nb_samplepoints,sample_spacing)
@@ -397,27 +414,23 @@ class SimDDS:
             cordic_fft_plot = 20.0 * np.log10(2*cordic_fft_plot)
 
         ## Plot
-
-        pi_char = str("\u03C0") ## Pi character 
-
         fig, ax = plt.subplots(2,2,figsize=(12,9))
-        rads_xlabel = " rads"
 
         ax[0][0].grid(True)
         ax[0][0].set_title("DDS vs Python Sine %sHz" % (self._freq_stringformat(self.target_freq)))
-        ax[0][0].plot(x_axis_rad,cordic_data,"-b", label="DDS")
-        ax[0][0].plot(x_axis_rad,ref_sin_y,"-r", label="Python")
-        ax[0][0].set_xlabel(rads_xlabel)
-        ax[0][0].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.3f'+pi_char))
+        ax[0][0].plot(x_axis,cordic_data,"-b", label="DDS")
+        ax[0][0].plot(x_axis,ref_sin_y,"-r", label="Python")
+        ax[0][0].set_xlabel(text_xlabel)
+        ax[0][0].xaxis.set_major_formatter(axis_formater)
 
         ax[0][0].legend(loc='best')
         
         ax[0][1].grid(True)
         ax[0][1].set_title("Mean Absolute Error")
-        ax[0][1].plot(x_axis_rad,mae)
-        ax[0][1].set_xlabel(rads_xlabel)
-        ax[0][1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.3f'+pi_char))
-        self._annot_max(x_axis_rad,mae,ax[0][1],xlabel=(pi_char + rads_xlabel))
+        ax[0][1].plot(x_axis,mae)
+        ax[0][1].set_xlabel(text_xlabel)
+        ax[0][1].xaxis.set_major_formatter(axis_formater)
+        self._annot_max(x_axis,mae,ax[0][1],xlabel=(pi_char + text_xlabel))
 
         ax[1][0].grid(True)
         ax[1][0].set_title("Magnitude")
@@ -434,7 +447,7 @@ class SimDDS:
         plt.tight_layout()
         plt.show()    
     
-    def do_double_driver(self, compile = True,save_plot = True,mode_time=True):
+    def do_double_driver(self, compile = True,save_plot = True):
         
         hdl_entity = "double_driver_tb"
         if (compile):
@@ -484,9 +497,7 @@ class SimDDS:
                 xline_point = annot[0] * sample_spacing
 
                 #xtext_point = (annot[0] - 100) * sample_spacing
-                
-                xtext       = annot[1]
-                
+                #xtext       = annot[1]
                 axis.axvline(x=xline_point, linestyle=':', color = 'black', alpha=0.7)
                 #axis.text(x=xtext_point, y=1, s=xtext, alpha=1, color='black')
 
@@ -503,12 +514,12 @@ class SimDDS:
 
 def main():
     target_frequency = 500e3 
-    number_cycles =  10
+    number_cycles =  12
     phase_diff = math.pi / 2.0
     mode_time = True
     sim = SimDDS(target_frequency,number_cycles,phase_diff,mode_time=mode_time)
     sim.do_dds(compile=True)
-    #sim.do_double_driver(compile=True)
+    #sim.do_double_driver(compile=False)
 
 if __name__ == "__main__":
     main()
