@@ -86,7 +86,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => SIM_INPUT_EN_POSPROC,
+            EN_POSPROC                          => FALSE,
             MODE_TIME                           => SIM_INPUT_MODE_TIME
         )
         port map(
