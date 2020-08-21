@@ -19,22 +19,31 @@ import math
 class SimDDS:
 
     SAMPLING_FREQ         = 100E6 ## DDS Cordic clock 
-    UTILS_FILE            = "hdl/pkg/utils_pkg.vhd"
     SIM_INPUT_FILE        = "hdl/sim/sim_input_pkg.vhd"
     CONFIG_FILE           = "hdl/pkg/utils_pkg.vhd"
-    SRC_FILE_PATH         = "work/output.txt"
-    SRC_FILEA_PATH        = "work/outputA.txt"
-    SRC_FILEB_PATH        = "work/outputB.txt"
+
+    SRC_FILE_DDS_PATH     = "work/output_dds_cordic_sine.txt"
+    SRC_FILE_DDA_PATH     = "work/output_dd_a.txt"
+    SRC_FILE_DDB_PATH     = "work/output_dd_b.txt"
+    SRC_FILE_DWS_PATH     = "work/output_sine.txt"
+    SRC_FILE_DWW_PATH     = "work/output_win.txt"
+    SRC_FILE_DWR_PATH     = "work/output_sine_win.txt"
+    
     NB_CYCLES_WIDTH       = 10 # bits
     TX_TIME_WIDTH         = 18 # bits
     TX_OFF_TIME_WIDTH     = 18 # bits
     RX_TIME_WIDTH         = 18 # bits
     OFF_TIME_WIDTH        = 18 # bits
-    PHASE_FRAC_PART       = 35 # bits
+    PHASE_WIDTH           = 32 # bits
+    PHASE_INTEGER_PART    = 4
+    PHASE_FRAC_PART       = PHASE_WIDTH - PHASE_INTEGER_PART - 1 # 1 for sign bit
+
+    FIGSIZE               = (12,9)
+
     FIX_LATENCY           = 4  
     ACCEPTABLE_TIME_UNIT  = ['ns','us','ms']
     
-    def __init__(self,target_freq, nb_cycles, phase_diff,mode_time = False):
+    def __init__(self,target_freq, nb_cycles, initial_phase,mode_time = False):
         """
         target_freq = Generated sine frequency
         nb_cycles   = Number of periods of the generated sine 
@@ -55,7 +64,7 @@ class SimDDS:
         """
         self._target_freq = target_freq
         self._nb_cycles = nb_cycles
-        self._phase_diff = phase_diff
+        self._initial_phase = initial_phase
         self._tx_time = ""
         self._tx_off_time = 300 
         self._rx_time = "3 us"
@@ -94,12 +103,12 @@ class SimDDS:
                 self._nb_cycles = value
 
     @property
-    def phase_diff(self):
-        return self._phase_diff
+    def initial_phase(self):
+        return self._initial_phase
 
-    @phase_diff.setter
-    def phase_diff(self,value):
-        self._phase_diff = value
+    @initial_phase.setter
+    def initial_phase(self,value):
+        self._initial_phase = value
 
     @property
     def cordic_word_interger_width(self):
@@ -208,11 +217,11 @@ class SimDDS:
     def mode_time(self,value):
         self._mode_time = value
 
-    def _format_phase(self):
-        phase = int( self.phase_diff * 2**(self.PHASE_FRAC_PART))
-        phase_str = '%010x' %(phase) ## TODO: Pass it to generic f(PHASE_FRAC_PART)
+    def _format_phase(self,phase):
+        phase = int( phase * 2**(self.PHASE_FRAC_PART))
+        nb_digit = str(int(self.PHASE_WIDTH/4))
+        phase_str = '%08x' %(phase) ## TODO: Pass it to generic f(PHASE_FRAC_PART)
         return phase_str
-
 
     def _replace_all (self,file,replace_search,replace_term):
         """
@@ -226,30 +235,35 @@ class SimDDS:
                     line = replace_term[i]
             sys.stdout.write(line)
         
-
     def _write_sim_input(self):
-        
-        search_freq        = "SIM_INPUT_TARGETFREQ"
-        search_nbcycles    = "SIM_INPUT_NBCYCLES"
-        search_phase_diff  = "SIM_INPUT_PHASE_DIFF"
-        search_tx_time     = "SIM_INPUT_TX_TIME"     
-        search_tx_off_time = "SIM_INPUT_TX_OFF_TIME"
-        search_rx_time     = "SIM_INPUT_RX_TIME"      
-        search_off_time    = "SIM_INPUT_OFF_TIME"   
-        search_mode_time    = "SIM_INPUT_MODE_TIME"   
 
-        search_list = [search_freq,search_nbcycles,search_phase_diff,search_tx_time,search_tx_off_time,search_rx_time,search_off_time,search_mode_time]
+        search_phase_term       = "SIM_INPUT_PHASE_TERM"
+        search_initial_phase    = "SIM_INPUT_INIT_PHASE"
+        search_nb_points        = "SIM_INPUT_NBPOINTS"
+        search_nb_cycles        = "SIM_INPUT_NBREPET"
+        search_mode_time        = "SIM_INPUT_MODE_TIME"   
+        search_tx_time          = "SIM_INPUT_TX_TIME"     
+        search_tx_off_time      = "SIM_INPUT_TX_OFF_TIME"
+        search_rx_time          = "SIM_INPUT_RX_TIME"      
+        search_off_time         = "SIM_INPUT_OFF_TIME"   
+
+        search_list             = [search_phase_term,search_nb_points,search_nb_cycles,search_initial_phase,
+                                   search_tx_time,search_tx_off_time,search_rx_time,search_off_time,search_mode_time]
         
-        term_target_frequency = "   constant SIM_INPUT_TARGETFREQ     : positive  := %d;\n" %(self.target_freq)
-        term_nb_cycles        = "   constant SIM_INPUT_NBCYCLES       : natural   := %d;\n" %(self.nb_cycles)
-        term_phase_diff       = "   constant SIM_INPUT_PHASE_DIFF     : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase())
+        nb_points  = self.SAMPLING_FREQ/self.target_freq
+        phase_term = ( 2.0 * np.pi  / nb_points)
+
+        term_phase_term       = "   constant SIM_INPUT_PHASE_TERM     : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase(phase_term))
+        term_nb_points        = "   constant SIM_INPUT_NBPOINTS       : natural   := %d;\n" %(nb_points)
+        term_nb_cycles        = "   constant SIM_INPUT_NBREPET        : natural   := %d;\n" %(self.nb_cycles)
+        term_initial_phase    = "   constant SIM_INPUT_INIT_PHASE     : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase(self.initial_phase))
         term_tx_time          = "   constant SIM_INPUT_TX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.tx_time))
         term_tx_off_time      = "   constant SIM_INPUT_TX_OFF_TIME    : positive  := %d;\n" %(self._format_time_zone(self.tx_off_time))
         term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.rx_time))
         term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self._format_time_zone(self.off_time))
         term_mode_time        = "   constant SIM_INPUT_MODE_TIME      : boolean   := %s;\n" %(self.mode_time)
  
-        term_list = [term_target_frequency,term_nb_cycles,term_phase_diff,term_tx_time,term_tx_off_time,term_rx_time,term_off_time,term_mode_time]
+        term_list = [term_phase_term,term_nb_points,term_nb_cycles,term_initial_phase,term_tx_time,term_tx_off_time,term_rx_time,term_off_time,term_mode_time]
 
         self._replace_all(self.SIM_INPUT_FILE,search_list,term_list)
 
@@ -260,7 +274,7 @@ class SimDDS:
                 amount = ((self.SAMPLING_FREQ/self.target_freq) * self.nb_cycles) 
                 
                 if (self.mode_time):
-                    amount +=  int( ((self.phase_diff/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
+                    amount +=  int( ((self.initial_phase/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
 
                 return amount 
             else:
@@ -272,7 +286,7 @@ class SimDDS:
                 amount = ((self.SAMPLING_FREQ/self.target_freq) * self.nb_cycles) 
                 
                 if (self.mode_time):
-                    amount +=  int( ((self.phase_diff/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
+                    amount +=  int( ((self.initial_phase/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
 
                 return amount             
             else:
@@ -304,9 +318,10 @@ class SimDDS:
         
         return FXnum(value,FXfamily(self.cordic_word_frac_width)).toDecimalString()
     
-    def _annot_max(self,x,y, ax=None,xlabel="",ylabel=""):
+    def _annot_max(self,x,y,ax=None,xlabel="",ylabel="",xytext = (0.9,0.92)):
         xmax = x[np.argmax(y)]
         ymax = y.max()
+        annot_pos = (xmax,ymax)
         text= ("x={:1.3f} "+ xlabel+", y={:1.6f} " + ylabel).format(xmax, ymax)
         if not ax:
             ax=plt.gca()
@@ -314,8 +329,8 @@ class SimDDS:
         arrowprops=dict(arrowstyle="->",connectionstyle="angle,angleA=0,angleB=60")
         kw = dict(xycoords='data',textcoords="axes fraction",
                 arrowprops=arrowprops, bbox=bbox_props, ha="right", va="top")
-        ax.annotate(text, xy=(xmax, ymax), xytext=(0.9,0.92), **kw)
-    
+        ax.annotate(text, xy=annot_pos, xytext=xytext, **kw)
+
     def _freq_stringformat (self,freq):
         freq_mag = ["","K","M"]
 
@@ -336,7 +351,7 @@ class SimDDS:
     def _sim_hdl(self,hdl_entity,run_all = False):
 
         dds_latency_time = (self.nb_cordic_stages + self.FIX_LATENCY) * (1/self.SAMPLING_FREQ)
-        time = (1.0/self.target_freq) * float(self.nb_cycles + 1) + dds_latency_time
+        time = (1.0/self.target_freq) * float(self.nb_cycles + 1000) + dds_latency_time
         sim_time = ""
 
         if (run_all):
@@ -351,11 +366,10 @@ class SimDDS:
 
         print("Simulation done!")
 
-
-    def _compile_hdl(self):
+    def compile(self):
         self._write_sim_input()
 
-        if( self.need_reconfig):
+        if(self.need_reconfig):
             self._write_config() 
 
         print("Compiling ....")
@@ -365,56 +379,67 @@ class SimDDS:
 
         print("Compilation done!")
 
-    def do_dds(self,compile = True , save_plot = True, dB_fft = True, normalized_freq = False):
+    def do_fft(self,data,nb_points):
+        sample_spacing  = 1.0 / self.SAMPLING_FREQ 
+        data_fft        = np.fft.fft(data,nb_points)
+        fft_freqs       = np.fft.fftfreq(nb_points,sample_spacing)
 
-        hdl_entity = "top_dds_cordic_tb"
+        return [data_fft,fft_freqs]
 
-        if (compile):
-            self._compile_hdl()
-        
-        self._sim_hdl(hdl_entity)
+    def extract_data(self, source_file):
+        data            = np.loadtxt(source_file, converters={0 : self.conv})
+        nb_samples      = len(data) 
+        sample_spacing  = 1.0 / self.SAMPLING_FREQ 
+        x_axis          = np.linspace(0.0, (nb_samples*sample_spacing), nb_samples)
 
-        cordic_data = np.loadtxt(self.SRC_FILE_PATH, converters={0 : self.conv})
+        return [data, nb_samples, x_axis]
+ 
+    def do_dds(self, simulate = True,save_plot = True, dB_fft = True, normalized_freq = False):
 
-        nb_samplepoints = len(cordic_data) # Number of samplepoints
-        sample_spacing = 1.0 / self.SAMPLING_FREQ # sample spacing
+        if (simulate):
+            hdl_entity = "dds_cordic_tb"
+            self._sim_hdl(hdl_entity)
 
-        x_axis = np.linspace(0.0, (nb_samplepoints*sample_spacing), nb_samplepoints)
+        [cordic_data, nb_samplepoints, x_axis] = self.extract_data(self.SRC_FILE_DDS_PATH)
 
         if (self.mode_time):
-            ref_sin_y = np.sin(self.target_freq * 2.0 * np.pi * x_axis)
-            nb_samplepoints_mode_time = int( ((self.phase_diff/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
-            zeros_array = np.zeros(nb_samplepoints_mode_time)
-            ref_sin_y_resized = ref_sin_y[0:(nb_samplepoints-nb_samplepoints_mode_time)]
-            ref_sin_y=np.concatenate((zeros_array,ref_sin_y_resized))
-            pi_char =""
+            ref_sin_y                 = np.sin(self.target_freq * 2.0 * np.pi * x_axis)
+            nb_samplepoints_mode_time = int( ((self.initial_phase/(2 * np.pi * self.target_freq)) * self.SAMPLING_FREQ) ) 
+            zeros_array               = np.zeros(nb_samplepoints_mode_time)
+            ref_sin_y_resized         = ref_sin_y[0:(nb_samplepoints-nb_samplepoints_mode_time)]
+            ref_sin_y                 = np.concatenate((zeros_array,ref_sin_y_resized))
+            pi_char                   = "" 
             axis_formater = mtick.FormatStrFormatter('%.2e')
-            text_xlabel = " seconds"
+            text_xlabel   = " seconds"
         else:
-            ref_sin_y = np.sin(self.target_freq * 2.0 * np.pi * x_axis + self.phase_diff)
-            pi_char = str("\u03C0") ## Pi character 
-            axis_formater = mtick.FormatStrFormatter('%.3f'+pi_char)
-            x_axis = self.target_freq * 2.0 * x_axis
-            text_xlabel = " rads"
+            ref_sin_y                = np.sin(self.target_freq * 2.0 * np.pi * x_axis + self.initial_phase)
+            pi_char                  = str("\u03C0") ## Pi character 
+            axis_formater            = mtick.FormatStrFormatter('%.3f'+pi_char)
+            x_axis       = self.target_freq * 2.0 * x_axis
+            text_xlabel  = " rads"
         
-
         mae = np.abs(cordic_data - ref_sin_y) / nb_samplepoints # Mean absolute error
-
-        cordic_fft = np.fft.fft(cordic_data,nb_samplepoints)
-        cordic_freqs = np.fft.fftfreq(nb_samplepoints,sample_spacing)
+        
+        [cordic_fft , cordic_freqs] = self.do_fft(cordic_data,nb_samplepoints)
 
         if (normalized_freq):
             cordic_freqs /= self.SAMPLING_FREQ
 
-        cordic_fft_plot = np.abs(cordic_fft)  / nb_samplepoints
+        cordic_fft = np.abs(cordic_fft)  / nb_samplepoints
         y_fftlabel = ""
 
         if (dB_fft):
             y_fftlabel = "dB"
-            cordic_fft_plot = 20.0 * np.log10(2*cordic_fft_plot)
+            cordic_fft = 20.0 * np.log10(2.0*cordic_fft)
+
+        ## Formating data
+
+        cordic_fft_plot = cordic_fft[:nb_samplepoints//2]
+        cordic_fft_freq = cordic_freqs[:nb_samplepoints//2]
+
 
         ## Plot
-        fig, ax = plt.subplots(2,2,figsize=(12,9))
+        fig, ax = plt.subplots(2,2,figsize=self.FIGSIZE)
 
         ax[0][0].grid(True)
         ax[0][0].set_title("DDS vs Python Sine %sHz" % (self._freq_stringformat(self.target_freq)))
@@ -422,7 +447,6 @@ class SimDDS:
         ax[0][0].plot(x_axis,ref_sin_y,"-r", label="Python")
         ax[0][0].set_xlabel(text_xlabel)
         ax[0][0].xaxis.set_major_formatter(axis_formater)
-
         ax[0][0].legend(loc='best')
         
         ax[0][1].grid(True)
@@ -430,13 +454,15 @@ class SimDDS:
         ax[0][1].plot(x_axis,mae)
         ax[0][1].set_xlabel(text_xlabel)
         ax[0][1].xaxis.set_major_formatter(axis_formater)
-        self._annot_max(x_axis,mae,ax[0][1],xlabel=(pi_char + text_xlabel))
+        self._annot_max (x_axis,mae,ax[0][1],xlabel=(pi_char + text_xlabel))
 
         ax[1][0].grid(True)
         ax[1][0].set_title("Magnitude")
-        ax[1][0].semilogx(cordic_freqs[:nb_samplepoints//2],cordic_fft_plot[:nb_samplepoints//2]) ## Only the real half
+        ax[1][0].semilogx(cordic_fft_freq,cordic_fft_plot) ## Only the real half
         ax[1][0].set_xlabel("Frequency")
-        self._annot_max(cordic_freqs[:nb_samplepoints//2],cordic_fft_plot[:nb_samplepoints//2],ax[1][0],xlabel=" Hz",ylabel=y_fftlabel)
+        self._annot_max (cordic_fft_freq , cordic_fft_plot, ax[1][0], xlabel=" Hz",ylabel=y_fftlabel)
+        cordic_fft_plot[np.argmax(cordic_fft_plot)] = -1000
+        self._annot_max (cordic_fft_freq , cordic_fft_plot, ax[1][0], xlabel=" Hz",ylabel=y_fftlabel,xytext=(0.8,0.82))
 
         ax[1][1].set_visible(False)
 
@@ -447,26 +473,19 @@ class SimDDS:
         plt.tight_layout()
         plt.show()    
     
-    def do_double_driver(self, compile = True,save_plot = True):
+    def do_double_driver(self, simulate = True,save_plot = True):
         
-        hdl_entity = "double_driver_tb"
-        if (compile):
-            self._compile_hdl()
+        if (simulate):
+            hdl_entity = "double_driver_tb"
+            self._sim_hdl(hdl_entity,run_all=True)
 
-        self._sim_hdl(hdl_entity,run_all=True)
+        [cordic_data_a, nb_samplepoints, x_axis] = self.extract_data(self.SRC_FILE_DDA_PATH)
+        cordic_data_b = self.extract_data(self.SRC_FILE_DDB_PATH)[0]
 
-        cordic_dataA = np.loadtxt(self.SRC_FILEA_PATH, converters={0 : self.conv})
-        cordic_dataB = np.loadtxt(self.SRC_FILEB_PATH, converters={0 : self.conv})
-
-        nb_samplepoints = len(cordic_dataA) # Number of samplepoints
-        sample_spacing = 1.0 / self.SAMPLING_FREQ # sample spacing
-
-        x_axis = np.linspace(0.0, (nb_samplepoints*sample_spacing), nb_samplepoints)
-
-        tx_pos = self._format_time_zone(self.tx_time)
-        tx_off_pos = tx_pos + self._format_time_zone(self.tx_off_time)
-        rx_pos = tx_off_pos + self._format_time_zone(self.rx_time)
-        off_pos = rx_pos + self._format_time_zone(self.off_time)
+        tx_pos      = self._format_time_zone(self.tx_time)
+        tx_off_pos  = tx_pos + self._format_time_zone(self.tx_off_time)
+        rx_pos      = tx_off_pos + self._format_time_zone(self.rx_time)
+        off_pos     = rx_pos + self._format_time_zone(self.off_time)
 
         x_line_annots = [ [0," "],
                           [tx_pos, "TX ZONE"],
@@ -476,30 +495,28 @@ class SimDDS:
 
         ## Plot
 
-        fig, ax = plt.subplots(2,1,figsize=(12,9))
+        fig, ax = plt.subplots(2,1,figsize=self.FIGSIZE)
 
         time_xlabel = "seconds"
 
         ax[0].grid(True)
         ax[0].set_title("Driver A signal %sHz" % (self._freq_stringformat(self.target_freq)))
-        ax[0].plot(x_axis,cordic_dataA,"-b")
+        ax[0].plot(x_axis,cordic_data_a,"-b")
         ax[0].set_xlabel(time_xlabel)
         ax[0].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
 
         ax[1].grid(True)
         ax[1].set_title("Driver B signal %sHz" % (self._freq_stringformat(self.target_freq)))
-        ax[1].plot(x_axis,cordic_dataB,"-r")
+        ax[1].plot(x_axis,cordic_data_b,"-r")
         ax[1].set_xlabel(time_xlabel)
         ax[1].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
+
+        sample_spacing =  1.0 / self.SAMPLING_FREQ 
 
         for axis in ax:
             for annot in x_line_annots :
                 xline_point = annot[0] * sample_spacing
-
-                #xtext_point = (annot[0] - 100) * sample_spacing
-                #xtext       = annot[1]
                 axis.axvline(x=xline_point, linestyle=':', color = 'black', alpha=0.7)
-                #axis.text(x=xtext_point, y=1, s=xtext, alpha=1, color='black')
 
         if(save_plot):
             fig_name = "fig_double_driver_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
@@ -508,19 +525,85 @@ class SimDDS:
         plt.tight_layout()
         plt.show()    
 
+    def do_win(self, simulate = True, save_plot = True, normalized_freq = False):
+
+        if (simulate):
+            hdl_entity = "dds_cordic_win_tb"
+            self.mode_time = False
+            self._sim_hdl(hdl_entity)
+
+        [sine_data, nb_samplepoints, x_axis] = self.extract_data(self.SRC_FILE_DWS_PATH)
+        win_data = self.extract_data(self.SRC_FILE_DWW_PATH)[0]
+        result_data = self.extract_data(self.SRC_FILE_DWR_PATH)[0]
+
+        x_axis = self.target_freq * 2.0 * x_axis
+        win_axis = np.linspace(0.0, nb_samplepoints, nb_samplepoints-1)
+
+        pi_char = str("\u03C0") ## Pi character 
+        axis_formater = mtick.FormatStrFormatter('%.3f'+pi_char)
+        text_xlabel = " rads"
+    
+        [cordic_fft , cordic_freqs] = self.do_fft(sine_data,nb_samplepoints)
+        [result_fft , result_freqs] = self.do_fft(result_data,nb_samplepoints)
+
+        if (normalized_freq):
+            cordic_freqs /= self.SAMPLING_FREQ
+            result_freqs /= self.SAMPLING_FREQ
+
+        cordic_fft = np.abs(cordic_fft)  / nb_samplepoints
+        result_fft_plot = np.abs(result_fft)  / nb_samplepoints
+
+        y_fftlabel = "dB"
+        cordic_fft = 20.0 * np.log10(2*cordic_fft)
+        result_fft_plot = 20.0 * np.log10(2*result_fft_plot)
+
+        ## Plot
+        fig, ax = plt.subplots(2,2,figsize=self.FIGSIZE)
+
+        ax[0][0].grid(True)
+        ax[0][0].set_title("Sine %sHz" % (self._freq_stringformat(self.target_freq)))
+        ax[0][0].plot(x_axis,sine_data,"-b", label="DDS")
+        ax[0][0].set_xlabel(text_xlabel)
+        ax[0][0].xaxis.set_major_formatter(axis_formater)
+        ax[0][0].legend(loc='best')
+        
+        ax[0][1].grid(True)
+        ax[0][1].set_title("Hanning Window")
+        ax[0][1].plot(win_axis,win_data)
+        ax[0][1].set_xlabel(text_xlabel)
+
+        ax[1][0].grid(True)
+        ax[1][0].set_title("Magnitude Pure sine wave")
+        ax[1][0].semilogx(cordic_freqs[:nb_samplepoints//2],cordic_fft[:nb_samplepoints//2]) ## Only the real half
+        ax[1][0].set_xlabel("Frequency")
+        self._annot_max (cordic_freqs[:nb_samplepoints//2],cordic_fft[:nb_samplepoints//2],ax[1][0],xlabel=" Hz",ylabel=y_fftlabel)
+
+        ax[1][1].grid(True)
+        ax[1][1].set_title("Magnitude Windowed sine (Hannning)")
+        ax[1][1].semilogx(result_freqs[:nb_samplepoints//2],result_fft_plot[:nb_samplepoints//2]) ## Only the real half
+        ax[1][1].set_xlabel("Frequency")
+        self._annot_max (result_freqs[:nb_samplepoints//2],result_fft_plot[:nb_samplepoints//2],ax[1][1],xlabel=" Hz",ylabel=y_fftlabel)
+
+        if(save_plot):
+            fig_name = "fig_dds_win_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
+            plt.savefig(fig_name)
+
+        plt.tight_layout()
+        plt.show()       
+
 ##########
 ## MAIN ##
 ##########
 
 def main():
-    target_frequency = 500e3 
-    number_cycles =  12
-    phase_diff = math.pi / 2.0
-    mode_time = True
-    sim = SimDDS(target_frequency,number_cycles,phase_diff,mode_time=mode_time)
-    sim.do_dds(compile=True)
-    #sim.do_double_driver(compile=False)
 
+    target_frequency = 500e3 
+    number_cycles =  10
+    initial_phase = np.pi / 2.0
+    sim = SimDDS(target_frequency,number_cycles,initial_phase,mode_time=True)
+    sim.compile()
+    sim.do_dds(simulate = False)
+    
 if __name__ == "__main__":
     main()
 
