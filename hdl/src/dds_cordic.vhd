@@ -36,7 +36,7 @@ entity dds_cordic is
         phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
-        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);  
+        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
@@ -128,7 +128,8 @@ begin
         generic map(
             PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
             PHASE_FRAC_PART                    => PHASE_FRAC_PART,
-            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH
+            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH,
+            MODE_TIME                          => MODE_TIME
         )
         port map(
             -- Clock interface

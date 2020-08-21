@@ -22,7 +22,8 @@ entity phase_acc_v2 is
     generic(
         PHASE_INTEGER_PART                 : natural  :=   0;
         PHASE_FRAC_PART                    : integer  := -15;
-        NB_POINTS_WIDTH                    : positive :=  10
+        NB_POINTS_WIDTH                    : positive :=  10;
+        MODE_TIME                          : boolean  := FALSE
     );
     port(
         -- Clock interface
@@ -73,7 +74,6 @@ architecture behavioral of phase_acc_v2 is
     signal restart_acc                          : std_logic; 
     
     -- Behavioral
-    
     signal strb_new_term_reg                    : std_logic;
 
     signal phase_term_reg                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);    
@@ -90,12 +90,17 @@ architecture behavioral of phase_acc_v2 is
     signal output_strb_reg                      : std_logic;
     signal phase_acc                            : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     
+    signal enable_counters                      : std_logic;
     signal nb_points_one_period_counter         : unsigned((NB_POINTS_WIDTH - 1) downto 0);
     signal full_period_done                     : std_logic;
     
     signal nb_repetitions_counter               : unsigned((NB_POINTS_WIDTH - 1) downto 0);
     signal full_wave_done                       : std_logic;
-    
+
+    --Phase time (experimental)
+    signal phase_time_counter                   : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    signal phase_time_counter_not_done          : std_logic;
+    signal phase_time_counter_not_done_reg      : std_logic;
     
 begin          
     
@@ -148,7 +153,11 @@ begin
             if (output_strb = '1') then
 
                 if (set_phase = '1') then
-                    phase_acc <= initial_phase_reg;
+                    if(MODE_TIME) then
+                        phase_acc <= (others => '0');
+                    else
+                        phase_acc <= initial_phase_reg;
+                    end if;
                 else
                     phase_acc <= resize( (phase_acc + phase_term_reg) ,PHASE_INTEGER_PART,PHASE_FRAC_PART);
                 end if;
@@ -165,7 +174,8 @@ begin
                                                     or  neg_edge_detector_restart_acc;  -- Restart with the same phase term
     -- Resets phase acc to initial phase upon
     set_phase                       <=                  full_period_done    -- Full cycle (number of repetitions)
-                                                    or  start_new_cycle;  -- Reset cycle signal
+                                                    or  start_new_cycle     -- Reset cycle signal
+                                                    or  phase_time_counter_not_done_reg;   
 
     output_strb                     <=              (       (not full_wave_done)        
                                                         and output_strb_reg      )  
@@ -174,6 +184,9 @@ begin
     --------------
     -- Counters --
     --------------
+
+    enable_counters     <=          output_strb
+                                and not(phase_time_counter_not_done_reg);
 
     counters : process(clock_i,areset_i)
     begin
@@ -184,9 +197,9 @@ begin
 
         elsif (rising_edge(clock_i)) then
 
-            if((output_strb = '1')) then
+            if(enable_counters = '1') then
                
-                if((full_period_done = '1')) then                    
+                if(full_period_done = '1') then                    
                     nb_points_one_period_counter    <= (others => '0');
                     nb_repetitions_counter <= nb_repetitions_counter + 1;
                 else
@@ -207,6 +220,38 @@ begin
             
     full_wave_done      <=              '1'     when (  nb_repetitions_counter  = ( unsigned(nb_repetitions_reg)) )
                                 else    '0';
+
+    -----------------------
+    -- MODE TIME COUNTER --
+    -----------------------
+
+        -- Phase time
+    phase_time_counter_proc : process(clock_i,areset_i)
+    begin
+        if (areset_i = '1') then
+            phase_time_counter          <= (others => '0');
+        elsif (rising_edge(clock_i)) then
+
+            phase_time_counter_not_done_reg <=  phase_time_counter_not_done;
+
+            if((output_strb = '1')) then
+
+                if( phase_time_counter_not_done = '1') then
+                    phase_time_counter      <= resize( (phase_time_counter + phase_term_reg) 
+                                                       ,PHASE_INTEGER_PART,PHASE_FRAC_PART);
+                end if;
+
+                if((restart_acc = '1')) then
+                    phase_time_counter <= (others => '0'); --TODO: check synthesis (maybe generate~VHDL-2008)
+                end if;
+
+            end if;
+        end if;
+    end process;
+
+    phase_time_counter_not_done     <=          '0' when (              phase_time_counter >= (initial_phase_reg - phase_term_reg)
+                                                                    or  not(MODE_TIME)                          )
+                                        else    '1';
                                 
     -- Output
     strb_o              <= output_strb_reg;
