@@ -20,7 +20,13 @@ use work.utils_pkg.all;
 
 entity double_driver is
     generic(
-        SYSTEM_FREQUENCY                    : positive := 100E6; -- 100 MHz
+        PHASE_INTEGER_PART                  : natural  :=   4;
+        PHASE_FRAC_PART                     : integer  := -35;
+        CORDIC_INTEGER_PART                 : integer  :=   1; 
+        CORDIC_FRAC_PART                    : integer  := -19;
+        N_CORDIC_ITERATIONS                 : natural  :=  21;
+        NB_POINTS_WIDTH                     : natural  :=  10;  
+        EN_POSPROC                          : boolean  := FALSE;
         MODE_TIME                           : boolean  := FALSE
     );
     port(
@@ -30,9 +36,10 @@ entity double_driver is
 
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
-        target_frequency_i                  : in  std_logic_vector((ceil_log2(SYSTEM_FREQUENCY + 1) - 1) downto 0);
-        nb_cycles_i                         : in  std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-        phase_diff_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+        phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+        initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
+        nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
+        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);  
 
         -- Control Interface
         tx_time_i                           : in  std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
@@ -62,16 +69,11 @@ end double_driver;
 ------------------
 architecture behavioral of double_driver is
 
-    ---------------
-    -- Constants --
-    ---------------
-    constant    FREQUENCY_WIDTH     : positive := target_frequency_i'length;
-
     -------------
     -- Signals --
     -------------
 
-    -- Control
+    -- Stage 1 Control
     signal control_strb_i                       : std_logic;
     signal control_tx_time                      : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
     signal control_tx_off_time                  : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
@@ -82,13 +84,12 @@ architecture behavioral of double_driver is
     signal control_restart_cycles               : std_logic;
     signal control_end_zones_cycle              : std_logic;
 
-    -- Driver A
-
+    -- Stage 2 Driver A
     signal driver_a_strb_i                      : std_logic;
-    signal driver_a_target_freq                 : std_logic_vector((FREQUENCY_WIDTH - 1) downto 0);
-    signal driver_a_nb_cycles                   : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-    signal driver_a_phase_diff                  : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
-    
+    signal driver_a_phase_term                  : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal driver_a_nb_points                   : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal driver_a_nb_repetitions              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal driver_a_initial_phase               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal driver_a_restart_cycles              : std_logic;
     
     signal driver_a_strb_o                      : std_logic;
@@ -96,12 +97,12 @@ architecture behavioral of double_driver is
     signal driver_a_done_cycles                 : std_logic;
     signal driver_a_flag_full_cycle             : std_logic;
 
-    -- Driver B
+    -- Stage 2 Driver B
     signal driver_b_strb_i                      : std_logic;
-    signal driver_b_target_freq                 : std_logic_vector((FREQUENCY_WIDTH - 1) downto 0);
-    signal driver_b_nb_cycles                   : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-    signal driver_b_phase_diff                  : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
-    
+    signal driver_b_phase_term                  : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal driver_b_nb_points                   : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal driver_b_nb_repetitions              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal driver_b_initial_phase               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal driver_b_restart_cycles              : std_logic;
     
     signal driver_b_strb_o                      : std_logic;
@@ -123,90 +124,112 @@ begin
     control_output_strb   <=   driver_b_strb_o;
 
     stage_1_control: entity work.fsm_time_zones
-    generic map(
-        SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY
-    )
-    port map(
-        -- Clock interface
-        clock_i                             => clock_i,
-        areset_i                            => areset_i,
+        port map(
+            -- Clock interface
+            clock_i                             => clock_i,
+            areset_i                            => areset_i,
 
-        -- Input interface
-        strb_i                              => control_strb_i,
-        tx_time_i                           => control_tx_time,
-        tx_off_time_i                       => control_tx_off_time,
-        rx_time_i                           => control_rx_time,
-        off_time_i                          => control_off_time,
-        output_strb_i                       => control_output_strb,
-        
-        -- Control Interface
-        restart_cycles_o                    => control_restart_cycles,
-        end_zones_cycle_o                   => control_end_zones_cycle
-    );
+            -- Input interface
+            strb_i                              => control_strb_i,
+            tx_time_i                           => control_tx_time,
+            tx_off_time_i                       => control_tx_off_time,
+            rx_time_i                           => control_rx_time,
+            off_time_i                          => control_off_time,
+            output_strb_i                       => control_output_strb,
+            
+            -- Control Interface
+            restart_cycles_o                    => control_restart_cycles,
+            end_zones_cycle_o                   => control_end_zones_cycle
+        );
 
-    --------------
-    -- Driver A --
-    --------------
+    ----------------------
+    -- Stage 2 Driver A --
+    ----------------------
 
     driver_a_strb_i         <= strb_i;
-    driver_a_target_freq    <= target_frequency_i;
-    driver_a_nb_cycles      <= nb_cycles_i;
-    driver_a_phase_diff     <= (others => '0');
+    driver_a_phase_term     <= phase_term_i;
+    driver_a_nb_points      <= nb_points_i;
+    driver_a_nb_repetitions <= nb_repetitions_i;
+    driver_a_initial_phase  <= (others => '0');
     driver_a_restart_cycles <= control_restart_cycles;
 
-    driver_a : entity work.dds_cordic
-        generic map (
+    stage_2_driver_a: entity work.dds_cordic
+        generic map(
+            PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+            PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+            CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
+            CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
+            N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
+            NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
             EN_POSPROC                          => FALSE,
-            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
             MODE_TIME                           => FALSE
         )
         port map(
+            -- Clock interface
             clock_i                             => clock_i,  
             areset_i                            => areset_i,
-
+    
+            -- Input interface
             strb_i                              => driver_a_strb_i,
-            target_frequency_i                  => driver_a_target_freq,
-            nb_cycles_i                         => driver_a_nb_cycles,
-            phase_diff_i                        => driver_a_phase_diff,
+            phase_term_i                        => driver_a_phase_term,
+            initial_phase_i                     => driver_a_initial_phase,
+            nb_points_i                         => driver_a_nb_points,
+            nb_repetitions_i                    => driver_a_nb_repetitions,
+           
+            -- Control interface
             restart_cycles_i                    => driver_a_restart_cycles,
-
+            
+            -- Output interface
             strb_o                              => driver_a_strb_o,
             sine_phase_o                        => driver_a_sine_phase,
+            cos_phase_o                         => open,
             done_cycles_o                       => driver_a_done_cycles,
             flag_full_cycle_o                   => driver_a_flag_full_cycle
-
         );
+        
+    ----------------------
+    -- Stage 2 Driver B --
+    ----------------------
 
-    --------------
-    -- Driver B --
-    --------------
-    
     driver_b_strb_i         <= strb_i;
-    driver_b_target_freq    <= target_frequency_i;
-    driver_b_nb_cycles      <= nb_cycles_i;
-    driver_b_phase_diff     <= phase_diff_i;
+    driver_b_phase_term     <= phase_term_i;
+    driver_b_nb_points      <= nb_points_i;
+    driver_b_nb_repetitions <= nb_repetitions_i;
+    driver_b_initial_phase  <= initial_phase_i;
     driver_b_restart_cycles <= control_restart_cycles;
 
-    driver_b : entity work.dds_cordic
-        generic map (
+    stage_2_driver_b: entity work.dds_cordic
+        generic map(
+            PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+            PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+            CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
+            CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
+            N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
+            NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
             EN_POSPROC                          => FALSE,
-            SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
             MODE_TIME                           => MODE_TIME
         )
         port map(
+            -- Clock interface
             clock_i                             => clock_i,  
             areset_i                            => areset_i,
-
+    
+            -- Input interface
             strb_i                              => driver_b_strb_i,
-            target_frequency_i                  => driver_b_target_freq,
-            nb_cycles_i                         => driver_b_nb_cycles,
-            phase_diff_i                        => driver_b_phase_diff,
+            phase_term_i                        => driver_b_phase_term,
+            initial_phase_i                     => driver_b_initial_phase,
+            nb_points_i                         => driver_b_nb_points,
+            nb_repetitions_i                    => driver_b_nb_repetitions,
+           
+            -- Control interface
             restart_cycles_i                    => driver_b_restart_cycles,
-
+            
+            -- Output interface
             strb_o                              => driver_b_strb_o,
             sine_phase_o                        => driver_b_sine_phase,
+            cos_phase_o                         => open,
             done_cycles_o                       => driver_b_done_cycles,
-            flag_full_cycle_o                   => driver_b_flag_full_cycle        
+            flag_full_cycle_o                   => driver_b_flag_full_cycle
         );
 
     ------------

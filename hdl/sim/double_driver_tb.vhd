@@ -35,14 +35,7 @@ architecture testbench of double_driver_tb is
 
     -- Clock
     constant CLK_PERIOD                        : time     := 10 ns; -- 100 MHz
-    
-    -- Input target frequency
-    constant SYSTEM_FREQUENCY                  : positive := 100E6;
-    constant FREQUENCY_WIDTH                   : positive := ceil_log2(SYSTEM_FREQUENCY + 1);
-
-    -- Input TX time (nb 100 MHz cycles)
-    constant TX_TIME_CONSTANT                  : positive := ( (SYSTEM_FREQUENCY / SIM_INPUT_TARGETFREQ) * SIM_INPUT_NBCYCLES );
-    
+  
     -- Write txt
     constant CORDIC_OUTPUT_WIDTH               : positive := (N_CORDIC_ITERATIONS );
     
@@ -54,9 +47,10 @@ architecture testbench of double_driver_tb is
     signal areset                              : std_logic :='0';
 
     signal strb_i                              : std_logic := '0';
-    signal target_freq                         : std_logic_vector((FREQUENCY_WIDTH - 1) downto 0):= std_logic_vector(to_unsigned(20e3,FREQUENCY_WIDTH ));
-    signal nb_cycles                           : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-    signal phase_diff                          : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal phase_term                          : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal nb_points                           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_repetitions                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal initial_phase                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
 
     signal end_zones_cycle                     : std_logic;
 
@@ -102,8 +96,14 @@ begin
 
    UUT: entity work.double_driver
     generic map (
-        SYSTEM_FREQUENCY                    => SYSTEM_FREQUENCY,
-        MODE_TIME                           => SIM_INPUT_MODE_TIME
+        PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+        PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+        CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
+        CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
+        N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
+        NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+        EN_POSPROC                          => FALSE,
+        MODE_TIME                           => SIM_INPUT_MODE_TIME    
     )
     port map(
         -- Clock interface
@@ -112,10 +112,11 @@ begin
 
         -- Input interface
         strb_i                              => strb_i,
-        target_frequency_i                  => target_freq,
-        nb_cycles_i                         => nb_cycles,
-        phase_diff_i                        => phase_diff,
-
+        phase_term_i                        => phase_term,
+        initial_phase_i                     => initial_phase,
+        nb_points_i                         => nb_points,
+        nb_repetitions_i                    => nb_repetitions,
+           
         -- Control Interface
         tx_time_i                           => tx_time ,    
         tx_off_time_i                       => tx_off_time,  
@@ -151,9 +152,11 @@ begin
         strb_i <= '1';
 
         -- Inputs --
-        target_freq     <=  std_logic_vector(to_unsigned( SIM_INPUT_TARGETFREQ, FREQUENCY_WIDTH )); -- TODO: check behavior with 0
-        nb_cycles       <=  std_logic_vector(to_unsigned( SIM_INPUT_NBCYCLES, NB_CYCLES_WIDTH ));  -- TODO: check behavior with 0
-        phase_diff      <=  to_ufixed(SIM_INPUT_PHASE_DIFF,phase_diff);
+        phase_term      <=  to_ufixed(         SIM_INPUT_PHASE_TERM            , phase_term        ); 
+        nb_points       <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBPOINTS , NB_POINTS_WIDTH ) ); 
+        nb_repetitions  <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBREPET  , NB_POINTS_WIDTH ) ); 
+        initial_phase   <=  to_ufixed(         SIM_INPUT_INIT_PHASE            , initial_phase     );
+
         tx_time         <=  std_logic_vector(to_unsigned( SIM_INPUT_TX_TIME , tx_time'length));
         tx_off_time     <=  std_logic_vector(to_unsigned( SIM_INPUT_TX_OFF_TIME , tx_off_time'length ));  -- Extra time 
         rx_time         <=  std_logic_vector(to_unsigned( SIM_INPUT_RX_TIME , rx_time'length )); -- A huge amount of time
@@ -197,7 +200,7 @@ begin
 
     write2fileA : entity work.sim_write2file
         generic map (
-            FILE_NAME    => "./outputA.txt", 
+            FILE_NAME    => "./output_dd_a.txt", 
             INPUT_WIDTH  => CORDIC_OUTPUT_WIDTH
         )
         port map (
@@ -211,7 +214,7 @@ begin
 
     write2fileB : entity work.sim_write2file
         generic map (
-            FILE_NAME    => "./outputB.txt", 
+            FILE_NAME    => "./output_dd_b.txt", 
             INPUT_WIDTH  => CORDIC_OUTPUT_WIDTH
         )
         port map (

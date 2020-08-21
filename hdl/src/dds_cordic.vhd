@@ -11,17 +11,19 @@ library ieee_proposed;
 use ieee_proposed.fixed_float_types.all;
 use ieee_proposed.fixed_pkg.all;         
 
-library work;
-use work.utils_pkg.all;
-
 ------------
 -- Entity --
 ------------
 
 entity dds_cordic is
     generic(
+        PHASE_INTEGER_PART                  : natural  :=   4;
+        PHASE_FRAC_PART                     : integer  := -35;
+        CORDIC_INTEGER_PART                 : integer  :=   1; 
+        CORDIC_FRAC_PART                    : integer  := -19;
+        N_CORDIC_ITERATIONS                 : natural  :=  21;
+        NB_POINTS_WIDTH                     : natural  :=  10;  
         EN_POSPROC                          : boolean  := FALSE;
-        SYSTEM_FREQUENCY                    : positive := 100E6; -- 100 MHz
         MODE_TIME                           : boolean  := FALSE
     );
     port(
@@ -31,14 +33,16 @@ entity dds_cordic is
 
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
-        target_frequency_i                  : in  std_logic_vector((ceil_log2(SYSTEM_FREQUENCY + 1) - 1) downto 0);
-        nb_cycles_i                         : in  std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-        phase_diff_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
+        phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+        initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
+        nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
+        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);  
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
         strb_o                              : out std_logic;
         sine_phase_o                        : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+        cos_phase_o                         : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
         done_cycles_o                       : out std_logic;
         flag_full_cycle_o                   : out std_logic
     );
@@ -52,7 +56,6 @@ architecture behavioral of dds_cordic is
     ---------------
     -- Constants --
     ---------------
-    constant    FREQUENCY_WIDTH     : positive := target_frequency_i'length;
     constant    CORDIC_FACTOR       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART) := to_sfixed( (0.607253) , CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
     constant    SIDEBAND_WIDTH      : natural  := 2;
 
@@ -62,9 +65,10 @@ architecture behavioral of dds_cordic is
     
     -- Stage 1 Phase accumulator
     signal      phase_acc_strb_i            : std_logic;
-    signal      phase_acc_target_freq       : std_logic_vector( (FREQUENCY_WIDTH - 1) downto 0);
-    signal      phase_acc_nb_cycles         : std_logic_vector((NB_CYCLES_WIDTH - 1) downto 0);
-    signal      phase_acc_phase_diff        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal      phase_acc_phase_term        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);   
+    signal      phase_acc_initial_phase     : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal      phase_acc_nb_points         : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      phase_acc_nb_repetitions    : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
 
     signal      phase_acc_restart_cycles    : std_logic;
     signal      phase_acc_done_cycles       : std_logic;
@@ -109,44 +113,47 @@ architecture behavioral of dds_cordic is
     
 begin
 
-
     -------------
     -- Stage 1 --
     -------------
 
     phase_acc_strb_i            <= strb_i;
-    phase_acc_target_freq       <= target_frequency_i;
-    phase_acc_nb_cycles         <= nb_cycles_i;
-    phase_acc_phase_diff        <= phase_diff_i; 
-
+    phase_acc_phase_term        <= phase_term_i;
+    phase_acc_initial_phase     <= initial_phase_i;
+    phase_acc_nb_points         <= nb_points_i;
+    phase_acc_nb_repetitions    <= nb_repetitions_i;  
     phase_acc_restart_cycles    <= restart_cycles_i;
 
-    stage_1_phase_acc : entity work.phase_acc 
+    stage_1_phase_acc : entity work.phase_acc_v2
         generic map(
-            SAMPLING_FREQUENCY                  => SYSTEM_FREQUENCY,
-            MODE_TIME                           => MODE_TIME
+            PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
+            PHASE_FRAC_PART                    => PHASE_FRAC_PART,
+            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH
         )
         port map(
             -- Clock interface
-            clock_i                             => clock_i,
-            areset_i                            => areset_i,
+            clock_i                            => clock_i,
+            areset_i                           => areset_i,
     
             -- Input interface
-            strb_i                              => phase_acc_strb_i,
-            target_frequency_i                  => phase_acc_target_freq,
-            nb_cycles_i                         => phase_acc_nb_cycles,
-            phase_diff_i                        => phase_acc_phase_diff,
+            strb_i                             => phase_acc_strb_i,
+            phase_term_i                       => phase_acc_phase_term,
+            initial_phase_i                    => phase_acc_initial_phase,
+            nb_points_one_period_i             => phase_acc_nb_points,
+            nb_repetitions_i                   => phase_acc_nb_repetitions,
     
             -- Control interface
-            restart_cycles_i                    => phase_acc_restart_cycles,
-            done_cycles_o                       => phase_acc_done_cycles,
-            flag_full_cycle_o                   => phase_acc_flag_full_cycle,
+            restart_acc_i                      => phase_acc_restart_cycles,
+            
+            -- Debug interface
+            flag_done_o                        => phase_acc_done_cycles,
+            flag_period_o                      => phase_acc_flag_full_cycle,
     
             -- Output interface
-            strb_o                              => phase_acc_strb_o,
-            phase_o                             => phase_acc_phase
+            strb_o                             => phase_acc_strb_o,
+            phase_o                            => phase_acc_phase
         ); 
-
+        
     -------------
     -- Stage 2 --
     -------------
@@ -256,7 +263,7 @@ begin
         if (not EN_POSPROC) generate
             posproc_strb_o          <= posproc_strb_i;
             posproc_sin_phase_o     <= posproc_sin_phase_i;
-            posproc_cos_phase_o     <= posproc_cos_phase_o;
+            posproc_cos_phase_o     <= posproc_cos_phase_i;
         end generate POSPROC_GEN_FALSE;
     
     ------------
@@ -266,6 +273,7 @@ begin
     strb_o              <= posproc_strb_o;
     flag_full_cycle_o   <= phase_acc_flag_full_cycle;
     sine_phase_o        <= posproc_sin_phase_o;
+    cos_phase_o         <= posproc_cos_phase_o;
     done_cycles_o       <= phase_acc_done_cycles;
 
     end behavioral;
