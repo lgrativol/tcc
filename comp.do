@@ -15,6 +15,7 @@ vmap work work
 
 vcom -93 ../hdl/pkg/utils_pkg.vhd
 
+
 ############################
 ##  Compile source files  ##
 ############################
@@ -22,19 +23,19 @@ vcom -93 ../hdl/pkg/utils_pkg.vhd
 
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_slice.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_core.vhd
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/phase_acc.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/phase_acc_v2.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/preproc.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/posproc.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_time_zones.vhd
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top_dds_cordic.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/double_driver.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_slice_recp.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_core_recp.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/reciprocal_xy.vhd
-
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/win_phase_acc.vhd
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/hh_win.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/generic_shift_reg.vhd
+##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/win_phase_acc.vhd
+##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/hh_win.vhd
+##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic_win.vhd
 
 
 ################################
@@ -45,9 +46,15 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/hh_win.vhd
 vcom -93  -novopt -O0 ../hdl/sim/sim_input_pkg.vhd
 vcom -93  -novopt -O0 ../hdl/sim/sim_write2file.vhd
 vcom -93  -novopt -O0 ../hdl/sim/cordic_tb.vhd
-vcom -93  -novopt -O0 ../hdl/sim/top_dds_cordic_tb.vhd
+vcom -93  -novopt -O0 ../hdl/sim/dds_cordic_tb.vhd
 vcom -93  -novopt -O0 ../hdl/sim/fsm_time_zones_tb.vhd
 vcom  -novopt -O0 ../hdl/sim/double_driver_tb.vhd
 vcom -93  -novopt -O0 ../hdl/sim/reciprocal_xy_tb.vhd
+##vcom -93  -novopt -O0 ../hdl/sim/hh_win_tb.vhd
+##vcom -93  -novopt -O0 ../hdl/sim/dds_cordic_win_tb.vhd
 
-vcom -93  -novopt -O0 ../hdl/sim/hh_win_tb.vhd
+############
+## Unused ##
+############
+
+##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/phase_acc.vhd
