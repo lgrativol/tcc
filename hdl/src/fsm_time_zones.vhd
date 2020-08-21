@@ -14,9 +14,6 @@ use work.utils_pkg.all;
 ------------
 
 entity fsm_time_zones is
-    generic(
-        SYSTEM_FREQUENCY                    : positive := 100E6 -- 100 MHz
-    );
     port(
         -- Clock interface
         clock_i                             : in  std_logic; 
