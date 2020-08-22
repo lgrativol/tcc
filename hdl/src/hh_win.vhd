@@ -25,7 +25,8 @@ entity hh_win is
         WIN_PHASE_FRAC_PART                : integer  := -1;
         HH_INTEGER_PART                    : positive := 2;
         HH_FRAC_PART                       : integer  := -4;
-        HH_NB_ITERATIONS                   : positive := 10             
+        HH_NB_ITERATIONS                   : positive := 10;
+        NB_POINTS_WIDTH                    : positive := 17             
    );
     port(
         -- Clock interface
@@ -35,6 +36,7 @@ entity hh_win is
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
         phase_term_i                        : in  ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART);
+        nb_points_i                         : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0 );
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
@@ -97,16 +99,19 @@ architecture behavioral of hh_win is
     -- Signals --
     -------------
     
-    -- Stage 1 Hann/Hamm phase acc
-    signal      win_phase_acc_strb_i            : std_logic;
-    signal      win_phase_acc_phase_term        : ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART);
-    
-    signal      win_phase_acc_restart_cycles    : std_logic;
-    signal      win_phase_acc_done_cycles       : std_logic;
-    signal      win_phase_acc_flag_full_cycle   : std_logic;
-    
-    signal      win_phase_acc_strb_o            : std_logic;
-    signal      win_phase_acc_phase             : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+    -- Stage 1 Phase accumulator
+    signal      phase_acc_strb_i                : std_logic;
+    signal      phase_acc_phase_term            : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);   
+    signal      phase_acc_initial_phase         : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal      phase_acc_nb_points             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      phase_acc_nb_repetitions        : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+
+    signal      phase_acc_restart_cycles        : std_logic;
+    signal      phase_acc_done_cycles           : std_logic;
+    signal      phase_acc_flag_full_cycle       : std_logic;
+
+    signal      phase_acc_strb_o                : std_logic;
+    signal      phase_acc_phase                 : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     
     -- Stage 2 Preprocessor
     signal      preproc_strb_i                  : std_logic;
@@ -158,40 +163,50 @@ begin
     -- Stage 1 --
     -------------
 
-    win_phase_acc_strb_i            <= strb_i;
-    win_phase_acc_phase_term        <= phase_term_i;
-    win_phase_acc_restart_cycles    <= restart_cycles_i;
+    phase_acc_strb_i            <= strb_i;
+    phase_acc_phase_term        <= phase_term_i;
+    phase_acc_initial_phase     <= (others => '0');
+    phase_acc_nb_points         <= nb_points_i;
+    phase_acc_nb_repetitions    <= std_logic_vector( to_unsigned( 1, phase_acc_nb_repetitions'length));  
+    phase_acc_restart_cycles    <= restart_cycles_i;
 
-    stage_1_win_phase_acc : entity work.win_phase_acc 
+    stage_1_phase_acc : entity work.phase_acc_v2
         generic map(
-            MULT_FACTOR                         => 1,
-            WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
-            WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART
+            PHASE_INTEGER_PART                 => WIN_PHASE_INTEGER_PART,
+            PHASE_FRAC_PART                    => WIN_PHASE_FRAC_PART,
+            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH,
+            MODE_TIME                          => FALSE
         )
         port map(
             -- Clock interface
-            clock_i                             => clock_i,
-            areset_i                            => areset_i,
+            clock_i                            => clock_i,
+            areset_i                           => areset_i,
     
             -- Input interface
-            strb_i                              => win_phase_acc_strb_i,
-            phase_term_i                        => win_phase_acc_phase_term,
+            strb_i                             => phase_acc_strb_i,
+            phase_term_i                       => phase_acc_phase_term,
+            initial_phase_i                    => phase_acc_initial_phase,
+            nb_points_one_period_i             => phase_acc_nb_points,
+            nb_repetitions_i                   => phase_acc_nb_repetitions,
     
             -- Control interface
-            restart_cycles_i                    => win_phase_acc_restart_cycles,
-            flag_full_cycle_o                   => win_phase_acc_flag_full_cycle,
+            restart_acc_i                      => phase_acc_restart_cycles,
+            
+            -- Debug interface
+            flag_done_o                        => open,
+            flag_period_o                      => open,
     
             -- Output interface
-            strb_o                              => win_phase_acc_strb_o,
-            phase_o                             => win_phase_acc_phase
+            strb_o                             => phase_acc_strb_o,
+            phase_o                            => phase_acc_phase
         ); 
 
     -------------
     -- Stage 2 --
     -------------
 
-    preproc_strb_i  <= win_phase_acc_strb_o;
-    preproc_phase   <= win_phase_acc_phase;
+    preproc_strb_i  <= phase_acc_strb_o;
+    preproc_phase   <= phase_acc_phase;
 
     stage_2_preproc : entity work.preproc
         generic map(
