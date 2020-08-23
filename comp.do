@@ -33,9 +33,8 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_slice_recp.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_core_recp.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/reciprocal_xy.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/generic_shift_reg.vhd
-##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/win_phase_acc.vhd
-##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/hh_win.vhd
-##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic_win.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/hh_win.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic_win.vhd
 
 
 ################################
@@ -50,8 +49,8 @@ vcom -93  -novopt -O0 ../hdl/sim/dds_cordic_tb.vhd
 vcom -93  -novopt -O0 ../hdl/sim/fsm_time_zones_tb.vhd
 vcom  -novopt -O0 ../hdl/sim/double_driver_tb.vhd
 vcom -93  -novopt -O0 ../hdl/sim/reciprocal_xy_tb.vhd
+vcom -93  -novopt -O0 ../hdl/sim/dds_cordic_win_tb.vhd
 ##vcom -93  -novopt -O0 ../hdl/sim/hh_win_tb.vhd
-##vcom -93  -novopt -O0 ../hdl/sim/dds_cordic_win_tb.vhd
 
 ############
 ## Unused ##
