@@ -21,7 +21,7 @@ use work.utils_pkg.all;
 entity dds_cordic_win is
     generic(
         PHASE_INTEGER_PART                  : natural  :=   4;
-        PHASE_FRAC_PART                     : integer  := -35;
+        PHASE_FRAC_PART                     : integer  := -27;
         CORDIC_INTEGER_PART                 : natural  :=   1; 
         CORDIC_FRAC_PART                    : integer  := -19;
         N_CORDIC_ITERATIONS                 : natural  :=  21;
@@ -40,7 +40,7 @@ entity dds_cordic_win is
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
         phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
-        window_term_i                       : in  ufixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
+        window_term_i                       : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
         nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);

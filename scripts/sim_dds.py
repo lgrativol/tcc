@@ -74,6 +74,7 @@ class SimDDS:
         self._cordic_word_frac_width = 19 # bits
         self._cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
         self._nb_cordic_stages = 21
+        self.win_mode = "HANN"
         self.need_reconfig = False
 
     @property
@@ -238,22 +239,26 @@ class SimDDS:
     def _write_sim_input(self):
 
         search_phase_term       = "SIM_INPUT_PHASE_TERM"
+        search_win_term         = "SIM_INPUT_WIN_TERM"
         search_initial_phase    = "SIM_INPUT_INIT_PHASE"
         search_nb_points        = "SIM_INPUT_NBPOINTS"
         search_nb_cycles        = "SIM_INPUT_NBREPET"
         search_mode_time        = "SIM_INPUT_MODE_TIME"   
+        search_win_mode         = "SIM_INPUT_WIN_MODE"   
         search_tx_time          = "SIM_INPUT_TX_TIME"     
         search_tx_off_time      = "SIM_INPUT_TX_OFF_TIME"
         search_rx_time          = "SIM_INPUT_RX_TIME"      
         search_off_time         = "SIM_INPUT_OFF_TIME"   
 
-        search_list             = [search_phase_term,search_nb_points,search_nb_cycles,search_initial_phase,
-                                   search_tx_time,search_tx_off_time,search_rx_time,search_off_time,search_mode_time]
+        search_list             = [search_phase_term,search_win_term,search_nb_points,search_nb_cycles,search_initial_phase,
+                                   search_tx_time,search_tx_off_time,search_rx_time,search_off_time,search_mode_time,search_win_mode]
         
         nb_points  = self.SAMPLING_FREQ/self.target_freq
         phase_term = ( 2.0 * np.pi  / nb_points)
+        win_term = ( 2.0 * np.pi  / (nb_points * self.nb_cycles))
 
         term_phase_term       = "   constant SIM_INPUT_PHASE_TERM     : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase(phase_term))
+        term_win_term         = "   constant SIM_INPUT_WIN_TERM       : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase(win_term))
         term_nb_points        = "   constant SIM_INPUT_NBPOINTS       : natural   := %d;\n" %(nb_points)
         term_nb_cycles        = "   constant SIM_INPUT_NBREPET        : natural   := %d;\n" %(self.nb_cycles)
         term_initial_phase    = "   constant SIM_INPUT_INIT_PHASE     : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase(self.initial_phase))
@@ -262,8 +267,10 @@ class SimDDS:
         term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.rx_time))
         term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self._format_time_zone(self.off_time))
         term_mode_time        = "   constant SIM_INPUT_MODE_TIME      : boolean   := %s;\n" %(self.mode_time)
+        term_win_mode         = "   constant SIM_INPUT_WIN_MODE       : string    := \"%s\";\n" %(self.win_mode)
  
-        term_list = [term_phase_term,term_nb_points,term_nb_cycles,term_initial_phase,term_tx_time,term_tx_off_time,term_rx_time,term_off_time,term_mode_time]
+        term_list = [term_phase_term, term_win_term, term_nb_points,term_nb_cycles,term_initial_phase,term_tx_time,
+                     term_tx_off_time,term_rx_time,term_off_time,term_mode_time,term_win_mode]
 
         self._replace_all(self.SIM_INPUT_FILE,search_list,term_list)
 
@@ -525,19 +532,21 @@ class SimDDS:
         plt.tight_layout()
         plt.show()    
 
-    def do_win(self, simulate = True, save_plot = True, normalized_freq = False):
+    def do_win(self, simulate = True, win_mode = "HANN", save_plot = True, normalized_freq = False):
+
+        self.win_mode = win_mode
 
         if (simulate):
             hdl_entity = "dds_cordic_win_tb"
             self.mode_time = False
             self._sim_hdl(hdl_entity)
-
+        
         [sine_data, nb_samplepoints, x_axis] = self.extract_data(self.SRC_FILE_DWS_PATH)
         win_data = self.extract_data(self.SRC_FILE_DWW_PATH)[0]
         result_data = self.extract_data(self.SRC_FILE_DWR_PATH)[0]
 
         x_axis = self.target_freq * 2.0 * x_axis
-        win_axis = np.linspace(0.0, nb_samplepoints, nb_samplepoints-1)
+        win_axis = np.linspace(0.0, nb_samplepoints, nb_samplepoints)
 
         pi_char = str("\u03C0") ## Pi character 
         axis_formater = mtick.FormatStrFormatter('%.3f'+pi_char)
@@ -551,11 +560,19 @@ class SimDDS:
             result_freqs /= self.SAMPLING_FREQ
 
         cordic_fft = np.abs(cordic_fft)  / nb_samplepoints
-        result_fft_plot = np.abs(result_fft)  / nb_samplepoints
+        result_fft = np.abs(result_fft)  / nb_samplepoints
 
         y_fftlabel = "dB"
         cordic_fft = 20.0 * np.log10(2*cordic_fft)
-        result_fft_plot = 20.0 * np.log10(2*result_fft_plot)
+        result_fft = 20.0 * np.log10(2*result_fft)
+
+        ## Formating data
+
+        cordic_fft_plot = cordic_fft[:nb_samplepoints//2]
+        cordic_fft_freq = cordic_freqs[:nb_samplepoints//2]
+
+        result_fft_plot = result_fft[:nb_samplepoints//2]
+        result_fft_freq = result_freqs[:nb_samplepoints//2]
 
         ## Plot
         fig, ax = plt.subplots(2,2,figsize=self.FIGSIZE)
@@ -568,21 +585,25 @@ class SimDDS:
         ax[0][0].legend(loc='best')
         
         ax[0][1].grid(True)
-        ax[0][1].set_title("Hanning Window")
+        ax[0][1].set_title(win_mode +" Window")
         ax[0][1].plot(win_axis,win_data)
         ax[0][1].set_xlabel(text_xlabel)
 
         ax[1][0].grid(True)
         ax[1][0].set_title("Magnitude Pure sine wave")
-        ax[1][0].semilogx(cordic_freqs[:nb_samplepoints//2],cordic_fft[:nb_samplepoints//2]) ## Only the real half
+        ax[1][0].semilogx(cordic_fft_freq,cordic_fft_plot) ## Only the real half
         ax[1][0].set_xlabel("Frequency")
-        self._annot_max (cordic_freqs[:nb_samplepoints//2],cordic_fft[:nb_samplepoints//2],ax[1][0],xlabel=" Hz",ylabel=y_fftlabel)
+        self._annot_max (cordic_fft_freq,cordic_fft_plot,ax[1][0],xlabel=" Hz",ylabel=y_fftlabel)
+        cordic_fft_plot[np.argmax(cordic_fft_plot)] = -1000
+        self._annot_max (cordic_fft_freq , cordic_fft_plot, ax[1][0], xlabel=" Hz",ylabel=y_fftlabel,xytext=(0.8,0.82))
 
         ax[1][1].grid(True)
-        ax[1][1].set_title("Magnitude Windowed sine (Hannning)")
-        ax[1][1].semilogx(result_freqs[:nb_samplepoints//2],result_fft_plot[:nb_samplepoints//2]) ## Only the real half
+        ax[1][1].set_title("Magnitude Windowed sine (%s)" %(win_mode))
+        ax[1][1].semilogx(result_fft_freq,result_fft_plot) ## Only the real half
         ax[1][1].set_xlabel("Frequency")
-        self._annot_max (result_freqs[:nb_samplepoints//2],result_fft_plot[:nb_samplepoints//2],ax[1][1],xlabel=" Hz",ylabel=y_fftlabel)
+        self._annot_max (result_fft_freq,result_fft_plot,ax[1][1],xlabel=" Hz",ylabel=y_fftlabel)
+        result_fft_plot[np.argmax(result_fft_plot)] = -1000
+        self._annot_max (result_fft_freq , result_fft_plot, ax[1][1], xlabel=" Hz",ylabel=y_fftlabel,xytext=(0.8,0.82))
 
         if(save_plot):
             fig_name = "fig_dds_win_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
@@ -599,10 +620,10 @@ def main():
 
     target_frequency = 500e3 
     number_cycles =  10
-    initial_phase = np.pi / 2.0
-    sim = SimDDS(target_frequency,number_cycles,initial_phase,mode_time=True)
+    initial_phase = 0.0
+    sim = SimDDS(target_frequency,number_cycles,initial_phase,mode_time=False)
     sim.compile()
-    sim.do_dds(simulate = False)
+    sim.do_win(win_mode = "HANN")
     
 if __name__ == "__main__":
     main()

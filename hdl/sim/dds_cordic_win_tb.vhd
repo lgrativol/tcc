@@ -36,17 +36,17 @@ architecture testbench of dds_cordic_win_tb is
     -- Write txt
     constant CORDIC_OUTPUT_WIDTH               : positive := (N_CORDIC_ITERATIONS );
 
-    constant PHASE_INTEGER_PART                : natural  :=   4;
-    constant PHASE_FRAC_PART                   : integer  := -35;
-    constant CORDIC_INTEGER_PART               : natural  :=   1; 
-    constant CORDIC_FRAC_PART                  : integer  := -19;
-    constant N_CORDIC_ITERATIONS               : natural  :=  21;
-    constant NB_POINTS_WIDTH                   : natural  :=  10;  
+    --constant PHASE_INTEGER_PART                : natural  :=   4;
+    --constant PHASE_FRAC_PART                   : integer  := -27;
+    --constant CORDIC_INTEGER_PART               : natural  :=   1; 
+    --constant CORDIC_FRAC_PART                  : integer  := -19;
+    --constant N_CORDIC_ITERATIONS               : natural  :=  21;
+    --constant NB_POINTS_WIDTH                   : natural  :=  10;  
     constant MODE_TIME                         : boolean  := SIM_INPUT_MODE_TIME;
     constant WIN_MODE                          : string   := SIM_INPUT_WIN_MODE; -- or "HAMM"
     constant WIN_INTEGER_PART                  : positive := 1;
     constant WIN_FRAC_PART                     : integer  := -19;
-    constant WIN_NB_ITERATIONS                 : positive := 10;  
+    constant WIN_NB_ITERATIONS                 : positive := 21;  
 
     -------------
     -- Signals --
