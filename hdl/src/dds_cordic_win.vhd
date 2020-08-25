@@ -65,6 +65,39 @@ end dds_cordic_win;
 ------------------
 architecture behavioral of dds_cordic_win is
 
+    
+    ---------------
+    -- Functions --
+    ---------------
+    
+    function window_latency (win : string)
+        return natural is
+        -- WIN_PHASE_ACC + PREPROCESSOR +      CORDIC      + POSPROCESSOR + WINDOW OPERATION 
+        --     2         +      2       + WIN_NB_ITERATIONS +       2      +        2      
+        constant    HH_LATENCY      : natural := 2 + 2 + WIN_NB_ITERATIONS + 2 + 2;  -- Hanning / Hamming
+
+        -- PHASE_CORRECTION + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
+        --         1        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        2
+        constant    BLKM_LATENCY    : natural := 1 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 2; -- Blackman
+        -- PHASE_CORRECTION + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
+        --         1        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        2
+        constant    BLKH_LATENCY    : natural := 1 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 2; -- Blachman - Harris
+
+    begin
+        if    (win = "HANN") then
+            return HH_LATENCY;
+        elsif (win = "HAMM") then
+            return HH_LATENCY;
+        elsif (win = "BLKM") then
+            return BLKM_LATENCY;
+        elsif (win = "BLKH") then
+            return BLKH_LATENCY;
+        elsif (win = "NONE") then
+            return 0;
+        end if;
+
+    end function window_latency;
+
     ---------------
     -- Constants --
     ---------------
@@ -87,11 +120,7 @@ architecture behavioral of dds_cordic_win is
         -- TOTAL LATENCY =  PHASE_ACC + PREPROCESSOR +      CORDIC         
         --                  2         +      2       +  N_CORDIC_ITERATIONS
     constant    DDS_CORDIC_LATENCY                  : positive := 2 +  2 + N_CORDIC_ITERATIONS;
-
-        -- TOTAL LATENCY =  WIN_PHASE_ACC + PREPROCESSOR +      CORDIC      + POSPROCESSOR + WINDOW OPERATION 
-        --                      2         +      2       + HH_NB_ITERATIONS +       2      +        2         
-    constant    WIN_LATENCY                         : positive := 2 + 2 + WIN_NB_ITERATIONS + 2 + 2;
-
+    constant    WIN_LATENCY                         : positive := window_latency(WIN_MODE);
     constant    WIN_TO_DDS_LATENCY                  : integer  := (WIN_LATENCY  -  DDS_CORDIC_LATENCY );
     constant    DDS_TO_WIN_LATENCY                  : integer  := (- WIN_TO_DDS_LATENCY );
 
@@ -202,31 +231,97 @@ begin
     win_nb_points           <= std_logic_vector( resize( unsigned(nb_points_i) * unsigned(nb_repetitions_i) , WIN_NB_POINTS_WIDTH));
     win_restart_cycles      <= restart_cycles_i;
 
-    stage_2_window : entity work.hh_win 
-        generic map(
-            HH_MODE                             => WIN_MODE, -- or HAMM
-            WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
-            WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
-            HH_INTEGER_PART                     => WIN_INTEGER_PART,
-            HH_FRAC_PART                        => WIN_FRAC_PART,
-            HH_NB_ITERATIONS                    => WIN_NB_ITERATIONS,
-            NB_POINTS_WIDTH                     => WIN_NB_POINTS_WIDTH
-    )
-        port map(
-            -- Clock interface
-            clock_i                             => clock_i,
-            areset_i                            => areset_i,
 
-            -- Input interface
-            strb_i                              => win_strb_i,
-            phase_term_i                        => win_window_term,
-            nb_points_i                         => win_nb_points,
-            restart_cycles_i                    => win_restart_cycles,
-            
-            -- Output interface
-            strb_o                              => win_strb_o,
-            hh_result_o                         => win_result
-        );
+    WIN_SELECT_HH_GEN: 
+        if  (WIN_MODE = "HANN" or WIN_MODE = "HAMM") generate
+            stage_2_window : entity work.hh_win 
+                generic map(
+                    HH_MODE                             => WIN_MODE, -- or HAMM
+                    WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
+                    WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
+                    HH_INTEGER_PART                     => WIN_INTEGER_PART,
+                    HH_FRAC_PART                        => WIN_FRAC_PART,
+                    HH_NB_ITERATIONS                    => WIN_NB_ITERATIONS,
+                    NB_POINTS_WIDTH                     => WIN_NB_POINTS_WIDTH
+            )
+                port map(
+                    -- Clock interface
+                    clock_i                             => clock_i,
+                    areset_i                            => areset_i,
+
+                    -- Input interface
+                    strb_i                              => win_strb_i,
+                    phase_term_i                        => win_window_term,
+                    nb_points_i                         => win_nb_points,
+                    restart_cycles_i                    => win_restart_cycles,
+                    
+                    -- Output interface
+                    strb_o                              => win_strb_o,
+                    hh_result_o                         => win_result
+                );
+        end generate WIN_SELECT_HH_GEN;
+    
+    WIN_SELECT_BLKM_GEN: 
+        if  (WIN_MODE = "BLKM" ) generate
+            stage_2_window : entity work.blackman_win 
+                generic map(
+                    WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
+                    WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
+                    BLKM_INTEGER_PART                   => WIN_INTEGER_PART,
+                    BLKM_FRAC_PART                      => WIN_FRAC_PART,
+                    BLKM_NB_ITERATIONS                  => WIN_NB_ITERATIONS,
+                    NB_POINTS_WIDTH                     => WIN_NB_POINTS_WIDTH
+            )
+                port map(
+                    -- Clock interface
+                    clock_i                             => clock_i,
+                    areset_i                            => areset_i,
+
+                    -- Input interface
+                    strb_i                              => win_strb_i,
+                    phase_term_i                        => win_window_term,
+                    nb_points_i                         => win_nb_points,
+                    restart_cycles_i                    => win_restart_cycles,
+                    
+                    -- Output interface
+                    strb_o                              => win_strb_o,
+                    blkm_result_o                       => win_result
+                );
+        end generate WIN_SELECT_BLKM_GEN;
+    
+    WIN_SELECT_BLKH_GEN: 
+        if  (WIN_MODE = "BLKH" ) generate
+            stage_2_window : entity work.blackman_harris_win 
+                generic map(
+                    WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
+                    WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
+                    BLKH_INTEGER_PART                   => WIN_INTEGER_PART,
+                    BLKH_FRAC_PART                      => WIN_FRAC_PART,
+                    BLKH_NB_ITERATIONS                  => WIN_NB_ITERATIONS,
+                    NB_POINTS_WIDTH                     => WIN_NB_POINTS_WIDTH
+            )
+                port map(
+                    -- Clock interface
+                    clock_i                             => clock_i,
+                    areset_i                            => areset_i,
+
+                    -- Input interface
+                    strb_i                              => win_strb_i,
+                    phase_term_i                        => win_window_term,
+                    nb_points_i                         => win_nb_points,
+                    restart_cycles_i                    => win_restart_cycles,
+                    
+                    -- Output interface
+                    strb_o                              => win_strb_o,
+                    blkh_result_o                       => win_result
+                );
+        end generate WIN_SELECT_BLKH_GEN;
+
+    WIN_SELECT_NONE_GEN: 
+        if  (WIN_MODE = "NONE" ) generate
+            win_strb_o <= '1';
+            win_result <= to_sfixed(1.0,win_result); --  not ideal, but functional
+        end generate WIN_SELECT_NONE_GEN;
 
     -------------
     -- Stage 3 --
