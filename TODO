@@ -2,10 +2,10 @@ TODO:
 
 * New features (hdl):
 - Check windows implementation (check Alan's email 11/08) : - Tukey (maybe)
-                                                            - Hanning (OK)
-                                                            - Hamming (OK)
-                                                            - Blackman  (OK)
-                                                            - Blackman–Harris (OK)
+                                                            - Hanning (OK) - Done
+                                                            - Hamming (OK) - Done
+                                                            - Blackman  (OK) - Done
+                                                            - Blackman–Harris (OK) - Done
                                                             - Gaussian -> exp(-(2*pi*freq/cycles*(t-pos)).^2/2).*cos(2*pi*freq*(t)-phase)
 
 - Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
@@ -17,7 +17,6 @@ TODO:
 * Problems/Fix:
 - Fix external interface to "std_logic" "std_logic_vector" only
 - Convert phase_time option to if...generate (MODE_TIME)
-- Check odds frequencies
 
 * Overall:
 - Build demonstration
