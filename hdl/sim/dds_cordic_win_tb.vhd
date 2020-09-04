@@ -46,7 +46,7 @@ architecture testbench of dds_cordic_win_tb is
     constant WIN_MODE                          : string   := SIM_INPUT_WIN_MODE; -- or "HAMM"
     constant WIN_INTEGER_PART                  : positive := 1;
     constant WIN_FRAC_PART                     : integer  := -19;
-    constant WIN_NB_ITERATIONS                 : positive := 21;  
+    constant WIN_NB_ITERATIONS                 : positive := 10;  
 
     -------------
     -- Signals --
