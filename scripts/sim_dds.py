@@ -11,6 +11,7 @@ import fileinput
 import sys
 import shutil
 import math
+from scipy import signal
 
 ###########
 ## Class ##
@@ -28,6 +29,8 @@ class SimDDS:
     SRC_FILE_DWS_PATH     = "work/output_sine.txt"
     SRC_FILE_DWW_PATH     = "work/output_win.txt"
     SRC_FILE_DWR_PATH     = "work/output_sine_win.txt"
+
+    TUKEY_ALFA            =  0.5
     
     NB_CYCLES_WIDTH       = 10 # bits
     TX_TIME_WIDTH         = 18 # bits
@@ -43,7 +46,7 @@ class SimDDS:
     FIX_LATENCY           = 4  
     ACCEPTABLE_TIME_UNIT  = ['ns','us','ms']
     
-    def __init__(self,target_freq, nb_cycles, initial_phase,mode_time = False):
+    def __init__(self,target_freq = 500e3,  nb_cycles = 10, initial_phase = 0.0 ,mode_time = False):
         """
         target_freq = Generated sine frequency
         nb_cycles   = Number of periods of the generated sine 
@@ -71,10 +74,10 @@ class SimDDS:
         self._off_time = 100
         self._mode_time = mode_time
         self._cordic_word_interger_width = 2 # bits FIX VALUE
-        self._cordic_word_frac_width = 19 # bits
+        self._cordic_word_frac_width = 10 # bits
         self._cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
-        self._nb_cordic_stages = 21
-        self.win_mode = "HANN"
+        self._nb_cordic_stages = 12
+        self._win_mode = "NONE"
         self.need_reconfig = False
 
     @property
@@ -87,7 +90,7 @@ class SimDDS:
             print("WARNING: Maximum frequency = SAMPLING_FREQ/2 : %d [Nyquist]" %(self.SAMPLING_FREQ/2))
             self._target_freq = self.SAMPLING_FREQ/2
         else:
-            self._target_freq = self.SAMPLING_FREQ/2
+            self._target_freq = value
 
     @property
     def nb_cycles(self):
@@ -217,6 +220,14 @@ class SimDDS:
     @mode_time.setter
     def mode_time(self,value):
         self._mode_time = value
+    
+    @property
+    def win_mode(self):
+        return self._win_mode
+
+    @win_mode.setter
+    def win_mode(self,value):
+        self._win_mode = value
 
     def _format_phase(self,phase):
         phase = int( phase * 2**(self.PHASE_FRAC_PART))
@@ -255,7 +266,11 @@ class SimDDS:
         
         nb_points  = self.SAMPLING_FREQ/self.target_freq
         phase_term = ( 2.0 * np.pi  / nb_points)
-        win_term = ( 2.0 * np.pi  / (nb_points * self.nb_cycles))
+
+        if(self.win_mode == "TKEY"):
+            win_term = ( 2.0 * np.pi  / ( (nb_points * self.nb_cycles + 1)*self.TUKEY_ALFA ))
+        else:
+            win_term = ( 2.0 * np.pi  / (nb_points * self.nb_cycles))
 
         term_phase_term       = "   constant SIM_INPUT_PHASE_TERM     : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase(phase_term))
         term_win_term         = "   constant SIM_INPUT_WIN_TERM       : std_logic_vector((PHASE_WIDTH - 1) downto 0) := x\"%s\";\n" %(self._format_phase(win_term))
@@ -444,7 +459,6 @@ class SimDDS:
         cordic_fft_plot = cordic_fft[:nb_samplepoints//2]
         cordic_fft_freq = cordic_freqs[:nb_samplepoints//2]
 
-
         ## Plot
         fig, ax = plt.subplots(2,2,figsize=self.FIGSIZE)
 
@@ -506,13 +520,13 @@ class SimDDS:
 
         time_xlabel = "seconds"
 
-        ax[0].grid(True)
+        ax[0].grid(False)
         ax[0].set_title("Driver A signal %sHz" % (self._freq_stringformat(self.target_freq)))
         ax[0].plot(x_axis,cordic_data_a,"-b")
         ax[0].set_xlabel(time_xlabel)
         ax[0].xaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
 
-        ax[1].grid(True)
+        ax[1].grid(False)
         ax[1].set_title("Driver B signal %sHz" % (self._freq_stringformat(self.target_freq)))
         ax[1].plot(x_axis,cordic_data_b,"-r")
         ax[1].set_xlabel(time_xlabel)
@@ -532,14 +546,15 @@ class SimDDS:
         plt.tight_layout()
         plt.show()    
 
-    def do_win(self, simulate = True, win_mode = "HANN", save_plot = True, normalized_freq = False):
-
-        self.win_mode = win_mode
+    def do_win(self ,simulate = True, no_plot = False, save_plot = True, normalized_freq = False):
 
         if (simulate):
             hdl_entity = "dds_cordic_win_tb"
             self.mode_time = False
             self._sim_hdl(hdl_entity)
+
+        win_dict = {"NONE":"None" , "HANN" : "Hanning" , "HAMM" : "Hamming" , 
+                    "BLKM" : "Blackman", "BLKH" : "Blackman-Harris", "TKEY" : "Tukey"}
         
         [sine_data, nb_samplepoints, x_axis] = self.extract_data(self.SRC_FILE_DWS_PATH)
         win_data = self.extract_data(self.SRC_FILE_DWW_PATH)[0]
@@ -579,15 +594,14 @@ class SimDDS:
 
         ax[0][0].grid(True)
         ax[0][0].set_title("Sine %sHz" % (self._freq_stringformat(self.target_freq)))
-        ax[0][0].plot(x_axis,sine_data,"-b", label="DDS")
+        ax[0][0].plot(x_axis,sine_data)
         ax[0][0].set_xlabel(text_xlabel)
         ax[0][0].xaxis.set_major_formatter(axis_formater)
-        ax[0][0].legend(loc='best')
         
         ax[0][1].grid(True)
-        ax[0][1].set_title(win_mode +" Window")
-        ax[0][1].plot(win_axis,win_data)
-        ax[0][1].set_xlabel(text_xlabel)
+        ax[0][1].set_title( "Windowed Sine (%s)" %(win_dict[self.win_mode]))
+        ax[0][1].plot(win_axis,result_data)
+        ax[0][1].set_xlabel("Nb Points")
 
         ax[1][0].grid(True)
         ax[1][0].set_title("Magnitude Pure sine wave")
@@ -598,19 +612,21 @@ class SimDDS:
         self._annot_max (cordic_fft_freq , cordic_fft_plot, ax[1][0], xlabel=" Hz",ylabel=y_fftlabel,xytext=(0.8,0.82))
 
         ax[1][1].grid(True)
-        ax[1][1].set_title("Magnitude Windowed sine (%s)" %(win_mode))
+        ax[1][1].set_title("Magnitude Windowed sine (%s)" %( win_dict[self.win_mode]))
         ax[1][1].semilogx(result_fft_freq,result_fft_plot) ## Only the real half
         ax[1][1].set_xlabel("Frequency")
         self._annot_max (result_fft_freq,result_fft_plot,ax[1][1],xlabel=" Hz",ylabel=y_fftlabel)
         result_fft_plot[np.argmax(result_fft_plot)] = -1000
         self._annot_max (result_fft_freq , result_fft_plot, ax[1][1], xlabel=" Hz",ylabel=y_fftlabel,xytext=(0.8,0.82))
 
-        if(save_plot):
-            fig_name = "fig_dds_win_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
-            plt.savefig(fig_name)
-
         plt.tight_layout()
-        plt.show()       
+        
+        if(save_plot):
+            fig_name = "figures/fig_dds_win_%s_%d_%s.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles, win_dict[self.win_mode])
+            plt.savefig(fig_name)
+        
+        if (not no_plot):
+            plt.show()       
 
 ##########
 ## MAIN ##
@@ -618,15 +634,17 @@ class SimDDS:
 
 def main():
 
-    target_frequency = 500e3 
-    number_cycles =  10
-    initial_phase = 0.0
-    sim = SimDDS(target_frequency,number_cycles,initial_phase,mode_time=False)
+    win_list = ["TKEY","HANN","HAMM","BLKM","BLKH","NONE"]
+
+    sim = SimDDS()
+    sim.target_freq = 500e3
+    sim.nb_cycles = 4
+    sim.initial_phase = math.pi / 2.0
+    sim.mode_time = False
+    sim.win_mode = "NONE"
     sim.compile()
-    sim.do_win(win_mode = "HANN")
+    sim.do_dds()
+    #sim.do_win(no_plot=True)
     
 if __name__ == "__main__":
     main()
-
-
-
