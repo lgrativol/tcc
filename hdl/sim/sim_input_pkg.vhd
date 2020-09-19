@@ -12,9 +12,9 @@ package sim_input_pkg is
    constant SIM_INPUT_WIN_MODE       : string    := "NONE";
    constant SIM_INPUT_NBPOINTS       : natural   := 200;
    constant SIM_INPUT_NBREPET        : natural   := 4;
-   constant SIM_INPUT_MODE_TIME      : boolean   := False;
+   constant SIM_INPUT_MODE_TIME      : std_logic := '1';
    -- Double Driver
-   constant SIM_INPUT_TX_TIME        : positive  := 800;
+   constant SIM_INPUT_TX_TIME        : positive  := 850;
    constant SIM_INPUT_TX_OFF_TIME    : positive  := 300;
    constant SIM_INPUT_RX_TIME        : positive  := 300;
    constant SIM_INPUT_OFF_TIME       : positive  := 100;

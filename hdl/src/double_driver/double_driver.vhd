@@ -26,8 +26,7 @@ entity double_driver is
         CORDIC_FRAC_PART                    : integer  := -19;
         N_CORDIC_ITERATIONS                 : natural  :=  21;
         NB_POINTS_WIDTH                     : natural  :=  10;  
-        EN_POSPROC                          : boolean  := FALSE;
-        MODE_TIME                           : boolean  := FALSE
+        EN_POSPROC                          : boolean  := FALSE
     );
     port(
         -- Clock interface
@@ -40,6 +39,7 @@ entity double_driver is
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
         nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);  
+        mode_time_i                         : in  std_logic;
 
         -- Control Interface
         tx_time_i                           : in  std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
@@ -104,6 +104,7 @@ architecture behavioral of double_driver is
     signal driver_b_nb_repetitions              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal driver_b_initial_phase               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal driver_b_restart_cycles              : std_logic;
+    signal driver_b_mode_time                   : std_logic;
     
     signal driver_b_strb_o                      : std_logic;
     signal driver_b_sine_phase                  : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
@@ -161,8 +162,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => FALSE,
-            MODE_TIME                           => FALSE
+            EN_POSPROC                          => FALSE
         )
         port map(
             -- Clock interface
@@ -175,6 +175,7 @@ begin
             initial_phase_i                     => driver_a_initial_phase,
             nb_points_i                         => driver_a_nb_points,
             nb_repetitions_i                    => driver_a_nb_repetitions,
+            mode_time_i                         => '0', -- Forced FALSE
            
             -- Control interface
             restart_cycles_i                    => driver_a_restart_cycles,
@@ -196,6 +197,7 @@ begin
     driver_b_nb_points      <= nb_points_i;
     driver_b_nb_repetitions <= nb_repetitions_i;
     driver_b_initial_phase  <= initial_phase_i;
+    driver_b_mode_time      <= mode_time_i;
     driver_b_restart_cycles <= control_restart_cycles;
 
     stage_2_driver_b: entity work.dds_cordic
@@ -206,8 +208,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => FALSE,
-            MODE_TIME                           => MODE_TIME
+            EN_POSPROC                          => FALSE
         )
         port map(
             -- Clock interface
@@ -220,6 +221,7 @@ begin
             initial_phase_i                     => driver_b_initial_phase,
             nb_points_i                         => driver_b_nb_points,
             nb_repetitions_i                    => driver_b_nb_repetitions,
+            mode_time_i                         => driver_b_mode_time,
            
             -- Control interface
             restart_cycles_i                    => driver_b_restart_cycles,

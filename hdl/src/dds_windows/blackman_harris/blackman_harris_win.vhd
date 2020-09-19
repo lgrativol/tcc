@@ -178,8 +178,7 @@ begin
             CORDIC_FRAC_PART                    => BLKH_FRAC_PART,
             N_CORDIC_ITERATIONS                 => BLKH_NB_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => TRUE,
-            MODE_TIME                           => FALSE
+            EN_POSPROC                          => TRUE
         )
         port map(
             -- Clock interface
@@ -192,6 +191,7 @@ begin
             initial_phase_i                     => dds_2pi_initial_phase,
             nb_points_i                         => dds_2pi_nb_points,
             nb_repetitions_i                    => dds_2pi_nb_repetitions,
+            mode_time_i                         => '0', -- Forced FALSE
            
             -- Control interface
             restart_cycles_i                    => dds_2pi_restart_cycles,
@@ -291,9 +291,8 @@ begin
             CORDIC_FRAC_PART                    => BLKH_FRAC_PART,
             N_CORDIC_ITERATIONS                 => BLKH_NB_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => TRUE,
-            MODE_TIME                           => FALSE
-        )
+            EN_POSPROC                          => TRUE
+       )
         port map(
             -- Clock interface
             clock_i                             => clock_i,  
@@ -305,7 +304,8 @@ begin
             initial_phase_i                     => dds_4pi_initial_phase,
             nb_points_i                         => dds_4pi_nb_points,
             nb_repetitions_i                    => dds_4pi_nb_repetitions,
-           
+            mode_time_i                         => '0', -- Forced FALSE
+
             -- Control interface
             restart_cycles_i                    => dds_4pi_restart_cycles,
             
@@ -374,8 +374,7 @@ begin
             CORDIC_FRAC_PART                    => BLKH_FRAC_PART,
             N_CORDIC_ITERATIONS                 => BLKH_NB_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => TRUE,
-            MODE_TIME                           => FALSE
+            EN_POSPROC                          => TRUE
         )
         port map(
             -- Clock interface
@@ -388,6 +387,7 @@ begin
             initial_phase_i                     => dds_6pi_initial_phase,
             nb_points_i                         => dds_6pi_nb_points,
             nb_repetitions_i                    => dds_6pi_nb_repetitions,
+            mode_time_i                         => '0', -- Forced FALSE
            
             -- Control interface
             restart_cycles_i                    => dds_6pi_restart_cycles,

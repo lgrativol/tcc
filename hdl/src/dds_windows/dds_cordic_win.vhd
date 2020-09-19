@@ -26,7 +26,6 @@ entity dds_cordic_win is
         CORDIC_FRAC_PART                    : integer  := -19;
         N_CORDIC_ITERATIONS                 : natural  :=  21;
         NB_POINTS_WIDTH                     : natural  :=  10;  
-        MODE_TIME                           : boolean  := FALSE;
         WIN_MODE                            : string   := "HANN"; -- or "HAMM"
         WIN_INTEGER_PART                    : positive := 1;
         WIN_FRAC_PART                       : integer  := -19;
@@ -44,6 +43,7 @@ entity dds_cordic_win is
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
         nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
+        mode_time_i                         : in  std_logic; 
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
@@ -143,6 +143,7 @@ architecture behavioral of dds_cordic_win is
     signal      dds_cordic_nb_points                : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      dds_cordic_nb_repetitions           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      dds_cordic_initial_phase            : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal      dds_cordic_mode_time                : std_logic;
     signal      dds_cordic_restart_cycles           : std_logic;
 
     signal      dds_cordic_strb_o                   : std_logic;
@@ -195,6 +196,7 @@ begin
     dds_cordic_nb_points      <= nb_points_i;
     dds_cordic_nb_repetitions <= nb_repetitions_i;
     dds_cordic_initial_phase  <= initial_phase_i;
+    dds_cordic_mode_time      <= mode_time_i;
     dds_cordic_restart_cycles <= restart_cycles_i;
 
     stage_1_dds_cordic: entity work.dds_cordic
@@ -205,8 +207,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => FALSE,
-            MODE_TIME                           => MODE_TIME
+            EN_POSPROC                          => FALSE
         )
         port map(
             -- Clock interface
@@ -219,6 +220,7 @@ begin
             initial_phase_i                     => dds_cordic_initial_phase,
             nb_points_i                         => dds_cordic_nb_points,
             nb_repetitions_i                    => dds_cordic_nb_repetitions,
+            mode_time_i                         => dds_cordic_mode_time,
            
             -- Control interface
             restart_cycles_i                    => dds_cordic_restart_cycles,

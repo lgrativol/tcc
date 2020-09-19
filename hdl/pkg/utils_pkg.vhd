@@ -27,7 +27,7 @@ package utils_pkg is
     constant PI                     : ufixed(PI_INTEGER_PART downto PI_FRAC_PART) := to_ufixed(MATH_PI, PI_INTEGER_PART,PI_FRAC_PART);
 
     -- Phase acc
-    constant NB_POINTS_WIDTH        : positive := 6;
+    constant NB_POINTS_WIDTH        : positive := 10;
 
     -- Cordic
     constant CORDIC_INTEGER_PART    : natural  := 1;

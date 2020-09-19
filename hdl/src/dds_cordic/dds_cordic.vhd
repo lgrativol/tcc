@@ -23,8 +23,7 @@ entity dds_cordic is
         CORDIC_FRAC_PART                    : integer  := -19;
         N_CORDIC_ITERATIONS                 : natural  :=  21;
         NB_POINTS_WIDTH                     : natural  :=  10;  
-        EN_POSPROC                          : boolean  := FALSE;
-        MODE_TIME                           : boolean  := FALSE
+        EN_POSPROC                          : boolean  := FALSE
     );
     port(
         -- Clock interface
@@ -37,6 +36,8 @@ entity dds_cordic is
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
         nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
+        mode_time_i                         : in  std_logic; 
+        
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
@@ -69,6 +70,7 @@ architecture behavioral of dds_cordic is
     signal      phase_acc_initial_phase     : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      phase_acc_nb_points         : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      phase_acc_nb_repetitions    : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      phase_acc_mode_time         : std_logic;
 
     signal      phase_acc_restart_cycles    : std_logic;
     signal      phase_acc_done_cycles       : std_logic;
@@ -122,14 +124,14 @@ begin
     phase_acc_initial_phase     <= initial_phase_i;
     phase_acc_nb_points         <= nb_points_i;
     phase_acc_nb_repetitions    <= nb_repetitions_i;  
+    phase_acc_mode_time         <= mode_time_i;
     phase_acc_restart_cycles    <= restart_cycles_i;
 
     stage_1_phase_acc : entity work.phase_acc_v2
         generic map(
             PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
             PHASE_FRAC_PART                    => PHASE_FRAC_PART,
-            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH,
-            MODE_TIME                          => MODE_TIME
+            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH
         )
         port map(
             -- Clock interface
@@ -142,6 +144,7 @@ begin
             initial_phase_i                    => phase_acc_initial_phase,
             nb_points_one_period_i             => phase_acc_nb_points,
             nb_repetitions_i                   => phase_acc_nb_repetitions,
+            mode_time_i                        => phase_acc_mode_time,
     
             -- Control interface
             restart_acc_i                      => phase_acc_restart_cycles,

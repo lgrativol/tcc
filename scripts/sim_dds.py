@@ -32,7 +32,7 @@ class SimDDS:
 
     TUKEY_ALFA            =  0.5
     
-    NB_CYCLES_WIDTH       = 10 # bits
+    NB_CYCLES_WIDTH       = 5 # bits
     TX_TIME_WIDTH         = 18 # bits
     TX_OFF_TIME_WIDTH     = 18 # bits
     RX_TIME_WIDTH         = 18 # bits
@@ -74,9 +74,9 @@ class SimDDS:
         self._off_time = 100
         self._mode_time = mode_time
         self._cordic_word_interger_width = 2 # bits FIX VALUE
-        self._cordic_word_frac_width = 10 # bits
+        self._cordic_word_frac_width = 8 # bits
         self._cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
-        self._nb_cordic_stages = 12
+        self._nb_cordic_stages = 10
         self._win_mode = "NONE"
         self.need_reconfig = False
 
@@ -219,7 +219,10 @@ class SimDDS:
 
     @mode_time.setter
     def mode_time(self,value):
-        self._mode_time = value
+        if (value):
+            self._mode_time = '1'
+        else:
+            self._mode_time = '0'
     
     @property
     def win_mode(self):
@@ -281,7 +284,7 @@ class SimDDS:
         term_tx_off_time      = "   constant SIM_INPUT_TX_OFF_TIME    : positive  := %d;\n" %(self._format_time_zone(self.tx_off_time))
         term_rx_time          = "   constant SIM_INPUT_RX_TIME        : positive  := %d;\n" %(self._format_time_zone(self.rx_time))
         term_off_time         = "   constant SIM_INPUT_OFF_TIME       : positive  := %d;\n" %(self._format_time_zone(self.off_time))
-        term_mode_time        = "   constant SIM_INPUT_MODE_TIME      : boolean   := %s;\n" %(self.mode_time)
+        term_mode_time        = "   constant SIM_INPUT_MODE_TIME      : std_logic := \'%s\';\n" %(self.mode_time)
         term_win_mode         = "   constant SIM_INPUT_WIN_MODE       : string    := \"%s\";\n" %(self.win_mode)
  
         term_list = [term_phase_term, term_win_term, term_nb_points,term_nb_cycles,term_initial_phase,term_tx_time,
@@ -640,7 +643,7 @@ def main():
     sim.target_freq = 500e3
     sim.nb_cycles = 4
     sim.initial_phase = math.pi / 2.0
-    sim.mode_time = False
+    sim.mode_time = True
     sim.win_mode = "NONE"
     sim.compile()
     sim.do_dds()

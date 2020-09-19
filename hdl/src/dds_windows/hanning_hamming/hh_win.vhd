@@ -174,8 +174,7 @@ begin
         generic map(
             PHASE_INTEGER_PART                 => WIN_PHASE_INTEGER_PART,
             PHASE_FRAC_PART                    => WIN_PHASE_FRAC_PART,
-            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH,
-            MODE_TIME                          => FALSE
+            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH
         )
         port map(
             -- Clock interface
@@ -188,6 +187,7 @@ begin
             initial_phase_i                    => phase_acc_initial_phase,
             nb_points_one_period_i             => phase_acc_nb_points,
             nb_repetitions_i                   => phase_acc_nb_repetitions,
+            mode_time_i                         => '0', -- Forced FALSE
     
             -- Control interface
             restart_acc_i                      => phase_acc_restart_cycles,

@@ -48,6 +48,7 @@ architecture testbench of dds_cordic_tb is
     signal nb_points                           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal nb_repetitions                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal initial_phase                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal mode_time                           : std_logic;
 
     signal restart_cycles                      : std_logic;
 
@@ -86,8 +87,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            EN_POSPROC                          => FALSE,
-            MODE_TIME                           => SIM_INPUT_MODE_TIME
+            EN_POSPROC                          => FALSE
         )
         port map(
             -- Clock interface
@@ -100,6 +100,7 @@ begin
             initial_phase_i                     => initial_phase,
             nb_points_i                         => nb_points,
             nb_repetitions_i                    => nb_repetitions,
+            mode_time_i                         => mode_time,
            
             -- Control interface
             restart_cycles_i                    => restart_cycles,
@@ -135,6 +136,7 @@ begin
         nb_points       <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBPOINTS , NB_POINTS_WIDTH ) ); 
         nb_repetitions  <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBREPET  , NB_POINTS_WIDTH ) ); 
         initial_phase   <=  to_ufixed(         SIM_INPUT_INIT_PHASE            , initial_phase     );
+        mode_time       <= SIM_INPUT_MODE_TIME;
         -- Inputs --
         
         wait for CLK_PERIOD;

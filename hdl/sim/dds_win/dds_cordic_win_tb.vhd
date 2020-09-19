@@ -42,7 +42,6 @@ architecture testbench of dds_cordic_win_tb is
     --constant CORDIC_FRAC_PART                  : integer  := -19;
     --constant N_CORDIC_ITERATIONS               : natural  :=  21;
     --constant NB_POINTS_WIDTH                   : natural  :=  10;  
-    constant MODE_TIME                         : boolean  := SIM_INPUT_MODE_TIME;
     constant WIN_MODE                          : string   := SIM_INPUT_WIN_MODE; -- or "HAMM"
     constant WIN_INTEGER_PART                  : positive := 1;
     constant WIN_FRAC_PART                     : integer  := -10;
@@ -61,7 +60,9 @@ architecture testbench of dds_cordic_win_tb is
     signal nb_points                           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal nb_repetitions                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal initial_phase                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal mode_time                           : std_logic;
     signal restart_cycles                      : std_logic;
+
 
     signal strb_o                              : std_logic := '0';
     signal sine_win_phase                      : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
@@ -96,7 +97,6 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-            MODE_TIME                           => MODE_TIME,
             WIN_MODE                            => WIN_MODE,
             WIN_INTEGER_PART                    => WIN_INTEGER_PART,
             WIN_FRAC_PART                       => WIN_FRAC_PART,
@@ -114,6 +114,7 @@ begin
             initial_phase_i                     => initial_phase,
             nb_points_i                         => nb_points,
             nb_repetitions_i                    => nb_repetitions,
+            mode_time_i                         => mode_time,
             restart_cycles_i                    => restart_cycles, 
             
             -- Output interface
@@ -148,6 +149,7 @@ begin
         nb_points       <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBPOINTS , NB_POINTS_WIDTH ) ); 
         nb_repetitions  <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBREPET  , NB_POINTS_WIDTH ) ); 
         initial_phase   <=  to_ufixed(         SIM_INPUT_INIT_PHASE            , initial_phase     );
+        mode_time       <= SIM_INPUT_MODE_TIME;
         -- Inputs --
         
         wait for CLK_PERIOD;

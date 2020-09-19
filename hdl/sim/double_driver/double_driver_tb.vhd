@@ -51,7 +51,7 @@ architecture testbench of double_driver_tb is
     signal nb_points                           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal nb_repetitions                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal initial_phase                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
-
+    signal mode_time                           : std_logic;
     signal end_zones_cycle                     : std_logic;
 
     signal tx_time                             : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
@@ -102,8 +102,7 @@ begin
         CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
         N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
         NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
-        EN_POSPROC                          => FALSE,
-        MODE_TIME                           => SIM_INPUT_MODE_TIME    
+        EN_POSPROC                          => FALSE
     )
     port map(
         -- Clock interface
@@ -116,6 +115,7 @@ begin
         initial_phase_i                     => initial_phase,
         nb_points_i                         => nb_points,
         nb_repetitions_i                    => nb_repetitions,
+        mode_time_i                         => mode_time,
            
         -- Control Interface
         tx_time_i                           => tx_time ,    
