@@ -9,3 +9,4 @@ figures/*
 sim_top.do
 .vscode/settings.json
 notes.txt
+*.png
