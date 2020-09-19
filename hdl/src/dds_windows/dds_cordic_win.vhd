@@ -64,11 +64,15 @@ end dds_cordic_win;
 -- Architecture --
 ------------------
 architecture behavioral of dds_cordic_win is
-
+    
     
     ---------------
     -- Functions --
     ---------------
+    
+    -- TOTAL LATENCY =  PHASE_ACC + PREPROCESSOR +      CORDIC         
+    --                  2         +      2       +  N_CORDIC_ITERATIONS
+    constant    DDS_CORDIC_LATENCY                  : positive := 2 +  2 + N_CORDIC_ITERATIONS;
     
     function window_latency (win : string)
         return natural is
@@ -77,11 +81,17 @@ architecture behavioral of dds_cordic_win is
         constant    HH_LATENCY      : natural := 2 + 2 + WIN_NB_ITERATIONS + 2 + 2;  -- Hanning / Hamming
 
         -- PHASE_CORRECTION + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
-        --         1        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        2
-        constant    BLKM_LATENCY    : natural := 1 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 2; -- Blackman
+        --         2        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        2
+        constant    BLKM_LATENCY    : natural := 2 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 2; -- Blackman
+        
         -- PHASE_CORRECTION + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
-        --         1        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        2
-        constant    BLKH_LATENCY    : natural := 1 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 2; -- Blachman - Harris
+        --         2        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        3
+        constant    BLKH_LATENCY    : natural := 2 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 3; -- Blachman - Harris
+        
+        -- + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
+        --        4        +      2       + WIN_NB_ITERATIONS +       2      +        2
+        constant    TKEY_LATENCY    : natural := 4 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 2; -- Tukey window
+
 
     begin
         if    (win = "HANN") then
@@ -92,8 +102,10 @@ architecture behavioral of dds_cordic_win is
             return BLKM_LATENCY;
         elsif (win = "BLKH") then
             return BLKH_LATENCY;
+        elsif (win = "TKEY") then
+            return TKEY_LATENCY;
         elsif (win = "NONE") then
-            return 0;
+            return DDS_CORDIC_LATENCY;
         end if;
 
     end function window_latency;
@@ -117,10 +129,7 @@ architecture behavioral of dds_cordic_win is
 
     -- Latency
 
-        -- TOTAL LATENCY =  PHASE_ACC + PREPROCESSOR +      CORDIC         
-        --                  2         +      2       +  N_CORDIC_ITERATIONS
-    constant    DDS_CORDIC_LATENCY                  : positive := 2 +  2 + N_CORDIC_ITERATIONS;
-    constant    WIN_LATENCY                         : positive := window_latency(WIN_MODE);
+    constant    WIN_LATENCY                         : natural := window_latency(WIN_MODE);
     constant    WIN_TO_DDS_LATENCY                  : integer  := (WIN_LATENCY  -  DDS_CORDIC_LATENCY );
     constant    DDS_TO_WIN_LATENCY                  : integer  := (- WIN_TO_DDS_LATENCY );
 
@@ -317,9 +326,37 @@ begin
                 );
         end generate WIN_SELECT_BLKH_GEN;
 
+    WIN_SELECT_TKEY_GEN: 
+        if  (WIN_MODE = "TKEY" ) generate
+            stage_2_window : entity work.tukey_win 
+                generic map(
+                    WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
+                    WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
+                    TK_INTEGER_PART                     => WIN_INTEGER_PART,
+                    TK_FRAC_PART                        => WIN_FRAC_PART,
+                    TK_NB_ITERATIONS                    => WIN_NB_ITERATIONS,
+                    NB_POINTS_WIDTH                     => WIN_NB_POINTS_WIDTH
+            )
+                port map(
+                    -- Clock interface
+                    clock_i                             => clock_i,
+                    areset_i                            => areset_i,
+
+                    -- Input interface
+                    strb_i                              => win_strb_i,
+                    phase_term_i                        => win_window_term,
+                    nb_points_i                         => win_nb_points,
+                    restart_cycles_i                    => win_restart_cycles,
+                    
+                    -- Output interface
+                    strb_o                              => win_strb_o,
+                    tk_result_o                         => win_result
+                );
+        end generate WIN_SELECT_TKEY_GEN;
+
     WIN_SELECT_NONE_GEN: 
         if  (WIN_MODE = "NONE" ) generate
-            win_strb_o <= '1';
+            win_strb_o <= dds_cordic_strb_o;
             win_result <= to_sfixed(1.0,win_result); --  not ideal, but functional
         end generate WIN_SELECT_NONE_GEN;
 
