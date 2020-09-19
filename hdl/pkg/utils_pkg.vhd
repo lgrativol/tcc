@@ -27,11 +27,11 @@ package utils_pkg is
     constant PI                     : ufixed(PI_INTEGER_PART downto PI_FRAC_PART) := to_ufixed(MATH_PI, PI_INTEGER_PART,PI_FRAC_PART);
 
     -- Phase acc
-    constant NB_POINTS_WIDTH        : positive := 13;
+    constant NB_POINTS_WIDTH        : positive := 6;
 
     -- Cordic
     constant CORDIC_INTEGER_PART    : natural  := 1;
-    constant N_CORDIC_ITERATIONS    : natural  := 21;
+    constant N_CORDIC_ITERATIONS    : natural  := 10;
     constant CORDIC_FRAC_PART       : integer  := -(N_CORDIC_ITERATIONS - (CORDIC_INTEGER_PART + 1));
 
     -- Time zones
