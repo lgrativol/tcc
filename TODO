@@ -1,23 +1,31 @@
 TODO:
 
 * New features (hdl):
-- Check windows implementation (check Alan's email 11/08) : - Tukey (maybe)
-                                                            - Hanning (OK) - Done
-                                                            - Hamming (OK) - Done
-                                                            - Blackman  (OK) - Done
-                                                            - Blackman–Harris (OK) - Done
-                                                            - Gaussian -> exp(-(2*pi*freq/cycles*(t-pos)).^2/2).*cos(2*pi*freq*(t)-phase)
-
-- Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
+- MODE TIME (generic) into mode_time (input)
+- ADD freq_sample input  (clock domains problems ?)
+- Add pulser entity
+- Add Wave Gen big entity
+- Update FSM Time Zones
+- Add Average (point-point) entity
+- Add register bank (?)
+- New option for number of repetitions (wave gen repetition)
+- AXI4-LITE input interface 
+- AXI-DMA + AXI4_SS interface
+- ADC and DAC interfaces (!?!)
+- Generic table based wave_generator (low)
 
 * New features (simulation):
 - Add PHASE_FRAC_PART configuration in sim_dds.py
-- Make NB_CYCLES_WIDTH configurable
+- White noise generator
 
 * Problems/Fix:
 - Fix external interface to "std_logic" "std_logic_vector" only
-- Convert phase_time option to if...generate (MODE_TIME)
 
 * Overall:
-- Build demonstration
+- Full architecture draft (for approval)
+- Registers schema draft (for approval)
 - Python script -> performance analysis -> improve
+
+* Backlog :
+- Check windows implementation (check Alan's email 11/08) : Gaussian -> exp(-(2*pi*freq/cycles*(t-pos)).^2/2).*cos(2*pi*freq*(t)-phase)
+- Add "input_strb_i" <-> RX, in fsm_time_zones.vhd, same as "output_strb_i" <-> TX
