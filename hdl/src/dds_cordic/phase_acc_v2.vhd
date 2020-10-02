@@ -71,7 +71,6 @@ architecture behavioral of phase_acc_v2 is
     signal nb_points_one_period                 : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal nb_repetitions                       : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal mode_time                            : std_logic; 
-    
     signal restart_acc                          : std_logic; 
     
     -- Behavioral
@@ -112,9 +111,8 @@ begin
     initial_phase           <=  initial_phase_i;
     nb_points_one_period    <=  nb_points_one_period_i;
     nb_repetitions          <=  nb_repetitions_i;
-    mode_time               <= mode_time_i;
-    
-    restart_acc             <= restart_acc_i;
+    mode_time               <=  mode_time_i;
+    restart_acc             <=  restart_acc_i;
     
     --------------------
     -- Input register --

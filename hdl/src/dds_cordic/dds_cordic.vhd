@@ -37,7 +37,6 @@ entity dds_cordic is
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
         nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
         mode_time_i                         : in  std_logic; 
-        
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
