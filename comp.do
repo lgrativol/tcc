@@ -54,6 +54,9 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/tukey/tukey_phase_a
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/tukey/tukey_win.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/dds_cordic_win.vhd
 
+## Pulser
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/pulser/pulser.vhd
+
 
 ################################
 ##  Compile simulation files  ##
@@ -64,7 +67,6 @@ vcom -93  -novopt -O0 ../hdl/sim/sim_input_pkg.vhd
 
 ## Testbench tools
 vcom -93  -novopt -O0 ../hdl/sim/testbench_tools/sim_write2file.vhd
-
 
 ## cordic
 vcom -93  -novopt -O0 ../hdl/sim/cordic/cordic_tb.vhd
@@ -83,6 +85,9 @@ vcom -93  -novopt -O0 ../hdl/sim/reciprocal/reciprocal_xy_tb.vhd
 
 ## DDS Win
 vcom -93  -novopt -O0 ../hdl/sim/dds_win/dds_cordic_win_tb.vhd
+
+## Pulser
+vcom -93  -novopt -O0 ../hdl/sim/pulser/pulser_tb.vhd
 
 ## Misc
 ##vcom -93  -novopt -O0 ../hdl/sim/misc/phase_adjust_tb.vhd
