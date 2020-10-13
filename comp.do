@@ -57,6 +57,11 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/dds_cordic_win.vhd
 ## Pulser
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/pulser/pulser.vhd
 
+## Averager
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/ring_fifo.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager.vhd
+
+
 
 ################################
 ##  Compile simulation files  ##
@@ -88,6 +93,10 @@ vcom -93  -novopt -O0 ../hdl/sim/dds_win/dds_cordic_win_tb.vhd
 
 ## Pulser
 vcom -93  -novopt -O0 ../hdl/sim/pulser/pulser_tb.vhd
+
+## Averager
+vcom -93 -novopt -O0 ../hdl/sim/averager/ring_fifo_tb.vhd
+vcom -93 -novopt -O0 ../hdl/sim/averager/averager_tb.vhd
 
 ## Misc
 ##vcom -93  -novopt -O0 ../hdl/sim/misc/phase_adjust_tb.vhd
