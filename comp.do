@@ -61,6 +61,9 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/pulser/pulser.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/ring_fifo.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager.vhd
 
+## Register Bank
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_regs_pkg.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_regs.vhd
 
 
 ################################
