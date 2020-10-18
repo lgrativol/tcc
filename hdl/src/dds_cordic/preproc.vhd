@@ -19,6 +19,7 @@ use work.utils_pkg.all;
 
 entity preproc is
     generic(
+        SIDEBAND_WIDTH                      : integer;
         PHASE_INTEGER_PART                  : natural;
         PHASE_FRAC_PART                     : integer;
         OUTPUT_INTEGER_PART                 : natural; -- sfixed integer part 
@@ -28,6 +29,10 @@ entity preproc is
         -- Clock interface
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
+        
+        -- Sideband
+        sideband_data_i                     : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+        sideband_data_o                     : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
@@ -72,9 +77,13 @@ architecture behavioral of preproc is
     -------------
     
     -- Input interface
-    signal strb_i_reg                        : std_logic;
-    signal sphase_reg                        : sfixed((PHASE_INTEGER_PART + 1) downto PHASE_FRAC_PART);
+    signal strb_i_reg                       : std_logic;
+    signal sphase_reg                       : sfixed((PHASE_INTEGER_PART + 1) downto PHASE_FRAC_PART);
 
+    -- Sideband
+    signal sideband_data_reg1               : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+    signal sideband_data_reg2               : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+    
     -- Behavioral
     signal phase_less_pi_2                  : std_logic;
     signal phase_less_3pi_2                 : std_logic;
@@ -97,6 +106,7 @@ begin
             strb_i_reg <= strb_i;
 
             if (strb_i = '1') then
+                sideband_data_reg1  <= sideband_data_i;
                 sphase_reg <= to_sfixed(phase_i);
             end if;
         end if;
@@ -111,6 +121,8 @@ begin
             strb_reg <= strb_i_reg;
 
             if ( strb_i_reg = '1' ) then
+
+                sideband_data_reg2  <= sideband_data_reg1;
 
                 if ( phase_less_pi_2 = '1') then     -- phase in first quad
                     phase_info        <= "00";
@@ -132,10 +144,10 @@ begin
 
     phase_less_3pi_2     <=         '1' when(sphase_reg <= PI3_2) -- phase <= 3PI/2
                             else    '0';
-                                  
-                            
+
     -- Output
     strb_o                  <= strb_reg;
+    sideband_data_o         <= sideband_data_reg2;
     phase_info_o            <= phase_info;
     reduced_phase_o         <= resize(reduced_phase_reg, OUTPUT_INTEGER_PART,OUTPUT_FRAC_PART);
 

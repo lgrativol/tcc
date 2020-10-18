@@ -53,8 +53,9 @@ architecture behavioral of tukey_win is
     ---------------
     -- Constants --
     ---------------
-    constant    CORDIC_FACTOR       : sfixed(TK_INTEGER_PART downto TK_FRAC_PART) := to_sfixed( (0.607253) , TK_INTEGER_PART, TK_FRAC_PART);
-    constant    SIDEBAND_WIDTH      : natural  := 2;
+    constant    CORDIC_FACTOR           : sfixed(TK_INTEGER_PART downto TK_FRAC_PART) := to_sfixed( (0.607253) , TK_INTEGER_PART, TK_FRAC_PART);
+    constant    SIDEBAND_WIDTH          : natural  := 2;
+    constant    NOT_USED_SIDEBAND_WIDTH : integer := -1;
     
     -- Tukey constants
     constant    WIN_A0              : sfixed(TK_INTEGER_PART downto TK_FRAC_PART) := to_sfixed( (0.5) , TK_INTEGER_PART, TK_FRAC_PART);
@@ -87,6 +88,9 @@ architecture behavioral of tukey_win is
     signal      preproc_strb_o                  : std_logic;
     signal      preproc_reduced_phase           : sfixed(TK_INTEGER_PART downto TK_FRAC_PART);
 
+    signal      preproc_sideband_i              : std_logic_vector((NOT_USED_SIDEBAND_WIDTH - 1) downto 0);
+    signal      preproc_sideband_o              : std_logic_vector((NOT_USED_SIDEBAND_WIDTH - 1) downto 0);
+
     -- Stage 3 Cordic Core
     signal      cordic_core_strb_i              : std_logic;
     signal      cordic_core_x_i                 : sfixed(TK_INTEGER_PART downto TK_FRAC_PART);
@@ -98,8 +102,8 @@ architecture behavioral of tukey_win is
     signal      cordic_core_y_o                 : sfixed(TK_INTEGER_PART downto TK_FRAC_PART);
     signal      cordic_core_z_o                 : sfixed(TK_INTEGER_PART downto TK_FRAC_PART);
 
-    signal      cordic_core_sideband_i          : std_logic_vector((SIDEBAND_WIDTH -1) downto 0);
-    signal      cordic_core_sideband_o          : std_logic_vector((SIDEBAND_WIDTH -1) downto 0);
+    signal      cordic_core_sideband_i          : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+    signal      cordic_core_sideband_o          : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
     -- Stage 4 Posprocessor
     signal      posproc_strb_i                  : std_logic;
@@ -110,6 +114,9 @@ architecture behavioral of tukey_win is
     signal      posproc_strb_o                  : std_logic;
     signal      posproc_sin_phase_o             : sfixed(TK_INTEGER_PART downto TK_FRAC_PART);
     signal      posproc_cos_phase_o             : sfixed(TK_INTEGER_PART downto TK_FRAC_PART);
+
+    signal      posproc_sideband_i              : std_logic_vector((NOT_USED_SIDEBAND_WIDTH - 1) downto 0);
+    signal      posproc_sideband_o              : std_logic_vector((NOT_USED_SIDEBAND_WIDTH - 1) downto 0);
 
     -- Stage 5 Window result
     signal      win_strb_i                      : std_logic;
@@ -173,6 +180,7 @@ begin
 
     stage_2_preproc : entity work.preproc
         generic map(
+            SIDEBAND_WIDTH                      => NOT_USED_SIDEBAND_WIDTH,
             PHASE_INTEGER_PART                  => WIN_PHASE_INTEGER_PART,
             PHASE_FRAC_PART                     => WIN_PHASE_FRAC_PART,
             OUTPUT_INTEGER_PART                 => TK_INTEGER_PART,
@@ -182,6 +190,9 @@ begin
             -- Clock interface
             clock_i                            =>  clock_i, 
             areset_i                           =>  areset_i, -- Positive async reset
+
+            sideband_data_i                    => preproc_sideband_i,
+            sideband_data_o                    => preproc_sideband_o,
 
             -- Input interface
             strb_i                             =>  preproc_strb_i, -- Valid in
@@ -244,6 +255,7 @@ begin
 
     stage_4_posproc : entity work.posproc
         generic map(
+            SIDEBAND_WIDTH                      => NOT_USED_SIDEBAND_WIDTH,
             WORD_INTEGER_PART                   => TK_INTEGER_PART,
             WORD_FRAC_PART                      => TK_FRAC_PART
         )
@@ -251,6 +263,9 @@ begin
             -- Clock interface
             clock_i                             => clock_i, 
             areset_i                            => areset_i, -- Positive async reset
+            
+            sideband_data_i                    => posproc_sideband_i,
+            sideband_data_o                    => posproc_sideband_o,
 
             -- Input interface
             strb_i                              => posproc_strb_i,

@@ -56,9 +56,12 @@ architecture behavioral of dds_cordic is
     ---------------
     -- Constants --
     ---------------
-    constant    CORDIC_FACTOR       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART) := to_sfixed( (0.607253) , CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
-    constant    SIDEBAND_WIDTH      : natural  := 2;
-
+    
+    constant    CORDIC_FACTOR               : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART) := to_sfixed( (0.607253) , CORDIC_INTEGER_PART, CORDIC_FRAC_PART);
+    constant    PREPROC_SIDEBAND_WIDTH      : natural  := 1;
+    constant    CORDIC_SIDEBAND_WIDTH       : natural  := 2 + PREPROC_SIDEBAND_WIDTH ;
+    constant    POSPROC_SIDEBAND_WIDTH      : natural  := 1 ;
+    
     -------------
     -- Signals --
     -------------
@@ -87,6 +90,9 @@ architecture behavioral of dds_cordic is
     signal      preproc_strb_o              : std_logic;
     signal      preproc_reduced_phase       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
+    signal      preproc_sideband_i     : std_logic_vector((PREPROC_SIDEBAND_WIDTH - 1) downto 0);
+    signal      preproc_sideband_o     : std_logic_vector((PREPROC_SIDEBAND_WIDTH - 1) downto 0);
+
     -- Stage 3 Cordic Core
     signal      cordic_core_strb_i          : std_logic;
     signal      cordic_core_x_i             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
@@ -98,8 +104,8 @@ architecture behavioral of dds_cordic is
     signal      cordic_core_y_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     signal      cordic_core_z_o             : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
-    signal      cordic_core_sideband_i      : std_logic_vector((SIDEBAND_WIDTH -1) downto 0);
-    signal      cordic_core_sideband_o      : std_logic_vector((SIDEBAND_WIDTH -1) downto 0);
+    signal      cordic_core_sideband_i      : std_logic_vector((CORDIC_SIDEBAND_WIDTH - 1) downto 0);
+    signal      cordic_core_sideband_o      : std_logic_vector((CORDIC_SIDEBAND_WIDTH - 1) downto 0);
 
     -- Stage 4 Posprocessor
     signal      posproc_strb_i              : std_logic;
@@ -110,7 +116,9 @@ architecture behavioral of dds_cordic is
     signal      posproc_strb_o              : std_logic;
     signal      posproc_sin_phase_o         : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     signal      posproc_cos_phase_o         : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-    
+
+    signal      posproc_sideband_i          : std_logic_vector((POSPROC_SIDEBAND_WIDTH - 1) downto 0);
+    signal      posproc_sideband_o          : std_logic_vector((POSPROC_SIDEBAND_WIDTH - 1) downto 0);
     
 begin
 
@@ -161,11 +169,13 @@ begin
     -- Stage 2 --
     -------------
 
-    preproc_strb_i  <= phase_acc_strb_o;
-    preproc_phase   <= phase_acc_phase;
+    preproc_sideband_i(0)       <= phase_acc_done_cycles;
+    preproc_strb_i              <= phase_acc_strb_o;
+    preproc_phase               <= phase_acc_phase;
 
     stage_2_preproc : entity work.preproc
         generic map(
+            SIDEBAND_WIDTH                      => PREPROC_SIDEBAND_WIDTH,
             PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
             PHASE_FRAC_PART                     => PHASE_FRAC_PART,
             OUTPUT_INTEGER_PART                 => CORDIC_INTEGER_PART,
@@ -175,6 +185,9 @@ begin
             -- Clock interface
             clock_i                            =>  clock_i, 
             areset_i                           =>  areset_i, -- Positive async reset
+
+            sideband_data_i                    =>  preproc_sideband_i,
+            sideband_data_o                    =>  preproc_sideband_o,
 
             -- Input interface
             strb_i                             =>  preproc_strb_i, -- Valid in
@@ -197,11 +210,11 @@ begin
     cordic_core_x_i         <= CORDIC_FACTOR;
     cordic_core_y_i         <= (others => '0');
     cordic_core_z_i         <= preproc_reduced_phase;
-    cordic_core_sideband_i  <= preproc_phase_info;
+    cordic_core_sideband_i  <= (preproc_sideband_o & preproc_phase_info);
 
     stage_3_cordic_core : entity work.cordic_core
         generic map(
-            SIDEBAND_WIDTH         => SIDEBAND_WIDTH,
+            SIDEBAND_WIDTH         => CORDIC_SIDEBAND_WIDTH,
             CORDIC_INTEGER_PART    => CORDIC_INTEGER_PART,
             CORDIC_FRAC_PART       => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS    => N_CORDIC_ITERATIONS
@@ -232,13 +245,14 @@ begin
     posproc_strb_i        <=  cordic_core_strb_o;
     posproc_sin_phase_i   <=  cordic_core_y_o;
     posproc_cos_phase_i   <=  cordic_core_x_o;
-    posproc_phase_info    <=  cordic_core_sideband_o;
+    posproc_phase_info    <=  cordic_core_sideband_o(1 downto 0);
+    posproc_sideband_i    <=  cordic_core_sideband_o(2 downto 2);
 
-    
     POSPROC_GEN_TRUE: 
         if (EN_POSPROC) generate
             stage_4_posproc : entity work.posproc
                 generic map(
+                    SIDEBAND_WIDTH                      => POSPROC_SIDEBAND_WIDTH,
                     WORD_INTEGER_PART                   => CORDIC_INTEGER_PART,
                     WORD_FRAC_PART                      => CORDIC_FRAC_PART
                 )
@@ -246,6 +260,10 @@ begin
                     -- Clock interface
                     clock_i                             => clock_i, 
                     areset_i                            => areset_i, -- Positive async reset
+
+                    -- Sideband
+                    sideband_data_i                     => posproc_sideband_i,
+                    sideband_data_o                     => posproc_sideband_o,
         
                     -- Input interface
                     strb_i                              => posproc_strb_i,
@@ -265,6 +283,7 @@ begin
     POSPROC_GEN_FALSE: 
         if (not EN_POSPROC) generate
             posproc_strb_o          <= posproc_strb_i;
+            posproc_sideband_o      <= posproc_sideband_i;
             posproc_sin_phase_o     <= posproc_sin_phase_i;
             posproc_cos_phase_o     <= posproc_cos_phase_i;
         end generate POSPROC_GEN_FALSE;
@@ -277,6 +296,6 @@ begin
     flag_full_cycle_o   <= phase_acc_flag_full_cycle;
     sine_phase_o        <= posproc_sin_phase_o;
     cos_phase_o         <= posproc_cos_phase_o;
-    done_cycles_o       <= phase_acc_done_cycles;
+    done_cycles_o       <= posproc_sideband_o(0); -- done signal
 
     end behavioral;

@@ -245,7 +245,7 @@ begin
 
     WIN_SELECT_HH_GEN: 
         if  (WIN_MODE = "HANN" or WIN_MODE = "HAMM") generate
-            stage_2_window : entity work.hh_win 
+            stage_2_window : entity work.hh_win_v2 
                 generic map(
                     HH_MODE                             => WIN_MODE, -- or HAMM
                     WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,

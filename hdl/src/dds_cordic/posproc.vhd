@@ -19,6 +19,7 @@ use work.utils_pkg.all;
 
 entity posproc is
     generic (
+        SIDEBAND_WIDTH                      : integer;
         WORD_INTEGER_PART                   : natural; -- sfixed integer part 
         WORD_FRAC_PART                      : integer  -- sfixed fractional part
     );
@@ -26,6 +27,10 @@ entity posproc is
         -- Clock interface
         clock_i                             : in  std_logic; 
         areset_i                            : in  std_logic; -- Positive async reset
+       
+        -- Sideband
+        sideband_data_i                     : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+        sideband_data_o                     : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in
@@ -58,6 +63,10 @@ architecture behavioral of posproc is
     signal sin_phase_reg                    : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
     signal cos_phase_reg                    : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
 
+    -- Sideband
+    signal sideband_data_reg1               : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+    signal sideband_data_reg2               : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+
     -- Control interface
     signal phase_info_reg                   : std_logic_vector(1 downto 0);
 
@@ -76,6 +85,9 @@ begin
             strb_i_reg <= strb_i;
 
             if (strb_i = '1') then
+
+                sideband_data_reg1 <= sideband_data_i;
+
                 phase_info_reg  <= phase_info_i;
                 sin_phase_reg   <= sin_phase_i;
                 cos_phase_reg   <= cos_phase_i;
@@ -93,6 +105,8 @@ begin
 
             if ( strb_i_reg = '1' ) then
 
+                sideband_data_reg2 <= sideband_data_reg1;
+
                 sin_phase   <= sin_phase_reg;
                 
                 if ( phase_info_reg = "00" or phase_info_reg = "10") then     -- phase in first quad
@@ -107,6 +121,9 @@ begin
 
                                 
     -- Output
+
+    sideband_data_o         <= sideband_data_reg2;
+
     strb_o                  <= strb_reg;
     sin_phase_o             <= sin_phase;
     cos_phase_o             <= cos_phase;

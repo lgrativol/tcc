@@ -47,7 +47,8 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/generic_shift_reg/generic_shift
 
 ## Windows (+ DDS Windows)
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/phase_adjust.vhd
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/hanning_hamming/hh_win.vhd
+##vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/hanning_hamming/hh_win.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/hanning_hamming/hh_win_v2.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/blackman/blackman_win.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/blackman_harris/blackman_harris_win.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/tukey/tukey_phase_acc.vhd
