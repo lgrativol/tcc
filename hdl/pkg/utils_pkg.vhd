@@ -40,6 +40,9 @@ package utils_pkg is
     constant  RX_TIME_WIDTH         : positive := 18; -- Max time = 2.62 ms
     constant  OFF_TIME_WIDTH        : positive := 18; -- Max time = 2.62 ms
 
+    -- Pulser
+    constant  TIMER_WIDTH           : positive := 10;
+
     ---------------
     -- Functions --
     ---------------

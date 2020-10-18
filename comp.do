@@ -66,6 +66,9 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_regs_pkg.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_regs.vhd
 
+## Wave Generator
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_generator/wave_generator.vhd
+
 
 ################################
 ##  Compile simulation files  ##
