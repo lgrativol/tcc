@@ -1,13 +1,12 @@
 TODO:
 
 * New features (hdl):
-- MODE TIME (generic) into mode_time (input)
-- ADD freq_sample input  (clock domains problems ?)
-- Add pulser entity
+✔ MODE TIME (generic) into mode_time (input) @done(20-09-19 10:17)
+✔ Add pulser entity @done(20-10-02 14:37)
 - Add Wave Gen big entity
 - Update FSM Time Zones
-- Add Average (point-point) entity
-- Add register bank (?)
+✔ Add Average (point-point) entity @done(20-10-17 21:03)
+✔ Add register bank (?) @done(20-10-17 21:03)
 - New option for number of repetitions (wave gen repetition)
 - AXI4-LITE input interface 
 - AXI-DMA + AXI4_SS interface
@@ -22,8 +21,8 @@ TODO:
 - Fix external interface to "std_logic" "std_logic_vector" only
 
 * Overall:
-- Full architecture draft (for approval)
-- Registers schema draft (for approval)
+✔ Full architecture draft (for approval) @done(20-10-02 14:38)
+✔ Registers schema draft (for approval) @done(20-10-17 21:04)
 - Python script -> performance analysis -> improve
 
 * Backlog :
