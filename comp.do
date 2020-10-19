@@ -33,6 +33,7 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic/dds_cordic.vhd
 
 ## FSM Control
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_control/fsm_time_zones.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_control/fsm_time_zones_v2.vhd
 
 ## Double Driver
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/double_driver/double_driver.vhd
