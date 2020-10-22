@@ -32,6 +32,7 @@ entity fsm_time_zones_v2 is
         output_strb_i                       : in  std_logic;
 
         -- Control Interface
+        start_rx_o                          : out std_logic;
         restart_cycles_o                    : out std_logic;
         end_zones_cycle_o                   : out std_logic
     );
@@ -84,8 +85,8 @@ architecture behavioral of fsm_time_zones_v2 is
     signal  counter_off_time_done               : std_logic;
 
     -- Output
+    signal  start_rx                            : std_logic;
     signal  restart_cycles                      : std_logic;
-    signal  reset_averager                      : std_logic;
     signal  end_zones_cycle                     : std_logic;
 
 
@@ -115,15 +116,18 @@ begin
     time_zones_fsm : process (clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            time_state          <= ST_INPUT;
-            restart_cycles      <= '0';
-            end_zones_cycle     <= '0';
+            counter_nb_repetitions  <= (others => '0');
+            time_state              <= ST_INPUT;
+            start_rx                <= '0';
+            restart_cycles          <= '0';
+            end_zones_cycle         <= '0';
             
         elsif (rising_edge(clock_i)) then
 
             restart_cycles      <= '0';
+            start_rx            <= '0';
             end_zones_cycle     <= '0';
-                                    
+            
             case time_state is
                 
                 when ST_INPUT =>
@@ -164,8 +168,8 @@ begin
                     end if;
 
                 when ST_RX =>
-
-                    restart_cycles <= '0';
+                    start_rx        <= '1';
+                    restart_cycles  <= '0';
 
                     if (counter_rx_time_done = '1') then
                         time_state       <= ST_OFF;
@@ -219,6 +223,7 @@ begin
                                                 else    '0';  
 
     -- Output
+    start_rx_o         <= start_rx;
     restart_cycles_o   <= restart_cycles;
     end_zones_cycle_o  <= end_zones_cycle;
 
