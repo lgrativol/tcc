@@ -96,7 +96,7 @@ architecture behavioral of averager is
     signal acc_en_reg                           : std_logic;
 
     signal resized_input_data                   : sfixed ( ACC_WORD_INT_PART downto WORD_FRAC_PART );
-    signal slv_input_data                       : std_logic_vector( (RAM_DATA_WIDTH - 1) downto 0);  
+    signal slv_resized_input_data               : std_logic_vector( (RAM_DATA_WIDTH - 1) downto 0);  
 
     signal acc_point                            : sfixed ( ACC_WORD_INT_PART downto WORD_FRAC_PART );      
     signal slv_acc_point                        : std_logic_vector( (RAM_DATA_WIDTH - 1) downto 0);      
@@ -149,14 +149,17 @@ begin
     proc_input_reg : process (clock_i , areset_i)
     begin
         if (areset_i = '1') then
-            config_nb_repetitions_reg   <= std_logic_vector( to_unsigned(1, config_nb_repetitions_reg'length)  ); -- b"0...0001"
+            --config_nb_repetitions_reg   <= std_logic_vector( to_unsigned(1, config_nb_repetitions_reg'length)  ); -- b"0...0001"
+            config_nb_repetitions_reg   <= (others => '0'); -- b"0...0001"
             input_last_word_reg         <= '0';
         elsif ( rising_edge (clock_i) ) then
             input_strb_reg  <= input_strb;
-
+            
             if(input_strb = '1' ) then
                 input_data_reg              <= input_data;
                 input_last_word_reg         <= input_last_word;
+            else
+                input_last_word_reg         <= '0';
             end if;
             
             if (config_input_strb = '1') then
@@ -165,8 +168,8 @@ begin
         end if;
     end process;
 
-
-    slv_input_data          <= std_logic_vector( resize( unsigned( to_slv(input_data_reg) ), RAM_DATA_WIDTH)); 
+    resized_input_data              <= resize(input_data_reg, ACC_WORD_INT_PART, WORD_FRAC_PART); 
+    slv_resized_input_data          <= to_slv(resized_input_data);
 
     ---------------
     -- Ring FIFO --
@@ -179,7 +182,7 @@ begin
     fifo_wr_input_strb              <=              input_strb_reg; -- Only runs with incomming data
 
     fifo_wr_data                    <=              slv_acc_point  when ( acc_en_reg = '1' )
-                                            else    slv_input_data;
+                                            else    slv_resized_input_data;
 
     fifo_rd_en                      <=              input_strb_reg
                                                 and acc_en;
@@ -260,7 +263,6 @@ begin
                             or  acc_en_reg )
                         and not(last_word);
 
-    resized_input_data      <= resize(input_data_reg, ACC_WORD_INT_PART, WORD_FRAC_PART); 
     sfixed_fifo_rd_data     <= to_sfixed(fifo_rd_data, ACC_WORD_INT_PART, WORD_FRAC_PART);
 
     acc_point               <= resize ( resized_input_data + sfixed_fifo_rd_data , acc_point );
@@ -278,7 +280,8 @@ begin
     end process;
 
     output_strb     <=      counter_repetitions_done
-                        and fifo_output_strb;
+                        --and fifo_output_strb
+                        and input_strb_reg;
 
     proc_output_word : process(clock_i,areset_i)
     begin

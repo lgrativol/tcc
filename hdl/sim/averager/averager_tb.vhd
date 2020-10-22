@@ -105,8 +105,9 @@ begin
 
     stim_proc : process
 
-        procedure write_memory  (   constant pattern   : in std_logic_vector; 
-                                    constant nb_rep    : in positive
+        procedure write_memory  (   constant pattern            : in std_logic_vector; 
+                                    constant nb_rep             : in positive;
+                                    constant nb_empty_cycles    : in natural
                                 ) is
 
             constant WORD_WIDTH     : positive := ( pattern'length);
@@ -134,6 +135,14 @@ begin
                     wait until (rising_edge(clk));
 
                 end loop;
+
+                input_strb_i <= '0';
+                input_last_word <= '0';
+
+                if (nb_empty_cycles > 0) then
+                    wait for nb_empty_cycles * CLK_PERIOD;
+                    wait until (rising_edge(clk));
+                end if;
             end loop;
             
             input_strb_i <= '0';
@@ -162,9 +171,17 @@ begin
         
         config_strb_i <= '0';
         
-        write_memory(x"1122334455",SIM_NB_REPETITIONS);
-        write_memory(x"5544332211",SIM_NB_REPETITIONS);
-        write_memory(x"1122334455",SIM_NB_REPETITIONS);
+        write_memory(x"1122334455",SIM_NB_REPETITIONS,8);
+        
+        config_reset_pointers <= '1';
+
+        wait for CLK_PERIOD;
+        wait until (rising_edge(clk));
+        
+        config_reset_pointers <= '0';
+
+        write_memory(x"5544332211",SIM_NB_REPETITIONS,0);
+        write_memory(x"1122334455",SIM_NB_REPETITIONS,4);
 
         wait;
         

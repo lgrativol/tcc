@@ -157,13 +157,15 @@ begin
                 
                 pointer_tail <= (others => '0');
 
-            elsif ( rd_en = '1' and flag_empty = '0' ) then
+            elsif ( rd_en = '1' ) then
 
+               -- if ( flag_empty = '0') then
                 if ( max_rd_reached = '1' ) then
                     pointer_tail <= (others => '0') ;
                 else
                     pointer_tail <= pointer_tail + 1;
                 end if;
+               -- end if;
                 
                 rd_valid <= '1';
             end if;
