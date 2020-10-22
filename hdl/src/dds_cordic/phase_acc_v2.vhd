@@ -205,7 +205,7 @@ begin
                
                 if(full_period_done = '1') then                    
                     nb_points_one_period_counter    <= (others => '0');
-                    nb_repetitions_counter <= nb_repetitions_counter + 1;
+                    nb_repetitions_counter          <= nb_repetitions_counter + 1;
                 else
                     nb_points_one_period_counter <= nb_points_one_period_counter + 1;
                 end if;                
