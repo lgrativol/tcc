@@ -1,8 +1,8 @@
 -- -----------------------------------------------------------------------------
--- 'pig_register_bank' Register Component
--- Revision: 70
+-- 'register_bank' Register Component
+-- Revision: 125
 -- -----------------------------------------------------------------------------
--- Generated on 2020-10-17 at 23:34 (UTC) by airhdl version 2020.09.1
+-- Generated on 2020-10-20 at 01:08 (UTC) by airhdl version 2020.10.1
 -- -----------------------------------------------------------------------------
 -- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
 -- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
@@ -25,163 +25,165 @@ use work.register_bank_regs_pkg.all;
 
 entity register_bank_regs is
     generic(
-        AXI_ADDR_WIDTH                      : positive := 32;  -- width of the AXI address bus
-        BASEADDR                            : std_logic_vector(31 downto 0) := x"00000000" -- the register file's system base address		
+        AXI_ADDR_WIDTH : integer := 32;  -- width of the AXI address bus
+        BASEADDR : std_logic_vector(31 downto 0) := x"00000000" -- the register file's system base address		
     );
     port(
         -- Clock and Reset
-        axi_aclk                            : in  std_logic;
-        axi_aresetn                         : in  std_logic;
+        axi_aclk    : in  std_logic;
+        axi_aresetn : in  std_logic;
         -- AXI Write Address Channel
-        s_axi_awaddr                        : in  std_logic_vector((AXI_ADDR_WIDTH - 1) downto 0);
-        s_axi_awprot                        : in  std_logic_vector(2 downto 0); -- sigasi @suppress "Unused port"
-        s_axi_awvalid                       : in  std_logic;
-        s_axi_awready                       : out std_logic;
+        s_axi_awaddr  : in  std_logic_vector(AXI_ADDR_WIDTH - 1 downto 0);
+        s_axi_awprot  : in  std_logic_vector(2 downto 0); -- sigasi @suppress "Unused port"
+        s_axi_awvalid : in  std_logic;
+        s_axi_awready : out std_logic;
         -- AXI Write Data Channel
-        s_axi_wdata                         : in  std_logic_vector(31 downto 0);
-        s_axi_wstrb                         : in  std_logic_vector(3 downto 0);
-        s_axi_wvalid                        : in  std_logic;
-        s_axi_wready                        : out std_logic;
+        s_axi_wdata   : in  std_logic_vector(31 downto 0);
+        s_axi_wstrb   : in  std_logic_vector(3 downto 0);
+        s_axi_wvalid  : in  std_logic;
+        s_axi_wready  : out std_logic;
         -- AXI Read Address Channel
-        s_axi_araddr                        : in  std_logic_vector((AXI_ADDR_WIDTH - 1) downto 0);
-        s_axi_arprot                        : in  std_logic_vector(2 downto 0); -- sigasi @suppress "Unused port"
-        s_axi_arvalid                       : in  std_logic;
-        s_axi_arready                       : out std_logic;
+        s_axi_araddr  : in  std_logic_vector(AXI_ADDR_WIDTH - 1 downto 0);
+        s_axi_arprot  : in  std_logic_vector(2 downto 0); -- sigasi @suppress "Unused port"
+        s_axi_arvalid : in  std_logic;
+        s_axi_arready : out std_logic;
         -- AXI Read Data Channel
-        s_axi_rdata                         : out std_logic_vector(31 downto 0);
-        s_axi_rready                        : in  std_logic;
-        s_axi_rresp                         : out std_logic_vector(1 downto 0);
-        s_axi_rvalid                        : out std_logic;
+        s_axi_rdata   : out std_logic_vector(31 downto 0);
+        s_axi_rresp   : out std_logic_vector(1 downto 0);
+        s_axi_rvalid  : out std_logic;
+        s_axi_rready  : in  std_logic;
         -- AXI Write Response Channel
-        s_axi_bresp                         : out std_logic_vector(1 downto 0);
-        s_axi_bvalid                        : out std_logic;
-        s_axi_bready                        : in  std_logic;
+        s_axi_bresp   : out std_logic_vector(1 downto 0);
+        s_axi_bvalid  : out std_logic;
+        s_axi_bready  : in  std_logic;
         -- User Ports
-        version_strobe                      : out std_logic; -- Strobe signal for register 'version' (pulsed when the register is read from the bus)
-        version_version                     : in std_logic_vector(7 downto 0); -- Value of register 'version', field 'version'
-        
-        bang_strobe                         : out std_logic; -- Strobe signal for register 'bang' (pulsed when the register is written from the bus)
-        bang_bang                           : out std_logic_vector(0 downto 0); -- Value of register 'bang', field 'bang'
-        
-        sample_frequency_strobe             : out std_logic; -- Strobe signal for register 'sample_frequency' (pulsed when the register is written from the bus)
-        sample_frequency_sample_frequency   : out std_logic_vector(26 downto 0); -- Value of register 'sample_frequency', field 'sample_frequency'
-        
-        target_frequency_strobe             : out std_logic; -- Strobe signal for register 'target_frequency' (pulsed when the register is written from the bus)
-        target_frequency_target_frequency   : out std_logic_vector(31 downto 0); -- Value of register 'target_frequency', field 'target_frequency'
-        
-        phase_term_strobe                   : out std_logic; -- Strobe signal for register 'phase_term' (pulsed when the register is written from the bus)
-        phase_term_phase_term               : out std_logic_vector(31 downto 0); -- Value of register 'phase_term', field 'phase_term'
-        
-        init_phase_strobe                   : out std_logic; -- Strobe signal for register 'init_phase' (pulsed when the register is written from the bus)
-        init_phase_init_phase               : out std_logic_vector(31 downto 0); -- Value of register 'init_phase', field 'init_phase'
-        
-        numbers_strobe                      : out std_logic; -- Strobe signal for register 'numbers' (pulsed when the register is written from the bus)
-        numbers_nb_points                   : out std_logic_vector(9 downto 0); -- Value of register 'numbers', field 'nb_points'
-        numbers_nb_repetitions              : out std_logic_vector(9 downto 0); -- Value of register 'numbers', field 'nb_repetitions'
-        
-        win_phase_term_strobe               : out std_logic; -- Strobe signal for register 'win_phase_term' (pulsed when the register is written from the bus)
-        win_phase_term_win_phase_term       : out std_logic_vector(31 downto 0); -- Value of register 'win_phase_term', field 'win_phase_term'
-        
-        config_mode_strobe                  : out std_logic; -- Strobe signal for register 'config_mode' (pulsed when the register is written from the bus)
-        config_mode_dds_type                : out std_logic_vector(3 downto 0); -- Value of register 'config_mode', field 'dds_type'
-        config_mode_mode_time               : out std_logic_vector(0 downto 0); -- Value of register 'config_mode', field 'mode_time'
-        config_mode_win_type                : out std_logic_vector(3 downto 0); -- Value of register 'config_mode', field 'win_type'
-        
-        tx_timer_strobe                     : out std_logic; -- Strobe signal for register 'tx_timer' (pulsed when the register is written from the bus)
-        tx_timer_tx_timer                   : out std_logic_vector(17 downto 0); -- Value of register 'tx_timer', field 'tx_timer'
-        
-        off_timer_strobe                    : out std_logic; -- Strobe signal for register 'off_timer' (pulsed when the register is written from the bus)
-        off_timer_timer                     : out std_logic_vector(17 downto 0); -- Value of register 'off_timer', field 'timer'
-        
-        rx_timer_strobe                     : out std_logic; -- Strobe signal for register 'rx_timer' (pulsed when the register is written from the bus)
-        rx_timer_timer                      : out std_logic_vector(17 downto 0); -- Value of register 'rx_timer', field 'timer'
-        
-        deadzone_timer_strobe               : out std_logic; -- Strobe signal for register 'deadzone_timer' (pulsed when the register is written from the bus)
-        deadzone_timer_timer                : out std_logic_vector(17 downto 0) -- Value of register 'deadzone_timer', field 'timer'
+        version_strobe : out std_logic; -- Strobe signal for register 'version' (pulsed when the register is read from the bus)
+        version_field : in std_logic_vector(7 downto 0); -- Value of register 'version', field 'field'
+        bang_strobe : out std_logic; -- Strobe signal for register 'bang' (pulsed when the register is written from the bus)
+        bang_field : out std_logic_vector(0 downto 0); -- Value of register 'bang', field 'field'
+        wave_config_strobe : out std_logic; -- Strobe signal for register 'wave_config' (pulsed when the register is written from the bus)
+        wave_config_wave_type : out std_logic_vector(3 downto 0); -- Value of register 'wave_config', field 'wave_type'
+        wave_config_win_type : out std_logic_vector(3 downto 0); -- Value of register 'wave_config', field 'win_type'
+        sample_frequency_strobe : out std_logic; -- Strobe signal for register 'sample_frequency' (pulsed when the register is written from the bus)
+        sample_frequency_value : out std_logic_vector(26 downto 0); -- Value of register 'sample_frequency', field 'value'
+        wave_nb_points_strobe : out std_logic; -- Strobe signal for register 'wave_nb_points' (pulsed when the register is written from the bus)
+        wave_nb_points_value : out std_logic_vector(31 downto 0); -- Value of register 'wave_nb_points', field 'value'
+        fsm_nb_repetitions_strobe : out std_logic; -- Strobe signal for register 'fsm_nb_repetitions' (pulsed when the register is written from the bus)
+        fsm_nb_repetitions_value : out std_logic_vector(5 downto 0); -- Value of register 'fsm_nb_repetitions', field 'value'
+        tx_timer_strobe : out std_logic; -- Strobe signal for register 'tx_timer' (pulsed when the register is written from the bus)
+        tx_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'tx_timer', field 'value'
+        deadzone_timer_strobe : out std_logic; -- Strobe signal for register 'deadzone_timer' (pulsed when the register is written from the bus)
+        deadzone_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'deadzone_timer', field 'value'
+        rx_timer_strobe : out std_logic; -- Strobe signal for register 'rx_timer' (pulsed when the register is written from the bus)
+        rx_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'rx_timer', field 'value'
+        idle_timer_strobe : out std_logic; -- Strobe signal for register 'idle_timer' (pulsed when the register is written from the bus)
+        idle_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'idle_timer', field 'value'
+        pulser_nb_repetitions_strobe : out std_logic; -- Strobe signal for register 'pulser_nb_repetitions' (pulsed when the register is written from the bus)
+        pulser_nb_repetitions_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_nb_repetitions', field 'value'
+        pulser_t1_strobe : out std_logic; -- Strobe signal for register 'pulser_t1' (pulsed when the register is written from the bus)
+        pulser_t1_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t1', field 'value'
+        pulser_t2_strobe : out std_logic; -- Strobe signal for register 'pulser_t2' (pulsed when the register is written from the bus)
+        pulser_t2_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t2', field 'value'
+        pulser_t3_strobe : out std_logic; -- Strobe signal for register 'pulser_t3' (pulsed when the register is written from the bus)
+        pulser_t3_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t3', field 'value'
+        pulser_t4_strobe : out std_logic; -- Strobe signal for register 'pulser_t4' (pulsed when the register is written from the bus)
+        pulser_t4_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t4', field 'value'
+        pulser_tdamp_strobe : out std_logic; -- Strobe signal for register 'pulser_tdamp' (pulsed when the register is written from the bus)
+        pulser_tdamp_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_tdamp', field 'value'
+        pulser_config_strobe : out std_logic; -- Strobe signal for register 'pulser_config' (pulsed when the register is written from the bus)
+        pulser_config_invert : out std_logic_vector(0 downto 0); -- Value of register 'pulser_config', field 'invert'
+        pulser_config_triple : out std_logic_vector(0 downto 0); -- Value of register 'pulser_config', field 'triple'
+        dds_phase_term_strobe : out std_logic; -- Strobe signal for register 'dds_phase_term' (pulsed when the register is written from the bus)
+        dds_phase_term_value : out std_logic_vector(31 downto 0); -- Value of register 'dds_phase_term', field 'value'
+        dds_init_phase_strobe : out std_logic; -- Strobe signal for register 'dds_init_phase' (pulsed when the register is written from the bus)
+        dds_init_phase_value : out std_logic_vector(31 downto 0); -- Value of register 'dds_init_phase', field 'value'
+        dds_nb_strobe : out std_logic; -- Strobe signal for register 'dds_nb' (pulsed when the register is written from the bus)
+        dds_nb_points : out std_logic_vector(9 downto 0); -- Value of register 'dds_nb', field 'points'
+        dds_nb_repetitions : out std_logic_vector(9 downto 0); -- Value of register 'dds_nb', field 'repetitions'
+        dds_mode_strobe : out std_logic; -- Strobe signal for register 'dds_mode' (pulsed when the register is written from the bus)
+        dds_mode_time : out std_logic_vector(0 downto 0) -- Value of register 'dds_mode', field 'time'
     );
 end entity register_bank_regs;
 
 architecture RTL of register_bank_regs is
-    
-    ---------------
-    -- Constants --
-    ---------------
+
+    -- Constants
     constant AXI_OKAY           : std_logic_vector(1 downto 0) := "00";
     constant AXI_DECERR         : std_logic_vector(1 downto 0) := "11";
 
-    -------------
-    -- Signals --
-    -------------
-
     -- Registered signals
-    signal s_axi_awready_r                              : std_logic;
-    signal s_axi_wready_r                               : std_logic;
-    signal s_axi_awaddr_reg_r                           : unsigned(s_axi_awaddr'range);
-    signal s_axi_bvalid_r                               : std_logic;
-    signal s_axi_bresp_r                                : std_logic_vector(s_axi_bresp'range);
-    signal s_axi_arready_r                              : std_logic;
-    signal s_axi_araddr_reg_r                           : unsigned(s_axi_araddr'range);
-    signal s_axi_rvalid_r                               : std_logic;
-    signal s_axi_rresp_r                                : std_logic_vector(s_axi_rresp'range);
-    signal s_axi_wdata_reg_r                            : std_logic_vector(s_axi_wdata'range);
-    signal s_axi_wstrb_reg_r                            : std_logic_vector(s_axi_wstrb'range);
-    signal s_axi_rdata_r                                : std_logic_vector(s_axi_rdata'range);
+    signal s_axi_awready_r    : std_logic;
+    signal s_axi_wready_r     : std_logic;
+    signal s_axi_awaddr_reg_r : unsigned(s_axi_awaddr'range);
+    signal s_axi_bvalid_r     : std_logic;
+    signal s_axi_bresp_r      : std_logic_vector(s_axi_bresp'range);
+    signal s_axi_arready_r    : std_logic;
+    signal s_axi_araddr_reg_r : unsigned(s_axi_araddr'range);
+    signal s_axi_rvalid_r     : std_logic;
+    signal s_axi_rresp_r      : std_logic_vector(s_axi_rresp'range);
+    signal s_axi_wdata_reg_r  : std_logic_vector(s_axi_wdata'range);
+    signal s_axi_wstrb_reg_r  : std_logic_vector(s_axi_wstrb'range);
+    signal s_axi_rdata_r      : std_logic_vector(s_axi_rdata'range);
     
     -- User-defined registers
-    signal s_version_strobe_r                           : std_logic;
-    signal s_reg_version_version                        : std_logic_vector(7 downto 0);
-    
-    signal s_bang_strobe_r                              : std_logic;
-    signal s_reg_bang_bang_r                            : std_logic_vector(0 downto 0);
-    
-    signal s_sample_frequency_strobe_r                  : std_logic;
-    signal s_reg_sample_frequency_sample_frequency_r    : std_logic_vector(26 downto 0);
-    
-    signal s_target_frequency_strobe_r                  : std_logic;
-    signal s_reg_target_frequency_target_frequency_r    : std_logic_vector(31 downto 0);
-    
-    signal s_phase_term_strobe_r                        : std_logic;
-    signal s_reg_phase_term_phase_term_r                : std_logic_vector(31 downto 0);
-    
-    signal s_init_phase_strobe_r                        : std_logic;
-    signal s_reg_init_phase_init_phase_r                : std_logic_vector(31 downto 0);
-    
-    signal s_numbers_strobe_r                           : std_logic;
-    signal s_reg_numbers_nb_points_r                    : std_logic_vector(9 downto 0);
-    signal s_reg_numbers_nb_repetitions_r               : std_logic_vector(9 downto 0);
-    
-    signal s_win_phase_term_strobe_r                    : std_logic;
-    signal s_reg_win_phase_term_win_phase_term_r        : std_logic_vector(31 downto 0);
-    
-    signal s_config_mode_strobe_r                       : std_logic;
-    signal s_reg_config_mode_dds_type_r                 : std_logic_vector(3 downto 0);
-    signal s_reg_config_mode_mode_time_r                : std_logic_vector(0 downto 0);
-    signal s_reg_config_mode_win_type_r                 : std_logic_vector(3 downto 0);
-    
-    signal s_tx_timer_strobe_r                          : std_logic;
-    signal s_reg_tx_timer_tx_timer_r                    : std_logic_vector(17 downto 0);
-    
-    signal s_off_timer_strobe_r                         : std_logic;
-    signal s_reg_off_timer_timer_r                      : std_logic_vector(17 downto 0);
-    
-    signal s_rx_timer_strobe_r                          : std_logic;
-    signal s_reg_rx_timer_timer_r                       : std_logic_vector(17 downto 0);
-    
-    signal s_deadzone_timer_strobe_r                    : std_logic;
-    signal s_reg_deadzone_timer_timer_r                 : std_logic_vector(17 downto 0);
+    signal s_version_strobe_r : std_logic;
+    signal s_reg_version_field : std_logic_vector(7 downto 0);
+    signal s_bang_strobe_r : std_logic;
+    signal s_reg_bang_field_r : std_logic_vector(0 downto 0);
+    signal s_wave_config_strobe_r : std_logic;
+    signal s_reg_wave_config_wave_type_r : std_logic_vector(3 downto 0);
+    signal s_reg_wave_config_win_type_r : std_logic_vector(3 downto 0);
+    signal s_sample_frequency_strobe_r : std_logic;
+    signal s_reg_sample_frequency_value_r : std_logic_vector(26 downto 0);
+    signal s_wave_nb_points_strobe_r : std_logic;
+    signal s_reg_wave_nb_points_value_r : std_logic_vector(31 downto 0);
+    signal s_fsm_nb_repetitions_strobe_r : std_logic;
+    signal s_reg_fsm_nb_repetitions_value_r : std_logic_vector(5 downto 0);
+    signal s_tx_timer_strobe_r : std_logic;
+    signal s_reg_tx_timer_value_r : std_logic_vector(17 downto 0);
+    signal s_deadzone_timer_strobe_r : std_logic;
+    signal s_reg_deadzone_timer_value_r : std_logic_vector(17 downto 0);
+    signal s_rx_timer_strobe_r : std_logic;
+    signal s_reg_rx_timer_value_r : std_logic_vector(17 downto 0);
+    signal s_idle_timer_strobe_r : std_logic;
+    signal s_reg_idle_timer_value_r : std_logic_vector(17 downto 0);
+    signal s_pulser_nb_repetitions_strobe_r : std_logic;
+    signal s_reg_pulser_nb_repetitions_value_r : std_logic_vector(9 downto 0);
+    signal s_pulser_t1_strobe_r : std_logic;
+    signal s_reg_pulser_t1_value_r : std_logic_vector(9 downto 0);
+    signal s_pulser_t2_strobe_r : std_logic;
+    signal s_reg_pulser_t2_value_r : std_logic_vector(9 downto 0);
+    signal s_pulser_t3_strobe_r : std_logic;
+    signal s_reg_pulser_t3_value_r : std_logic_vector(9 downto 0);
+    signal s_pulser_t4_strobe_r : std_logic;
+    signal s_reg_pulser_t4_value_r : std_logic_vector(9 downto 0);
+    signal s_pulser_tdamp_strobe_r : std_logic;
+    signal s_reg_pulser_tdamp_value_r : std_logic_vector(9 downto 0);
+    signal s_pulser_config_strobe_r : std_logic;
+    signal s_reg_pulser_config_invert_r : std_logic_vector(0 downto 0);
+    signal s_reg_pulser_config_triple_r : std_logic_vector(0 downto 0);
+    signal s_dds_phase_term_strobe_r : std_logic;
+    signal s_reg_dds_phase_term_value_r : std_logic_vector(31 downto 0);
+    signal s_dds_init_phase_strobe_r : std_logic;
+    signal s_reg_dds_init_phase_value_r : std_logic_vector(31 downto 0);
+    signal s_dds_nb_strobe_r : std_logic;
+    signal s_reg_dds_nb_points_r : std_logic_vector(9 downto 0);
+    signal s_reg_dds_nb_repetitions_r : std_logic_vector(9 downto 0);
+    signal s_dds_mode_strobe_r : std_logic;
+    signal s_reg_dds_mode_time_r : std_logic_vector(0 downto 0);
 
 begin
 
     ----------------------------------------------------------------------------
     -- Inputs
     --
-    s_reg_version_version <= version_version;
+    s_reg_version_field <= version_field;
 
     ----------------------------------------------------------------------------
     -- Read-transaction FSM
     --    
     read_fsm : process(axi_aclk, axi_aresetn) is
-        constant MEM_WAIT_COUNT     : natural := 2;
+        constant MEM_WAIT_COUNT : natural := 2;
         type t_state is (IDLE, READ_REGISTER, WAIT_MEMORY_RDATA, READ_RESPONSE, DONE);
         -- registered state variables
         variable v_state_r          : t_state;
@@ -189,10 +191,10 @@ begin
         variable v_rresp_r          : std_logic_vector(s_axi_rresp'range);
         variable v_mem_wait_count_r : natural range 0 to MEM_WAIT_COUNT - 1;
         -- combinatorial helper variables
-        variable v_addr_hit         : boolean;
-        variable v_mem_addr         : unsigned(AXI_ADDR_WIDTH-1 downto 0);
+        variable v_addr_hit : boolean;
+        variable v_mem_addr : unsigned(AXI_ADDR_WIDTH-1 downto 0);
     begin
-        if (axi_aresetn = '0') then
+        if axi_aresetn = '0' then
             v_state_r          := IDLE;
             v_rdata_r          := (others => '0');
             v_rresp_r          := (others => '0');
@@ -204,10 +206,10 @@ begin
             s_axi_rdata_r      <= (others => '0');
             s_version_strobe_r <= '0';
  
-        elsif (rising_edge(axi_aclk)) then
+        elsif rising_edge(axi_aclk) then
             -- Default values:
-            s_axi_arready_r     <= '0';
-            s_version_strobe_r  <= '0';
+            s_axi_arready_r <= '0';
+            s_version_strobe_r <= '0';
 
             case v_state_r is
 
@@ -216,7 +218,7 @@ begin
                 when IDLE =>
                     v_mem_wait_count_r := 0;
                     --
-                    if (s_axi_arvalid = '1') then
+                    if s_axi_arvalid = '1' then
                         s_axi_araddr_reg_r <= unsigned(s_axi_araddr); -- save the read address
                         s_axi_arready_r    <= '1'; -- acknowledge the read-address
                         v_state_r          := READ_REGISTER;
@@ -229,79 +231,127 @@ begin
                     v_rdata_r  := (others => '0');
                     
                     -- register 'version' at address offset 0x0 
-                    if (s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + VERSION_OFFSET, AXI_ADDR_WIDTH)) then
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + VERSION_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;
-                        v_rdata_r(7 downto 0) := s_reg_version_version;
+                        v_rdata_r(7 downto 0) := s_reg_version_field;
                         s_version_strobe_r <= '1';
                         v_state_r := READ_RESPONSE;
                     end if;
-                    -- register 'sample_frequency' at address offset 0x20 
-                    if (s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + SAMPLE_FREQUENCY_OFFSET, AXI_ADDR_WIDTH)) then
+                    -- register 'wave_config' at address offset 0x8 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + WAVE_CONFIG_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;
-                        v_rdata_r(26 downto 0) := s_reg_sample_frequency_sample_frequency_r;
+                        v_rdata_r(3 downto 0) := s_reg_wave_config_wave_type_r;
+                        v_rdata_r(7 downto 4) := s_reg_wave_config_win_type_r;
                         v_state_r := READ_RESPONSE;
                     end if;
-                    -- register 'target_frequency' at address offset 0x24 
-                    if (s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + TARGET_FREQUENCY_OFFSET, AXI_ADDR_WIDTH)) then
+                    -- register 'sample_frequency' at address offset 0xC 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + SAMPLE_FREQUENCY_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;
-                        v_rdata_r(31 downto 0) := s_reg_target_frequency_target_frequency_r;
+                        v_rdata_r(26 downto 0) := s_reg_sample_frequency_value_r;
                         v_state_r := READ_RESPONSE;
                     end if;
-                    -- register 'phase_term' at address offset 0x28 
-                    if (s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PHASE_TERM_OFFSET, AXI_ADDR_WIDTH)) then
+                    -- register 'wave_nb_points' at address offset 0x10 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + WAVE_NB_POINTS_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;
-                        v_rdata_r(31 downto 0) := s_reg_phase_term_phase_term_r;
+                        v_rdata_r(31 downto 0) := s_reg_wave_nb_points_value_r;
                         v_state_r := READ_RESPONSE;
                     end if;
-                    -- register 'init_phase' at address offset 0x2C 
-                    if (s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + INIT_PHASE_OFFSET, AXI_ADDR_WIDTH)) then
+                    -- register 'fsm_nb_repetitions' at address offset 0x28 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + FSM_NB_REPETITIONS_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;
-                        v_rdata_r(31 downto 0) := s_reg_init_phase_init_phase_r;
+                        v_rdata_r(5 downto 0) := s_reg_fsm_nb_repetitions_value_r;
                         v_state_r := READ_RESPONSE;
                     end if;
-                    -- register 'numbers' at address offset 0x30 
-                    if (s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + NUMBERS_OFFSET, AXI_ADDR_WIDTH)) then
-                        v_addr_hit := true;
-                        v_rdata_r(9 downto 0)   := s_reg_numbers_nb_points_r;
-                        v_rdata_r(19 downto 10) := s_reg_numbers_nb_repetitions_r;
-                        v_state_r := READ_RESPONSE;
-                    end if;
-                    -- register 'win_phase_term' at address offset 0x34 
-                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + WIN_PHASE_TERM_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;
-                        v_rdata_r(31 downto 0) := s_reg_win_phase_term_win_phase_term_r;
-                        v_state_r := READ_RESPONSE;
-                    end if;
-                    -- register 'config_mode' at address offset 0x38 
-                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + CONFIG_MODE_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;
-                        v_rdata_r(3 downto 0) := s_reg_config_mode_dds_type_r;
-                        v_rdata_r(4 downto 4) := s_reg_config_mode_mode_time_r;
-                        v_rdata_r(8 downto 5) := s_reg_config_mode_win_type_r;
-                        v_state_r := READ_RESPONSE;
-                    end if;
-                    -- register 'tx_timer' at address offset 0x3C 
+                    -- register 'tx_timer' at address offset 0x2C 
                     if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + TX_TIMER_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;
-                        v_rdata_r(17 downto 0) := s_reg_tx_timer_tx_timer_r;
+                        v_rdata_r(17 downto 0) := s_reg_tx_timer_value_r;
                         v_state_r := READ_RESPONSE;
                     end if;
-                    -- register 'off_timer' at address offset 0x40 
-                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + OFF_TIMER_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;
-                        v_rdata_r(17 downto 0) := s_reg_off_timer_timer_r;
-                        v_state_r := READ_RESPONSE;
-                    end if;
-                    -- register 'rx_timer' at address offset 0x44 
-                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + RX_TIMER_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;
-                        v_rdata_r(17 downto 0) := s_reg_rx_timer_timer_r;
-                        v_state_r := READ_RESPONSE;
-                    end if;
-                    -- register 'deadzone_timer' at address offset 0x48 
+                    -- register 'deadzone_timer' at address offset 0x30 
                     if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + DEADZONE_TIMER_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;
-                        v_rdata_r(17 downto 0) := s_reg_deadzone_timer_timer_r;
+                        v_rdata_r(17 downto 0) := s_reg_deadzone_timer_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'rx_timer' at address offset 0x34 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + RX_TIMER_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(17 downto 0) := s_reg_rx_timer_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'idle_timer' at address offset 0x38 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + IDLE_TIMER_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(17 downto 0) := s_reg_idle_timer_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'pulser_nb_repetitions' at address offset 0x3C 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PULSER_NB_REPETITIONS_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(9 downto 0) := s_reg_pulser_nb_repetitions_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'pulser_t1' at address offset 0x40 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T1_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(9 downto 0) := s_reg_pulser_t1_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'pulser_t2' at address offset 0x44 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T2_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(9 downto 0) := s_reg_pulser_t2_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'pulser_t3' at address offset 0x48 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T3_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(9 downto 0) := s_reg_pulser_t3_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'pulser_t4' at address offset 0x4C 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T4_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(9 downto 0) := s_reg_pulser_t4_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'pulser_tdamp' at address offset 0x50 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PULSER_TDAMP_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(9 downto 0) := s_reg_pulser_tdamp_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'pulser_config' at address offset 0x54 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + PULSER_CONFIG_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(0 downto 0) := s_reg_pulser_config_invert_r;
+                        v_rdata_r(1 downto 1) := s_reg_pulser_config_triple_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'dds_phase_term' at address offset 0x58 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + DDS_PHASE_TERM_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(31 downto 0) := s_reg_dds_phase_term_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'dds_init_phase' at address offset 0x5C 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + DDS_INIT_PHASE_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(31 downto 0) := s_reg_dds_init_phase_value_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'dds_nb' at address offset 0x60 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + DDS_NB_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(9 downto 0) := s_reg_dds_nb_points_r;
+                        v_rdata_r(19 downto 10) := s_reg_dds_nb_repetitions_r;
+                        v_state_r := READ_RESPONSE;
+                    end if;
+                    -- register 'dds_mode' at address offset 0x64 
+                    if s_axi_araddr_reg_r = resize(unsigned(BASEADDR) + DDS_MODE_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;
+                        v_rdata_r(0 downto 0) := s_reg_dds_mode_time_r;
                         v_state_r := READ_RESPONSE;
                     end if;
                     --
@@ -362,52 +412,76 @@ begin
             s_axi_bresp_r      <= (others => '0');
             --            
             s_bang_strobe_r <= '0';
-            s_reg_bang_bang_r <= BANG_BANG_RESET;
+            s_reg_bang_field_r <= BANG_FIELD_RESET;
+            s_wave_config_strobe_r <= '0';
+            s_reg_wave_config_wave_type_r <= WAVE_CONFIG_WAVE_TYPE_RESET;
+            s_reg_wave_config_win_type_r <= WAVE_CONFIG_WIN_TYPE_RESET;
             s_sample_frequency_strobe_r <= '0';
-            s_reg_sample_frequency_sample_frequency_r <= SAMPLE_FREQUENCY_SAMPLE_FREQUENCY_RESET;
-            s_target_frequency_strobe_r <= '0';
-            s_reg_target_frequency_target_frequency_r <= TARGET_FREQUENCY_TARGET_FREQUENCY_RESET;
-            s_phase_term_strobe_r <= '0';
-            s_reg_phase_term_phase_term_r <= PHASE_TERM_PHASE_TERM_RESET;
-            s_init_phase_strobe_r <= '0';
-            s_reg_init_phase_init_phase_r <= INIT_PHASE_INIT_PHASE_RESET;
-            s_numbers_strobe_r <= '0';
-            s_reg_numbers_nb_points_r <= NUMBERS_NB_POINTS_RESET;
-            s_reg_numbers_nb_repetitions_r <= NUMBERS_NB_REPETITIONS_RESET;
-            s_win_phase_term_strobe_r <= '0';
-            s_reg_win_phase_term_win_phase_term_r <= WIN_PHASE_TERM_WIN_PHASE_TERM_RESET;
-            s_config_mode_strobe_r <= '0';
-            s_reg_config_mode_dds_type_r <= CONFIG_MODE_DDS_TYPE_RESET;
-            s_reg_config_mode_mode_time_r <= CONFIG_MODE_MODE_TIME_RESET;
-            s_reg_config_mode_win_type_r <= CONFIG_MODE_WIN_TYPE_RESET;
+            s_reg_sample_frequency_value_r <= SAMPLE_FREQUENCY_VALUE_RESET;
+            s_wave_nb_points_strobe_r <= '0';
+            s_reg_wave_nb_points_value_r <= WAVE_NB_POINTS_VALUE_RESET;
+            s_fsm_nb_repetitions_strobe_r <= '0';
+            s_reg_fsm_nb_repetitions_value_r <= FSM_NB_REPETITIONS_VALUE_RESET;
             s_tx_timer_strobe_r <= '0';
-            s_reg_tx_timer_tx_timer_r <= TX_TIMER_TX_TIMER_RESET;
-            s_off_timer_strobe_r <= '0';
-            s_reg_off_timer_timer_r <= OFF_TIMER_TIMER_RESET;
-            s_rx_timer_strobe_r <= '0';
-            s_reg_rx_timer_timer_r <= RX_TIMER_TIMER_RESET;
+            s_reg_tx_timer_value_r <= TX_TIMER_VALUE_RESET;
             s_deadzone_timer_strobe_r <= '0';
-            s_reg_deadzone_timer_timer_r <= DEADZONE_TIMER_TIMER_RESET;
+            s_reg_deadzone_timer_value_r <= DEADZONE_TIMER_VALUE_RESET;
+            s_rx_timer_strobe_r <= '0';
+            s_reg_rx_timer_value_r <= RX_TIMER_VALUE_RESET;
+            s_idle_timer_strobe_r <= '0';
+            s_reg_idle_timer_value_r <= IDLE_TIMER_VALUE_RESET;
+            s_pulser_nb_repetitions_strobe_r <= '0';
+            s_reg_pulser_nb_repetitions_value_r <= PULSER_NB_REPETITIONS_VALUE_RESET;
+            s_pulser_t1_strobe_r <= '0';
+            s_reg_pulser_t1_value_r <= PULSER_T1_VALUE_RESET;
+            s_pulser_t2_strobe_r <= '0';
+            s_reg_pulser_t2_value_r <= PULSER_T2_VALUE_RESET;
+            s_pulser_t3_strobe_r <= '0';
+            s_reg_pulser_t3_value_r <= PULSER_T3_VALUE_RESET;
+            s_pulser_t4_strobe_r <= '0';
+            s_reg_pulser_t4_value_r <= PULSER_T4_VALUE_RESET;
+            s_pulser_tdamp_strobe_r <= '0';
+            s_reg_pulser_tdamp_value_r <= PULSER_TDAMP_VALUE_RESET;
+            s_pulser_config_strobe_r <= '0';
+            s_reg_pulser_config_invert_r <= PULSER_CONFIG_INVERT_RESET;
+            s_reg_pulser_config_triple_r <= PULSER_CONFIG_TRIPLE_RESET;
+            s_dds_phase_term_strobe_r <= '0';
+            s_reg_dds_phase_term_value_r <= DDS_PHASE_TERM_VALUE_RESET;
+            s_dds_init_phase_strobe_r <= '0';
+            s_reg_dds_init_phase_value_r <= DDS_INIT_PHASE_VALUE_RESET;
+            s_dds_nb_strobe_r <= '0';
+            s_reg_dds_nb_points_r <= DDS_NB_POINTS_RESET;
+            s_reg_dds_nb_repetitions_r <= DDS_NB_REPETITIONS_RESET;
+            s_dds_mode_strobe_r <= '0';
+            s_reg_dds_mode_time_r <= DDS_MODE_TIME_RESET;
 
         elsif rising_edge(axi_aclk) then
             -- Default values:
             s_axi_awready_r <= '0';
             s_axi_wready_r  <= '0';
             s_bang_strobe_r <= '0';
+            s_wave_config_strobe_r <= '0';
             s_sample_frequency_strobe_r <= '0';
-            s_target_frequency_strobe_r <= '0';
-            s_phase_term_strobe_r <= '0';
-            s_init_phase_strobe_r <= '0';
-            s_numbers_strobe_r <= '0';
-            s_win_phase_term_strobe_r <= '0';
-            s_config_mode_strobe_r <= '0';
+            s_wave_nb_points_strobe_r <= '0';
+            s_fsm_nb_repetitions_strobe_r <= '0';
             s_tx_timer_strobe_r <= '0';
-            s_off_timer_strobe_r <= '0';
-            s_rx_timer_strobe_r <= '0';
             s_deadzone_timer_strobe_r <= '0';
+            s_rx_timer_strobe_r <= '0';
+            s_idle_timer_strobe_r <= '0';
+            s_pulser_nb_repetitions_strobe_r <= '0';
+            s_pulser_t1_strobe_r <= '0';
+            s_pulser_t2_strobe_r <= '0';
+            s_pulser_t3_strobe_r <= '0';
+            s_pulser_t4_strobe_r <= '0';
+            s_pulser_tdamp_strobe_r <= '0';
+            s_pulser_config_strobe_r <= '0';
+            s_dds_phase_term_strobe_r <= '0';
+            s_dds_init_phase_strobe_r <= '0';
+            s_dds_nb_strobe_r <= '0';
+            s_dds_mode_strobe_r <= '0';
 
             -- Self-clearing fields:
-            s_reg_bang_bang_r <= (others => '0');
+            s_reg_bang_field_r <= (others => '0');
 
             case v_state_r is
 
@@ -462,846 +536,1002 @@ begin
                     if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + BANG_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;                        
                         s_bang_strobe_r <= '1';
-                        -- field 'bang':
+                        -- field 'field':
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_bang_bang_r(0) <= s_axi_wdata_reg_r(0); -- bang(0)
+                            s_reg_bang_field_r(0) <= s_axi_wdata_reg_r(0); -- field(0)
                         end if;
                     end if;
-                    -- register 'sample_frequency' at address offset 0x20
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + SAMPLE_FREQUENCY_OFFSET, AXI_ADDR_WIDTH) then
+                    -- register 'wave_config' at address offset 0x8
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + WAVE_CONFIG_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;                        
-                        s_sample_frequency_strobe_r <= '1';
-                        -- field 'sample_frequency':
+                        s_wave_config_strobe_r <= '1';
+                        -- field 'wave_type':
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(0) <= s_axi_wdata_reg_r(0); -- sample_frequency(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(1) <= s_axi_wdata_reg_r(1); -- sample_frequency(1)
+                            s_reg_wave_config_wave_type_r(0) <= s_axi_wdata_reg_r(0); -- wave_type(0)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(2) <= s_axi_wdata_reg_r(2); -- sample_frequency(2)
+                            s_reg_wave_config_wave_type_r(1) <= s_axi_wdata_reg_r(1); -- wave_type(1)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(3) <= s_axi_wdata_reg_r(3); -- sample_frequency(3)
+                            s_reg_wave_config_wave_type_r(2) <= s_axi_wdata_reg_r(2); -- wave_type(2)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(4) <= s_axi_wdata_reg_r(4); -- sample_frequency(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(5) <= s_axi_wdata_reg_r(5); -- sample_frequency(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(6) <= s_axi_wdata_reg_r(6); -- sample_frequency(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(7) <= s_axi_wdata_reg_r(7); -- sample_frequency(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(8) <= s_axi_wdata_reg_r(8); -- sample_frequency(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(9) <= s_axi_wdata_reg_r(9); -- sample_frequency(9)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(10) <= s_axi_wdata_reg_r(10); -- sample_frequency(10)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(11) <= s_axi_wdata_reg_r(11); -- sample_frequency(11)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(12) <= s_axi_wdata_reg_r(12); -- sample_frequency(12)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(13) <= s_axi_wdata_reg_r(13); -- sample_frequency(13)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(14) <= s_axi_wdata_reg_r(14); -- sample_frequency(14)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(15) <= s_axi_wdata_reg_r(15); -- sample_frequency(15)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(16) <= s_axi_wdata_reg_r(16); -- sample_frequency(16)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(17) <= s_axi_wdata_reg_r(17); -- sample_frequency(17)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(18) <= s_axi_wdata_reg_r(18); -- sample_frequency(18)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(19) <= s_axi_wdata_reg_r(19); -- sample_frequency(19)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(20) <= s_axi_wdata_reg_r(20); -- sample_frequency(20)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(21) <= s_axi_wdata_reg_r(21); -- sample_frequency(21)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(22) <= s_axi_wdata_reg_r(22); -- sample_frequency(22)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(23) <= s_axi_wdata_reg_r(23); -- sample_frequency(23)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(24) <= s_axi_wdata_reg_r(24); -- sample_frequency(24)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(25) <= s_axi_wdata_reg_r(25); -- sample_frequency(25)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_sample_frequency_sample_frequency_r(26) <= s_axi_wdata_reg_r(26); -- sample_frequency(26)
-                        end if;
-                    end if;
-                    -- register 'target_frequency' at address offset 0x24
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + TARGET_FREQUENCY_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_target_frequency_strobe_r <= '1';
-                        -- field 'target_frequency':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(0) <= s_axi_wdata_reg_r(0); -- target_frequency(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(1) <= s_axi_wdata_reg_r(1); -- target_frequency(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(2) <= s_axi_wdata_reg_r(2); -- target_frequency(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(3) <= s_axi_wdata_reg_r(3); -- target_frequency(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(4) <= s_axi_wdata_reg_r(4); -- target_frequency(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(5) <= s_axi_wdata_reg_r(5); -- target_frequency(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(6) <= s_axi_wdata_reg_r(6); -- target_frequency(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_target_frequency_target_frequency_r(7) <= s_axi_wdata_reg_r(7); -- target_frequency(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(8) <= s_axi_wdata_reg_r(8); -- target_frequency(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(9) <= s_axi_wdata_reg_r(9); -- target_frequency(9)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(10) <= s_axi_wdata_reg_r(10); -- target_frequency(10)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(11) <= s_axi_wdata_reg_r(11); -- target_frequency(11)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(12) <= s_axi_wdata_reg_r(12); -- target_frequency(12)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(13) <= s_axi_wdata_reg_r(13); -- target_frequency(13)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(14) <= s_axi_wdata_reg_r(14); -- target_frequency(14)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_target_frequency_target_frequency_r(15) <= s_axi_wdata_reg_r(15); -- target_frequency(15)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(16) <= s_axi_wdata_reg_r(16); -- target_frequency(16)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(17) <= s_axi_wdata_reg_r(17); -- target_frequency(17)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(18) <= s_axi_wdata_reg_r(18); -- target_frequency(18)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(19) <= s_axi_wdata_reg_r(19); -- target_frequency(19)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(20) <= s_axi_wdata_reg_r(20); -- target_frequency(20)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(21) <= s_axi_wdata_reg_r(21); -- target_frequency(21)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(22) <= s_axi_wdata_reg_r(22); -- target_frequency(22)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_target_frequency_target_frequency_r(23) <= s_axi_wdata_reg_r(23); -- target_frequency(23)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(24) <= s_axi_wdata_reg_r(24); -- target_frequency(24)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(25) <= s_axi_wdata_reg_r(25); -- target_frequency(25)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(26) <= s_axi_wdata_reg_r(26); -- target_frequency(26)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(27) <= s_axi_wdata_reg_r(27); -- target_frequency(27)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(28) <= s_axi_wdata_reg_r(28); -- target_frequency(28)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(29) <= s_axi_wdata_reg_r(29); -- target_frequency(29)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(30) <= s_axi_wdata_reg_r(30); -- target_frequency(30)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_target_frequency_target_frequency_r(31) <= s_axi_wdata_reg_r(31); -- target_frequency(31)
-                        end if;
-                    end if;
-                    -- register 'phase_term' at address offset 0x28
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PHASE_TERM_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_phase_term_strobe_r <= '1';
-                        -- field 'phase_term':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(0) <= s_axi_wdata_reg_r(0); -- phase_term(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(1) <= s_axi_wdata_reg_r(1); -- phase_term(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(2) <= s_axi_wdata_reg_r(2); -- phase_term(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(3) <= s_axi_wdata_reg_r(3); -- phase_term(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(4) <= s_axi_wdata_reg_r(4); -- phase_term(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(5) <= s_axi_wdata_reg_r(5); -- phase_term(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(6) <= s_axi_wdata_reg_r(6); -- phase_term(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_phase_term_phase_term_r(7) <= s_axi_wdata_reg_r(7); -- phase_term(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(8) <= s_axi_wdata_reg_r(8); -- phase_term(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(9) <= s_axi_wdata_reg_r(9); -- phase_term(9)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(10) <= s_axi_wdata_reg_r(10); -- phase_term(10)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(11) <= s_axi_wdata_reg_r(11); -- phase_term(11)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(12) <= s_axi_wdata_reg_r(12); -- phase_term(12)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(13) <= s_axi_wdata_reg_r(13); -- phase_term(13)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(14) <= s_axi_wdata_reg_r(14); -- phase_term(14)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_phase_term_phase_term_r(15) <= s_axi_wdata_reg_r(15); -- phase_term(15)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(16) <= s_axi_wdata_reg_r(16); -- phase_term(16)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(17) <= s_axi_wdata_reg_r(17); -- phase_term(17)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(18) <= s_axi_wdata_reg_r(18); -- phase_term(18)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(19) <= s_axi_wdata_reg_r(19); -- phase_term(19)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(20) <= s_axi_wdata_reg_r(20); -- phase_term(20)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(21) <= s_axi_wdata_reg_r(21); -- phase_term(21)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(22) <= s_axi_wdata_reg_r(22); -- phase_term(22)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_phase_term_phase_term_r(23) <= s_axi_wdata_reg_r(23); -- phase_term(23)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(24) <= s_axi_wdata_reg_r(24); -- phase_term(24)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(25) <= s_axi_wdata_reg_r(25); -- phase_term(25)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(26) <= s_axi_wdata_reg_r(26); -- phase_term(26)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(27) <= s_axi_wdata_reg_r(27); -- phase_term(27)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(28) <= s_axi_wdata_reg_r(28); -- phase_term(28)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(29) <= s_axi_wdata_reg_r(29); -- phase_term(29)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(30) <= s_axi_wdata_reg_r(30); -- phase_term(30)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_phase_term_phase_term_r(31) <= s_axi_wdata_reg_r(31); -- phase_term(31)
-                        end if;
-                    end if;
-                    -- register 'init_phase' at address offset 0x2C
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + INIT_PHASE_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_init_phase_strobe_r <= '1';
-                        -- field 'init_phase':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(0) <= s_axi_wdata_reg_r(0); -- init_phase(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(1) <= s_axi_wdata_reg_r(1); -- init_phase(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(2) <= s_axi_wdata_reg_r(2); -- init_phase(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(3) <= s_axi_wdata_reg_r(3); -- init_phase(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(4) <= s_axi_wdata_reg_r(4); -- init_phase(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(5) <= s_axi_wdata_reg_r(5); -- init_phase(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(6) <= s_axi_wdata_reg_r(6); -- init_phase(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_init_phase_init_phase_r(7) <= s_axi_wdata_reg_r(7); -- init_phase(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(8) <= s_axi_wdata_reg_r(8); -- init_phase(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(9) <= s_axi_wdata_reg_r(9); -- init_phase(9)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(10) <= s_axi_wdata_reg_r(10); -- init_phase(10)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(11) <= s_axi_wdata_reg_r(11); -- init_phase(11)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(12) <= s_axi_wdata_reg_r(12); -- init_phase(12)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(13) <= s_axi_wdata_reg_r(13); -- init_phase(13)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(14) <= s_axi_wdata_reg_r(14); -- init_phase(14)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_init_phase_init_phase_r(15) <= s_axi_wdata_reg_r(15); -- init_phase(15)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(16) <= s_axi_wdata_reg_r(16); -- init_phase(16)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(17) <= s_axi_wdata_reg_r(17); -- init_phase(17)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(18) <= s_axi_wdata_reg_r(18); -- init_phase(18)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(19) <= s_axi_wdata_reg_r(19); -- init_phase(19)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(20) <= s_axi_wdata_reg_r(20); -- init_phase(20)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(21) <= s_axi_wdata_reg_r(21); -- init_phase(21)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(22) <= s_axi_wdata_reg_r(22); -- init_phase(22)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_init_phase_init_phase_r(23) <= s_axi_wdata_reg_r(23); -- init_phase(23)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(24) <= s_axi_wdata_reg_r(24); -- init_phase(24)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(25) <= s_axi_wdata_reg_r(25); -- init_phase(25)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(26) <= s_axi_wdata_reg_r(26); -- init_phase(26)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(27) <= s_axi_wdata_reg_r(27); -- init_phase(27)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(28) <= s_axi_wdata_reg_r(28); -- init_phase(28)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(29) <= s_axi_wdata_reg_r(29); -- init_phase(29)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(30) <= s_axi_wdata_reg_r(30); -- init_phase(30)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_init_phase_init_phase_r(31) <= s_axi_wdata_reg_r(31); -- init_phase(31)
-                        end if;
-                    end if;
-                    -- register 'numbers' at address offset 0x30
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + NUMBERS_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_numbers_strobe_r <= '1';
-                        -- field 'nb_points':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(0) <= s_axi_wdata_reg_r(0); -- nb_points(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(1) <= s_axi_wdata_reg_r(1); -- nb_points(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(2) <= s_axi_wdata_reg_r(2); -- nb_points(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(3) <= s_axi_wdata_reg_r(3); -- nb_points(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(4) <= s_axi_wdata_reg_r(4); -- nb_points(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(5) <= s_axi_wdata_reg_r(5); -- nb_points(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(6) <= s_axi_wdata_reg_r(6); -- nb_points(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_numbers_nb_points_r(7) <= s_axi_wdata_reg_r(7); -- nb_points(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_points_r(8) <= s_axi_wdata_reg_r(8); -- nb_points(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_points_r(9) <= s_axi_wdata_reg_r(9); -- nb_points(9)
-                        end if;
-                        -- field 'nb_repetitions':
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_repetitions_r(0) <= s_axi_wdata_reg_r(10); -- nb_repetitions(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_repetitions_r(1) <= s_axi_wdata_reg_r(11); -- nb_repetitions(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_repetitions_r(2) <= s_axi_wdata_reg_r(12); -- nb_repetitions(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_repetitions_r(3) <= s_axi_wdata_reg_r(13); -- nb_repetitions(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_repetitions_r(4) <= s_axi_wdata_reg_r(14); -- nb_repetitions(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_numbers_nb_repetitions_r(5) <= s_axi_wdata_reg_r(15); -- nb_repetitions(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_numbers_nb_repetitions_r(6) <= s_axi_wdata_reg_r(16); -- nb_repetitions(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_numbers_nb_repetitions_r(7) <= s_axi_wdata_reg_r(17); -- nb_repetitions(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_numbers_nb_repetitions_r(8) <= s_axi_wdata_reg_r(18); -- nb_repetitions(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_numbers_nb_repetitions_r(9) <= s_axi_wdata_reg_r(19); -- nb_repetitions(9)
-                        end if;
-                    end if;
-                    -- register 'win_phase_term' at address offset 0x34
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + WIN_PHASE_TERM_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_win_phase_term_strobe_r <= '1';
-                        -- field 'win_phase_term':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(0) <= s_axi_wdata_reg_r(0); -- win_phase_term(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(1) <= s_axi_wdata_reg_r(1); -- win_phase_term(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(2) <= s_axi_wdata_reg_r(2); -- win_phase_term(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(3) <= s_axi_wdata_reg_r(3); -- win_phase_term(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(4) <= s_axi_wdata_reg_r(4); -- win_phase_term(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(5) <= s_axi_wdata_reg_r(5); -- win_phase_term(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(6) <= s_axi_wdata_reg_r(6); -- win_phase_term(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(7) <= s_axi_wdata_reg_r(7); -- win_phase_term(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(8) <= s_axi_wdata_reg_r(8); -- win_phase_term(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(9) <= s_axi_wdata_reg_r(9); -- win_phase_term(9)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(10) <= s_axi_wdata_reg_r(10); -- win_phase_term(10)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(11) <= s_axi_wdata_reg_r(11); -- win_phase_term(11)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(12) <= s_axi_wdata_reg_r(12); -- win_phase_term(12)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(13) <= s_axi_wdata_reg_r(13); -- win_phase_term(13)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(14) <= s_axi_wdata_reg_r(14); -- win_phase_term(14)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(15) <= s_axi_wdata_reg_r(15); -- win_phase_term(15)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(16) <= s_axi_wdata_reg_r(16); -- win_phase_term(16)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(17) <= s_axi_wdata_reg_r(17); -- win_phase_term(17)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(18) <= s_axi_wdata_reg_r(18); -- win_phase_term(18)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(19) <= s_axi_wdata_reg_r(19); -- win_phase_term(19)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(20) <= s_axi_wdata_reg_r(20); -- win_phase_term(20)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(21) <= s_axi_wdata_reg_r(21); -- win_phase_term(21)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(22) <= s_axi_wdata_reg_r(22); -- win_phase_term(22)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(23) <= s_axi_wdata_reg_r(23); -- win_phase_term(23)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(24) <= s_axi_wdata_reg_r(24); -- win_phase_term(24)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(25) <= s_axi_wdata_reg_r(25); -- win_phase_term(25)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(26) <= s_axi_wdata_reg_r(26); -- win_phase_term(26)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(27) <= s_axi_wdata_reg_r(27); -- win_phase_term(27)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(28) <= s_axi_wdata_reg_r(28); -- win_phase_term(28)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(29) <= s_axi_wdata_reg_r(29); -- win_phase_term(29)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(30) <= s_axi_wdata_reg_r(30); -- win_phase_term(30)
-                        end if;
-                        if s_axi_wstrb_reg_r(3) = '1' then
-                            s_reg_win_phase_term_win_phase_term_r(31) <= s_axi_wdata_reg_r(31); -- win_phase_term(31)
-                        end if;
-                    end if;
-                    -- register 'config_mode' at address offset 0x38
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + CONFIG_MODE_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_config_mode_strobe_r <= '1';
-                        -- field 'dds_type':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_dds_type_r(0) <= s_axi_wdata_reg_r(0); -- dds_type(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_dds_type_r(1) <= s_axi_wdata_reg_r(1); -- dds_type(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_dds_type_r(2) <= s_axi_wdata_reg_r(2); -- dds_type(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_dds_type_r(3) <= s_axi_wdata_reg_r(3); -- dds_type(3)
-                        end if;
-                        -- field 'mode_time':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_mode_time_r(0) <= s_axi_wdata_reg_r(4); -- mode_time(0)
+                            s_reg_wave_config_wave_type_r(3) <= s_axi_wdata_reg_r(3); -- wave_type(3)
                         end if;
                         -- field 'win_type':
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_win_type_r(0) <= s_axi_wdata_reg_r(5); -- win_type(0)
+                            s_reg_wave_config_win_type_r(0) <= s_axi_wdata_reg_r(4); -- win_type(0)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_win_type_r(1) <= s_axi_wdata_reg_r(6); -- win_type(1)
+                            s_reg_wave_config_win_type_r(1) <= s_axi_wdata_reg_r(5); -- win_type(1)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_config_mode_win_type_r(2) <= s_axi_wdata_reg_r(7); -- win_type(2)
+                            s_reg_wave_config_win_type_r(2) <= s_axi_wdata_reg_r(6); -- win_type(2)
                         end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_config_mode_win_type_r(3) <= s_axi_wdata_reg_r(8); -- win_type(3)
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_config_win_type_r(3) <= s_axi_wdata_reg_r(7); -- win_type(3)
                         end if;
                     end if;
-                    -- register 'tx_timer' at address offset 0x3C
+                    -- register 'sample_frequency' at address offset 0xC
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + SAMPLE_FREQUENCY_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_sample_frequency_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_sample_frequency_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_sample_frequency_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(18) <= s_axi_wdata_reg_r(18); -- value(18)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(19) <= s_axi_wdata_reg_r(19); -- value(19)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(20) <= s_axi_wdata_reg_r(20); -- value(20)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(21) <= s_axi_wdata_reg_r(21); -- value(21)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(22) <= s_axi_wdata_reg_r(22); -- value(22)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_sample_frequency_value_r(23) <= s_axi_wdata_reg_r(23); -- value(23)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_sample_frequency_value_r(24) <= s_axi_wdata_reg_r(24); -- value(24)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_sample_frequency_value_r(25) <= s_axi_wdata_reg_r(25); -- value(25)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_sample_frequency_value_r(26) <= s_axi_wdata_reg_r(26); -- value(26)
+                        end if;
+                    end if;
+                    -- register 'wave_nb_points' at address offset 0x10
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + WAVE_NB_POINTS_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_wave_nb_points_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_wave_nb_points_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_wave_nb_points_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(18) <= s_axi_wdata_reg_r(18); -- value(18)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(19) <= s_axi_wdata_reg_r(19); -- value(19)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(20) <= s_axi_wdata_reg_r(20); -- value(20)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(21) <= s_axi_wdata_reg_r(21); -- value(21)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(22) <= s_axi_wdata_reg_r(22); -- value(22)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_wave_nb_points_value_r(23) <= s_axi_wdata_reg_r(23); -- value(23)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(24) <= s_axi_wdata_reg_r(24); -- value(24)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(25) <= s_axi_wdata_reg_r(25); -- value(25)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(26) <= s_axi_wdata_reg_r(26); -- value(26)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(27) <= s_axi_wdata_reg_r(27); -- value(27)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(28) <= s_axi_wdata_reg_r(28); -- value(28)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(29) <= s_axi_wdata_reg_r(29); -- value(29)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(30) <= s_axi_wdata_reg_r(30); -- value(30)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_wave_nb_points_value_r(31) <= s_axi_wdata_reg_r(31); -- value(31)
+                        end if;
+                    end if;
+                    -- register 'fsm_nb_repetitions' at address offset 0x28
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + FSM_NB_REPETITIONS_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_fsm_nb_repetitions_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_fsm_nb_repetitions_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_fsm_nb_repetitions_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_fsm_nb_repetitions_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_fsm_nb_repetitions_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_fsm_nb_repetitions_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_fsm_nb_repetitions_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                    end if;
+                    -- register 'tx_timer' at address offset 0x2C
                     if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + TX_TIMER_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;                        
                         s_tx_timer_strobe_r <= '1';
-                        -- field 'tx_timer':
+                        -- field 'value':
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(0) <= s_axi_wdata_reg_r(0); -- tx_timer(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(1) <= s_axi_wdata_reg_r(1); -- tx_timer(1)
+                            s_reg_tx_timer_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(2) <= s_axi_wdata_reg_r(2); -- tx_timer(2)
+                            s_reg_tx_timer_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(3) <= s_axi_wdata_reg_r(3); -- tx_timer(3)
+                            s_reg_tx_timer_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(4) <= s_axi_wdata_reg_r(4); -- tx_timer(4)
+                            s_reg_tx_timer_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(5) <= s_axi_wdata_reg_r(5); -- tx_timer(5)
+                            s_reg_tx_timer_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(6) <= s_axi_wdata_reg_r(6); -- tx_timer(6)
+                            s_reg_tx_timer_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_tx_timer_tx_timer_r(7) <= s_axi_wdata_reg_r(7); -- tx_timer(7)
+                            s_reg_tx_timer_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_tx_timer_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(8) <= s_axi_wdata_reg_r(8); -- tx_timer(8)
+                            s_reg_tx_timer_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(9) <= s_axi_wdata_reg_r(9); -- tx_timer(9)
+                            s_reg_tx_timer_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(10) <= s_axi_wdata_reg_r(10); -- tx_timer(10)
+                            s_reg_tx_timer_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(11) <= s_axi_wdata_reg_r(11); -- tx_timer(11)
+                            s_reg_tx_timer_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(12) <= s_axi_wdata_reg_r(12); -- tx_timer(12)
+                            s_reg_tx_timer_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(13) <= s_axi_wdata_reg_r(13); -- tx_timer(13)
+                            s_reg_tx_timer_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(14) <= s_axi_wdata_reg_r(14); -- tx_timer(14)
+                            s_reg_tx_timer_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_tx_timer_tx_timer_r(15) <= s_axi_wdata_reg_r(15); -- tx_timer(15)
+                            s_reg_tx_timer_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
                         end if;
                         if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_tx_timer_tx_timer_r(16) <= s_axi_wdata_reg_r(16); -- tx_timer(16)
+                            s_reg_tx_timer_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
                         end if;
                         if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_tx_timer_tx_timer_r(17) <= s_axi_wdata_reg_r(17); -- tx_timer(17)
+                            s_reg_tx_timer_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
                         end if;
                     end if;
-                    -- register 'off_timer' at address offset 0x40
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + OFF_TIMER_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_off_timer_strobe_r <= '1';
-                        -- field 'timer':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(0) <= s_axi_wdata_reg_r(0); -- timer(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(1) <= s_axi_wdata_reg_r(1); -- timer(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(2) <= s_axi_wdata_reg_r(2); -- timer(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(3) <= s_axi_wdata_reg_r(3); -- timer(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(4) <= s_axi_wdata_reg_r(4); -- timer(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(5) <= s_axi_wdata_reg_r(5); -- timer(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(6) <= s_axi_wdata_reg_r(6); -- timer(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_off_timer_timer_r(7) <= s_axi_wdata_reg_r(7); -- timer(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(8) <= s_axi_wdata_reg_r(8); -- timer(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(9) <= s_axi_wdata_reg_r(9); -- timer(9)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(10) <= s_axi_wdata_reg_r(10); -- timer(10)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(11) <= s_axi_wdata_reg_r(11); -- timer(11)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(12) <= s_axi_wdata_reg_r(12); -- timer(12)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(13) <= s_axi_wdata_reg_r(13); -- timer(13)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(14) <= s_axi_wdata_reg_r(14); -- timer(14)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_off_timer_timer_r(15) <= s_axi_wdata_reg_r(15); -- timer(15)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_off_timer_timer_r(16) <= s_axi_wdata_reg_r(16); -- timer(16)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_off_timer_timer_r(17) <= s_axi_wdata_reg_r(17); -- timer(17)
-                        end if;
-                    end if;
-                    -- register 'rx_timer' at address offset 0x44
-                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + RX_TIMER_OFFSET, AXI_ADDR_WIDTH) then
-                        v_addr_hit := true;                        
-                        s_rx_timer_strobe_r <= '1';
-                        -- field 'timer':
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(0) <= s_axi_wdata_reg_r(0); -- timer(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(1) <= s_axi_wdata_reg_r(1); -- timer(1)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(2) <= s_axi_wdata_reg_r(2); -- timer(2)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(3) <= s_axi_wdata_reg_r(3); -- timer(3)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(4) <= s_axi_wdata_reg_r(4); -- timer(4)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(5) <= s_axi_wdata_reg_r(5); -- timer(5)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(6) <= s_axi_wdata_reg_r(6); -- timer(6)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_rx_timer_timer_r(7) <= s_axi_wdata_reg_r(7); -- timer(7)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(8) <= s_axi_wdata_reg_r(8); -- timer(8)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(9) <= s_axi_wdata_reg_r(9); -- timer(9)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(10) <= s_axi_wdata_reg_r(10); -- timer(10)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(11) <= s_axi_wdata_reg_r(11); -- timer(11)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(12) <= s_axi_wdata_reg_r(12); -- timer(12)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(13) <= s_axi_wdata_reg_r(13); -- timer(13)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(14) <= s_axi_wdata_reg_r(14); -- timer(14)
-                        end if;
-                        if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_rx_timer_timer_r(15) <= s_axi_wdata_reg_r(15); -- timer(15)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_rx_timer_timer_r(16) <= s_axi_wdata_reg_r(16); -- timer(16)
-                        end if;
-                        if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_rx_timer_timer_r(17) <= s_axi_wdata_reg_r(17); -- timer(17)
-                        end if;
-                    end if;
-                    -- register 'deadzone_timer' at address offset 0x48
+                    -- register 'deadzone_timer' at address offset 0x30
                     if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + DEADZONE_TIMER_OFFSET, AXI_ADDR_WIDTH) then
                         v_addr_hit := true;                        
                         s_deadzone_timer_strobe_r <= '1';
-                        -- field 'timer':
+                        -- field 'value':
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(0) <= s_axi_wdata_reg_r(0); -- timer(0)
-                        end if;
-                        if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(1) <= s_axi_wdata_reg_r(1); -- timer(1)
+                            s_reg_deadzone_timer_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(2) <= s_axi_wdata_reg_r(2); -- timer(2)
+                            s_reg_deadzone_timer_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(3) <= s_axi_wdata_reg_r(3); -- timer(3)
+                            s_reg_deadzone_timer_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(4) <= s_axi_wdata_reg_r(4); -- timer(4)
+                            s_reg_deadzone_timer_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(5) <= s_axi_wdata_reg_r(5); -- timer(5)
+                            s_reg_deadzone_timer_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(6) <= s_axi_wdata_reg_r(6); -- timer(6)
+                            s_reg_deadzone_timer_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
                         end if;
                         if s_axi_wstrb_reg_r(0) = '1' then
-                            s_reg_deadzone_timer_timer_r(7) <= s_axi_wdata_reg_r(7); -- timer(7)
+                            s_reg_deadzone_timer_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_deadzone_timer_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(8) <= s_axi_wdata_reg_r(8); -- timer(8)
+                            s_reg_deadzone_timer_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(9) <= s_axi_wdata_reg_r(9); -- timer(9)
+                            s_reg_deadzone_timer_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(10) <= s_axi_wdata_reg_r(10); -- timer(10)
+                            s_reg_deadzone_timer_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(11) <= s_axi_wdata_reg_r(11); -- timer(11)
+                            s_reg_deadzone_timer_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(12) <= s_axi_wdata_reg_r(12); -- timer(12)
+                            s_reg_deadzone_timer_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(13) <= s_axi_wdata_reg_r(13); -- timer(13)
+                            s_reg_deadzone_timer_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(14) <= s_axi_wdata_reg_r(14); -- timer(14)
+                            s_reg_deadzone_timer_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
                         end if;
                         if s_axi_wstrb_reg_r(1) = '1' then
-                            s_reg_deadzone_timer_timer_r(15) <= s_axi_wdata_reg_r(15); -- timer(15)
+                            s_reg_deadzone_timer_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
                         end if;
                         if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_deadzone_timer_timer_r(16) <= s_axi_wdata_reg_r(16); -- timer(16)
+                            s_reg_deadzone_timer_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
                         end if;
                         if s_axi_wstrb_reg_r(2) = '1' then
-                            s_reg_deadzone_timer_timer_r(17) <= s_axi_wdata_reg_r(17); -- timer(17)
+                            s_reg_deadzone_timer_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
+                        end if;
+                    end if;
+                    -- register 'rx_timer' at address offset 0x34
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + RX_TIMER_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_rx_timer_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_rx_timer_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_rx_timer_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_rx_timer_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_rx_timer_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
+                        end if;
+                    end if;
+                    -- register 'idle_timer' at address offset 0x38
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + IDLE_TIMER_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_idle_timer_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_idle_timer_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_idle_timer_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_idle_timer_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_idle_timer_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
+                        end if;
+                    end if;
+                    -- register 'pulser_nb_repetitions' at address offset 0x3C
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PULSER_NB_REPETITIONS_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_pulser_nb_repetitions_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_nb_repetitions_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                    end if;
+                    -- register 'pulser_t1' at address offset 0x40
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T1_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_pulser_t1_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t1_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t1_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t1_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                    end if;
+                    -- register 'pulser_t2' at address offset 0x44
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T2_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_pulser_t2_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t2_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t2_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t2_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                    end if;
+                    -- register 'pulser_t3' at address offset 0x48
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T3_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_pulser_t3_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t3_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t3_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t3_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                    end if;
+                    -- register 'pulser_t4' at address offset 0x4C
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PULSER_T4_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_pulser_t4_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_t4_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t4_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_t4_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                    end if;
+                    -- register 'pulser_tdamp' at address offset 0x50
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PULSER_TDAMP_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_pulser_tdamp_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_tdamp_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_tdamp_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_pulser_tdamp_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                    end if;
+                    -- register 'pulser_config' at address offset 0x54
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + PULSER_CONFIG_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_pulser_config_strobe_r <= '1';
+                        -- field 'invert':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_config_invert_r(0) <= s_axi_wdata_reg_r(0); -- invert(0)
+                        end if;
+                        -- field 'triple':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_pulser_config_triple_r(0) <= s_axi_wdata_reg_r(1); -- triple(0)
+                        end if;
+                    end if;
+                    -- register 'dds_phase_term' at address offset 0x58
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + DDS_PHASE_TERM_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_dds_phase_term_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_phase_term_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_phase_term_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(18) <= s_axi_wdata_reg_r(18); -- value(18)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(19) <= s_axi_wdata_reg_r(19); -- value(19)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(20) <= s_axi_wdata_reg_r(20); -- value(20)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(21) <= s_axi_wdata_reg_r(21); -- value(21)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(22) <= s_axi_wdata_reg_r(22); -- value(22)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_phase_term_value_r(23) <= s_axi_wdata_reg_r(23); -- value(23)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(24) <= s_axi_wdata_reg_r(24); -- value(24)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(25) <= s_axi_wdata_reg_r(25); -- value(25)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(26) <= s_axi_wdata_reg_r(26); -- value(26)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(27) <= s_axi_wdata_reg_r(27); -- value(27)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(28) <= s_axi_wdata_reg_r(28); -- value(28)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(29) <= s_axi_wdata_reg_r(29); -- value(29)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(30) <= s_axi_wdata_reg_r(30); -- value(30)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_phase_term_value_r(31) <= s_axi_wdata_reg_r(31); -- value(31)
+                        end if;
+                    end if;
+                    -- register 'dds_init_phase' at address offset 0x5C
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + DDS_INIT_PHASE_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_dds_init_phase_strobe_r <= '1';
+                        -- field 'value':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(0) <= s_axi_wdata_reg_r(0); -- value(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(1) <= s_axi_wdata_reg_r(1); -- value(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(2) <= s_axi_wdata_reg_r(2); -- value(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(3) <= s_axi_wdata_reg_r(3); -- value(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(4) <= s_axi_wdata_reg_r(4); -- value(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(5) <= s_axi_wdata_reg_r(5); -- value(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(6) <= s_axi_wdata_reg_r(6); -- value(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_init_phase_value_r(7) <= s_axi_wdata_reg_r(7); -- value(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(8) <= s_axi_wdata_reg_r(8); -- value(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(9) <= s_axi_wdata_reg_r(9); -- value(9)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(10) <= s_axi_wdata_reg_r(10); -- value(10)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(11) <= s_axi_wdata_reg_r(11); -- value(11)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(12) <= s_axi_wdata_reg_r(12); -- value(12)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(13) <= s_axi_wdata_reg_r(13); -- value(13)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(14) <= s_axi_wdata_reg_r(14); -- value(14)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_init_phase_value_r(15) <= s_axi_wdata_reg_r(15); -- value(15)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(16) <= s_axi_wdata_reg_r(16); -- value(16)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(17) <= s_axi_wdata_reg_r(17); -- value(17)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(18) <= s_axi_wdata_reg_r(18); -- value(18)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(19) <= s_axi_wdata_reg_r(19); -- value(19)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(20) <= s_axi_wdata_reg_r(20); -- value(20)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(21) <= s_axi_wdata_reg_r(21); -- value(21)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(22) <= s_axi_wdata_reg_r(22); -- value(22)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_init_phase_value_r(23) <= s_axi_wdata_reg_r(23); -- value(23)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(24) <= s_axi_wdata_reg_r(24); -- value(24)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(25) <= s_axi_wdata_reg_r(25); -- value(25)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(26) <= s_axi_wdata_reg_r(26); -- value(26)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(27) <= s_axi_wdata_reg_r(27); -- value(27)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(28) <= s_axi_wdata_reg_r(28); -- value(28)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(29) <= s_axi_wdata_reg_r(29); -- value(29)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(30) <= s_axi_wdata_reg_r(30); -- value(30)
+                        end if;
+                        if s_axi_wstrb_reg_r(3) = '1' then
+                            s_reg_dds_init_phase_value_r(31) <= s_axi_wdata_reg_r(31); -- value(31)
+                        end if;
+                    end if;
+                    -- register 'dds_nb' at address offset 0x60
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + DDS_NB_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_dds_nb_strobe_r <= '1';
+                        -- field 'points':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(0) <= s_axi_wdata_reg_r(0); -- points(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(1) <= s_axi_wdata_reg_r(1); -- points(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(2) <= s_axi_wdata_reg_r(2); -- points(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(3) <= s_axi_wdata_reg_r(3); -- points(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(4) <= s_axi_wdata_reg_r(4); -- points(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(5) <= s_axi_wdata_reg_r(5); -- points(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(6) <= s_axi_wdata_reg_r(6); -- points(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_nb_points_r(7) <= s_axi_wdata_reg_r(7); -- points(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_points_r(8) <= s_axi_wdata_reg_r(8); -- points(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_points_r(9) <= s_axi_wdata_reg_r(9); -- points(9)
+                        end if;
+                        -- field 'repetitions':
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_repetitions_r(0) <= s_axi_wdata_reg_r(10); -- repetitions(0)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_repetitions_r(1) <= s_axi_wdata_reg_r(11); -- repetitions(1)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_repetitions_r(2) <= s_axi_wdata_reg_r(12); -- repetitions(2)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_repetitions_r(3) <= s_axi_wdata_reg_r(13); -- repetitions(3)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_repetitions_r(4) <= s_axi_wdata_reg_r(14); -- repetitions(4)
+                        end if;
+                        if s_axi_wstrb_reg_r(1) = '1' then
+                            s_reg_dds_nb_repetitions_r(5) <= s_axi_wdata_reg_r(15); -- repetitions(5)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_nb_repetitions_r(6) <= s_axi_wdata_reg_r(16); -- repetitions(6)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_nb_repetitions_r(7) <= s_axi_wdata_reg_r(17); -- repetitions(7)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_nb_repetitions_r(8) <= s_axi_wdata_reg_r(18); -- repetitions(8)
+                        end if;
+                        if s_axi_wstrb_reg_r(2) = '1' then
+                            s_reg_dds_nb_repetitions_r(9) <= s_axi_wdata_reg_r(19); -- repetitions(9)
+                        end if;
+                    end if;
+                    -- register 'dds_mode' at address offset 0x64
+                    if s_axi_awaddr_reg_r = resize(unsigned(BASEADDR) + DDS_MODE_OFFSET, AXI_ADDR_WIDTH) then
+                        v_addr_hit := true;                        
+                        s_dds_mode_strobe_r <= '1';
+                        -- field 'time':
+                        if s_axi_wstrb_reg_r(0) = '1' then
+                            s_reg_dds_mode_time_r(0) <= s_axi_wdata_reg_r(0); -- time(0)
                         end if;
                     end if;
                     --
@@ -1341,31 +1571,47 @@ begin
 
     version_strobe <= s_version_strobe_r;
     bang_strobe <= s_bang_strobe_r;
-    bang_bang <= s_reg_bang_bang_r;
+    bang_field <= s_reg_bang_field_r;
+    wave_config_strobe <= s_wave_config_strobe_r;
+    wave_config_wave_type <= s_reg_wave_config_wave_type_r;
+    wave_config_win_type <= s_reg_wave_config_win_type_r;
     sample_frequency_strobe <= s_sample_frequency_strobe_r;
-    sample_frequency_sample_frequency <= s_reg_sample_frequency_sample_frequency_r;
-    target_frequency_strobe <= s_target_frequency_strobe_r;
-    target_frequency_target_frequency <= s_reg_target_frequency_target_frequency_r;
-    phase_term_strobe <= s_phase_term_strobe_r;
-    phase_term_phase_term <= s_reg_phase_term_phase_term_r;
-    init_phase_strobe <= s_init_phase_strobe_r;
-    init_phase_init_phase <= s_reg_init_phase_init_phase_r;
-    numbers_strobe <= s_numbers_strobe_r;
-    numbers_nb_points <= s_reg_numbers_nb_points_r;
-    numbers_nb_repetitions <= s_reg_numbers_nb_repetitions_r;
-    win_phase_term_strobe <= s_win_phase_term_strobe_r;
-    win_phase_term_win_phase_term <= s_reg_win_phase_term_win_phase_term_r;
-    config_mode_strobe <= s_config_mode_strobe_r;
-    config_mode_dds_type <= s_reg_config_mode_dds_type_r;
-    config_mode_mode_time <= s_reg_config_mode_mode_time_r;
-    config_mode_win_type <= s_reg_config_mode_win_type_r;
+    sample_frequency_value <= s_reg_sample_frequency_value_r;
+    wave_nb_points_strobe <= s_wave_nb_points_strobe_r;
+    wave_nb_points_value <= s_reg_wave_nb_points_value_r;
+    fsm_nb_repetitions_strobe <= s_fsm_nb_repetitions_strobe_r;
+    fsm_nb_repetitions_value <= s_reg_fsm_nb_repetitions_value_r;
     tx_timer_strobe <= s_tx_timer_strobe_r;
-    tx_timer_tx_timer <= s_reg_tx_timer_tx_timer_r;
-    off_timer_strobe <= s_off_timer_strobe_r;
-    off_timer_timer <= s_reg_off_timer_timer_r;
-    rx_timer_strobe <= s_rx_timer_strobe_r;
-    rx_timer_timer <= s_reg_rx_timer_timer_r;
+    tx_timer_value <= s_reg_tx_timer_value_r;
     deadzone_timer_strobe <= s_deadzone_timer_strobe_r;
-    deadzone_timer_timer <= s_reg_deadzone_timer_timer_r;
+    deadzone_timer_value <= s_reg_deadzone_timer_value_r;
+    rx_timer_strobe <= s_rx_timer_strobe_r;
+    rx_timer_value <= s_reg_rx_timer_value_r;
+    idle_timer_strobe <= s_idle_timer_strobe_r;
+    idle_timer_value <= s_reg_idle_timer_value_r;
+    pulser_nb_repetitions_strobe <= s_pulser_nb_repetitions_strobe_r;
+    pulser_nb_repetitions_value <= s_reg_pulser_nb_repetitions_value_r;
+    pulser_t1_strobe <= s_pulser_t1_strobe_r;
+    pulser_t1_value <= s_reg_pulser_t1_value_r;
+    pulser_t2_strobe <= s_pulser_t2_strobe_r;
+    pulser_t2_value <= s_reg_pulser_t2_value_r;
+    pulser_t3_strobe <= s_pulser_t3_strobe_r;
+    pulser_t3_value <= s_reg_pulser_t3_value_r;
+    pulser_t4_strobe <= s_pulser_t4_strobe_r;
+    pulser_t4_value <= s_reg_pulser_t4_value_r;
+    pulser_tdamp_strobe <= s_pulser_tdamp_strobe_r;
+    pulser_tdamp_value <= s_reg_pulser_tdamp_value_r;
+    pulser_config_strobe <= s_pulser_config_strobe_r;
+    pulser_config_invert <= s_reg_pulser_config_invert_r;
+    pulser_config_triple <= s_reg_pulser_config_triple_r;
+    dds_phase_term_strobe <= s_dds_phase_term_strobe_r;
+    dds_phase_term_value <= s_reg_dds_phase_term_value_r;
+    dds_init_phase_strobe <= s_dds_init_phase_strobe_r;
+    dds_init_phase_value <= s_reg_dds_init_phase_value_r;
+    dds_nb_strobe <= s_dds_nb_strobe_r;
+    dds_nb_points <= s_reg_dds_nb_points_r;
+    dds_nb_repetitions <= s_reg_dds_nb_repetitions_r;
+    dds_mode_strobe <= s_dds_mode_strobe_r;
+    dds_mode_time <= s_reg_dds_mode_time_r;
 
 end architecture RTL;

@@ -1,8 +1,8 @@
 -- -----------------------------------------------------------------------------
 -- 'register_bank' Register Component
--- Revision: 70
+-- Revision: 125
 -- -----------------------------------------------------------------------------
--- Generated on 2020-10-17 at 23:57 (UTC) by airhdl version 2020.09.1
+-- Generated on 2020-10-20 at 01:09 (UTC) by airhdl version 2020.10.1
 -- -----------------------------------------------------------------------------
 -- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
 -- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
@@ -53,34 +53,50 @@ component register_bank_regs
         s_axi_bready  : in  std_logic;
         -- User Ports          
         version_strobe : out std_logic; -- Strobe signal for register 'version' (pulsed when the register is read from the bus)
-        version_version : in std_logic_vector(7 downto 0); -- Value of register 'version', field 'version'
+        version_field : in std_logic_vector(7 downto 0); -- Value of register 'version', field 'field'
         bang_strobe : out std_logic; -- Strobe signal for register 'bang' (pulsed when the register is written from the bus)
-        bang_bang : out std_logic_vector(0 downto 0); -- Value of register 'bang', field 'bang'
+        bang_field : out std_logic_vector(0 downto 0); -- Value of register 'bang', field 'field'
+        wave_config_strobe : out std_logic; -- Strobe signal for register 'wave_config' (pulsed when the register is written from the bus)
+        wave_config_wave_type : out std_logic_vector(3 downto 0); -- Value of register 'wave_config', field 'wave_type'
+        wave_config_win_type : out std_logic_vector(3 downto 0); -- Value of register 'wave_config', field 'win_type'
         sample_frequency_strobe : out std_logic; -- Strobe signal for register 'sample_frequency' (pulsed when the register is written from the bus)
-        sample_frequency_sample_frequency : out std_logic_vector(26 downto 0); -- Value of register 'sample_frequency', field 'sample_frequency'
-        target_frequency_strobe : out std_logic; -- Strobe signal for register 'target_frequency' (pulsed when the register is written from the bus)
-        target_frequency_target_frequency : out std_logic_vector(31 downto 0); -- Value of register 'target_frequency', field 'target_frequency'
-        phase_term_strobe : out std_logic; -- Strobe signal for register 'phase_term' (pulsed when the register is written from the bus)
-        phase_term_phase_term : out std_logic_vector(31 downto 0); -- Value of register 'phase_term', field 'phase_term'
-        init_phase_strobe : out std_logic; -- Strobe signal for register 'init_phase' (pulsed when the register is written from the bus)
-        init_phase_init_phase : out std_logic_vector(31 downto 0); -- Value of register 'init_phase', field 'init_phase'
-        numbers_strobe : out std_logic; -- Strobe signal for register 'numbers' (pulsed when the register is written from the bus)
-        numbers_nb_points : out std_logic_vector(9 downto 0); -- Value of register 'numbers', field 'nb_points'
-        numbers_nb_repetitions : out std_logic_vector(9 downto 0); -- Value of register 'numbers', field 'nb_repetitions'
-        win_phase_term_strobe : out std_logic; -- Strobe signal for register 'win_phase_term' (pulsed when the register is written from the bus)
-        win_phase_term_win_phase_term : out std_logic_vector(31 downto 0); -- Value of register 'win_phase_term', field 'win_phase_term'
-        config_mode_strobe : out std_logic; -- Strobe signal for register 'config_mode' (pulsed when the register is written from the bus)
-        config_mode_dds_type : out std_logic_vector(3 downto 0); -- Value of register 'config_mode', field 'dds_type'
-        config_mode_mode_time : out std_logic_vector(0 downto 0); -- Value of register 'config_mode', field 'mode_time'
-        config_mode_win_type : out std_logic_vector(3 downto 0); -- Value of register 'config_mode', field 'win_type'
+        sample_frequency_value : out std_logic_vector(26 downto 0); -- Value of register 'sample_frequency', field 'value'
+        wave_nb_points_strobe : out std_logic; -- Strobe signal for register 'wave_nb_points' (pulsed when the register is written from the bus)
+        wave_nb_points_value : out std_logic_vector(31 downto 0); -- Value of register 'wave_nb_points', field 'value'
+        fsm_nb_repetitions_strobe : out std_logic; -- Strobe signal for register 'fsm_nb_repetitions' (pulsed when the register is written from the bus)
+        fsm_nb_repetitions_value : out std_logic_vector(5 downto 0); -- Value of register 'fsm_nb_repetitions', field 'value'
         tx_timer_strobe : out std_logic; -- Strobe signal for register 'tx_timer' (pulsed when the register is written from the bus)
-        tx_timer_tx_timer : out std_logic_vector(17 downto 0); -- Value of register 'tx_timer', field 'tx_timer'
-        off_timer_strobe : out std_logic; -- Strobe signal for register 'off_timer' (pulsed when the register is written from the bus)
-        off_timer_timer : out std_logic_vector(17 downto 0); -- Value of register 'off_timer', field 'timer'
-        rx_timer_strobe : out std_logic; -- Strobe signal for register 'rx_timer' (pulsed when the register is written from the bus)
-        rx_timer_timer : out std_logic_vector(17 downto 0); -- Value of register 'rx_timer', field 'timer'
+        tx_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'tx_timer', field 'value'
         deadzone_timer_strobe : out std_logic; -- Strobe signal for register 'deadzone_timer' (pulsed when the register is written from the bus)
-        deadzone_timer_timer : out std_logic_vector(17 downto 0) -- Value of register 'deadzone_timer', field 'timer'
+        deadzone_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'deadzone_timer', field 'value'
+        rx_timer_strobe : out std_logic; -- Strobe signal for register 'rx_timer' (pulsed when the register is written from the bus)
+        rx_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'rx_timer', field 'value'
+        idle_timer_strobe : out std_logic; -- Strobe signal for register 'idle_timer' (pulsed when the register is written from the bus)
+        idle_timer_value : out std_logic_vector(17 downto 0); -- Value of register 'idle_timer', field 'value'
+        pulser_nb_repetitions_strobe : out std_logic; -- Strobe signal for register 'pulser_nb_repetitions' (pulsed when the register is written from the bus)
+        pulser_nb_repetitions_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_nb_repetitions', field 'value'
+        pulser_t1_strobe : out std_logic; -- Strobe signal for register 'pulser_t1' (pulsed when the register is written from the bus)
+        pulser_t1_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t1', field 'value'
+        pulser_t2_strobe : out std_logic; -- Strobe signal for register 'pulser_t2' (pulsed when the register is written from the bus)
+        pulser_t2_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t2', field 'value'
+        pulser_t3_strobe : out std_logic; -- Strobe signal for register 'pulser_t3' (pulsed when the register is written from the bus)
+        pulser_t3_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t3', field 'value'
+        pulser_t4_strobe : out std_logic; -- Strobe signal for register 'pulser_t4' (pulsed when the register is written from the bus)
+        pulser_t4_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_t4', field 'value'
+        pulser_tdamp_strobe : out std_logic; -- Strobe signal for register 'pulser_tdamp' (pulsed when the register is written from the bus)
+        pulser_tdamp_value : out std_logic_vector(9 downto 0); -- Value of register 'pulser_tdamp', field 'value'
+        pulser_config_strobe : out std_logic; -- Strobe signal for register 'pulser_config' (pulsed when the register is written from the bus)
+        pulser_config_invert : out std_logic_vector(0 downto 0); -- Value of register 'pulser_config', field 'invert'
+        pulser_config_triple : out std_logic_vector(0 downto 0); -- Value of register 'pulser_config', field 'triple'
+        dds_phase_term_strobe : out std_logic; -- Strobe signal for register 'dds_phase_term' (pulsed when the register is written from the bus)
+        dds_phase_term_value : out std_logic_vector(31 downto 0); -- Value of register 'dds_phase_term', field 'value'
+        dds_init_phase_strobe : out std_logic; -- Strobe signal for register 'dds_init_phase' (pulsed when the register is written from the bus)
+        dds_init_phase_value : out std_logic_vector(31 downto 0); -- Value of register 'dds_init_phase', field 'value'
+        dds_nb_strobe : out std_logic; -- Strobe signal for register 'dds_nb' (pulsed when the register is written from the bus)
+        dds_nb_points : out std_logic_vector(9 downto 0); -- Value of register 'dds_nb', field 'points'
+        dds_nb_repetitions : out std_logic_vector(9 downto 0); -- Value of register 'dds_nb', field 'repetitions'
+        dds_mode_strobe : out std_logic; -- Strobe signal for register 'dds_mode' (pulsed when the register is written from the bus)
+        dds_mode_time : out std_logic_vector(0 downto 0) -- Value of register 'dds_mode', field 'time'
     );
 end component;
 ------------- End COMPONENT Declaration ----------------------------------------
@@ -115,34 +131,50 @@ signal s_axi_bready  : std_logic;
 
 -- User signals:
 signal version_strobe : std_logic;
-signal version_version : std_logic_vector(7 downto 0);
+signal version_field : std_logic_vector(7 downto 0);
 signal bang_strobe : std_logic;
-signal bang_bang : std_logic_vector(0 downto 0);
+signal bang_field : std_logic_vector(0 downto 0);
+signal wave_config_strobe : std_logic;
+signal wave_config_wave_type : std_logic_vector(3 downto 0);
+signal wave_config_win_type : std_logic_vector(3 downto 0);
 signal sample_frequency_strobe : std_logic;
-signal sample_frequency_sample_frequency : std_logic_vector(26 downto 0);
-signal target_frequency_strobe : std_logic;
-signal target_frequency_target_frequency : std_logic_vector(31 downto 0);
-signal phase_term_strobe : std_logic;
-signal phase_term_phase_term : std_logic_vector(31 downto 0);
-signal init_phase_strobe : std_logic;
-signal init_phase_init_phase : std_logic_vector(31 downto 0);
-signal numbers_strobe : std_logic;
-signal numbers_nb_points : std_logic_vector(9 downto 0);
-signal numbers_nb_repetitions : std_logic_vector(9 downto 0);
-signal win_phase_term_strobe : std_logic;
-signal win_phase_term_win_phase_term : std_logic_vector(31 downto 0);
-signal config_mode_strobe : std_logic;
-signal config_mode_dds_type : std_logic_vector(3 downto 0);
-signal config_mode_mode_time : std_logic_vector(0 downto 0);
-signal config_mode_win_type : std_logic_vector(3 downto 0);
+signal sample_frequency_value : std_logic_vector(26 downto 0);
+signal wave_nb_points_strobe : std_logic;
+signal wave_nb_points_value : std_logic_vector(31 downto 0);
+signal fsm_nb_repetitions_strobe : std_logic;
+signal fsm_nb_repetitions_value : std_logic_vector(5 downto 0);
 signal tx_timer_strobe : std_logic;
-signal tx_timer_tx_timer : std_logic_vector(17 downto 0);
-signal off_timer_strobe : std_logic;
-signal off_timer_timer : std_logic_vector(17 downto 0);
-signal rx_timer_strobe : std_logic;
-signal rx_timer_timer : std_logic_vector(17 downto 0);
+signal tx_timer_value : std_logic_vector(17 downto 0);
 signal deadzone_timer_strobe : std_logic;
-signal deadzone_timer_timer : std_logic_vector(17 downto 0);
+signal deadzone_timer_value : std_logic_vector(17 downto 0);
+signal rx_timer_strobe : std_logic;
+signal rx_timer_value : std_logic_vector(17 downto 0);
+signal idle_timer_strobe : std_logic;
+signal idle_timer_value : std_logic_vector(17 downto 0);
+signal pulser_nb_repetitions_strobe : std_logic;
+signal pulser_nb_repetitions_value : std_logic_vector(9 downto 0);
+signal pulser_t1_strobe : std_logic;
+signal pulser_t1_value : std_logic_vector(9 downto 0);
+signal pulser_t2_strobe : std_logic;
+signal pulser_t2_value : std_logic_vector(9 downto 0);
+signal pulser_t3_strobe : std_logic;
+signal pulser_t3_value : std_logic_vector(9 downto 0);
+signal pulser_t4_strobe : std_logic;
+signal pulser_t4_value : std_logic_vector(9 downto 0);
+signal pulser_tdamp_strobe : std_logic;
+signal pulser_tdamp_value : std_logic_vector(9 downto 0);
+signal pulser_config_strobe : std_logic;
+signal pulser_config_invert : std_logic_vector(0 downto 0);
+signal pulser_config_triple : std_logic_vector(0 downto 0);
+signal dds_phase_term_strobe : std_logic;
+signal dds_phase_term_value : std_logic_vector(31 downto 0);
+signal dds_init_phase_strobe : std_logic;
+signal dds_init_phase_value : std_logic_vector(31 downto 0);
+signal dds_nb_strobe : std_logic;
+signal dds_nb_points : std_logic_vector(9 downto 0);
+signal dds_nb_repetitions : std_logic_vector(9 downto 0);
+signal dds_mode_strobe : std_logic;
+signal dds_mode_time : std_logic_vector(0 downto 0);
 ------------- End CONSTANT and SIGNAL Declarations -----------------------------
 
 ------------- Begin Cut here for INSTANTIATION Template ------------------------
@@ -181,33 +213,49 @@ your_instance_name : register_bank_regs
         s_axi_bready  => s_axi_bready,
         -- User Ports  
         version_strobe => version_strobe,
-        version_version => version_version,
+        version_field => version_field,
         bang_strobe => bang_strobe,
-        bang_bang => bang_bang,
+        bang_field => bang_field,
+        wave_config_strobe => wave_config_strobe,
+        wave_config_wave_type => wave_config_wave_type,
+        wave_config_win_type => wave_config_win_type,
         sample_frequency_strobe => sample_frequency_strobe,
-        sample_frequency_sample_frequency => sample_frequency_sample_frequency,
-        target_frequency_strobe => target_frequency_strobe,
-        target_frequency_target_frequency => target_frequency_target_frequency,
-        phase_term_strobe => phase_term_strobe,
-        phase_term_phase_term => phase_term_phase_term,
-        init_phase_strobe => init_phase_strobe,
-        init_phase_init_phase => init_phase_init_phase,
-        numbers_strobe => numbers_strobe,
-        numbers_nb_points => numbers_nb_points,
-        numbers_nb_repetitions => numbers_nb_repetitions,
-        win_phase_term_strobe => win_phase_term_strobe,
-        win_phase_term_win_phase_term => win_phase_term_win_phase_term,
-        config_mode_strobe => config_mode_strobe,
-        config_mode_dds_type => config_mode_dds_type,
-        config_mode_mode_time => config_mode_mode_time,
-        config_mode_win_type => config_mode_win_type,
+        sample_frequency_value => sample_frequency_value,
+        wave_nb_points_strobe => wave_nb_points_strobe,
+        wave_nb_points_value => wave_nb_points_value,
+        fsm_nb_repetitions_strobe => fsm_nb_repetitions_strobe,
+        fsm_nb_repetitions_value => fsm_nb_repetitions_value,
         tx_timer_strobe => tx_timer_strobe,
-        tx_timer_tx_timer => tx_timer_tx_timer,
-        off_timer_strobe => off_timer_strobe,
-        off_timer_timer => off_timer_timer,
-        rx_timer_strobe => rx_timer_strobe,
-        rx_timer_timer => rx_timer_timer,
+        tx_timer_value => tx_timer_value,
         deadzone_timer_strobe => deadzone_timer_strobe,
-        deadzone_timer_timer => deadzone_timer_timer
+        deadzone_timer_value => deadzone_timer_value,
+        rx_timer_strobe => rx_timer_strobe,
+        rx_timer_value => rx_timer_value,
+        idle_timer_strobe => idle_timer_strobe,
+        idle_timer_value => idle_timer_value,
+        pulser_nb_repetitions_strobe => pulser_nb_repetitions_strobe,
+        pulser_nb_repetitions_value => pulser_nb_repetitions_value,
+        pulser_t1_strobe => pulser_t1_strobe,
+        pulser_t1_value => pulser_t1_value,
+        pulser_t2_strobe => pulser_t2_strobe,
+        pulser_t2_value => pulser_t2_value,
+        pulser_t3_strobe => pulser_t3_strobe,
+        pulser_t3_value => pulser_t3_value,
+        pulser_t4_strobe => pulser_t4_strobe,
+        pulser_t4_value => pulser_t4_value,
+        pulser_tdamp_strobe => pulser_tdamp_strobe,
+        pulser_tdamp_value => pulser_tdamp_value,
+        pulser_config_strobe => pulser_config_strobe,
+        pulser_config_invert => pulser_config_invert,
+        pulser_config_triple => pulser_config_triple,
+        dds_phase_term_strobe => dds_phase_term_strobe,
+        dds_phase_term_value => dds_phase_term_value,
+        dds_init_phase_strobe => dds_init_phase_strobe,
+        dds_init_phase_value => dds_init_phase_value,
+        dds_nb_strobe => dds_nb_strobe,
+        dds_nb_points => dds_nb_points,
+        dds_nb_repetitions => dds_nb_repetitions,
+        dds_mode_strobe => dds_mode_strobe,
+        dds_mode_time => dds_mode_time
     );
 ------------- End INSTANTIATION Template ---------------------------------------
