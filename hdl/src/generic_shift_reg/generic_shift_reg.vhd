@@ -53,7 +53,7 @@ architecture behavioral of generic_shift_reg is
     signal      strb_in                         : std_logic;
     signal      input_data                      : std_logic_vector((WORD_WIDTH - 1) downto 0);
     signal      sideband_data_in                : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
-
+    signal      enable_shift                    : std_logic;
 
     -- Stage 1
 
@@ -91,7 +91,8 @@ begin
             --------------
             -- Stage 1  --
             --------------
-            
+            enable_shift    <=          strb_in
+                                    or  shift_reg_strb     (SHIFT_SIZE - 1);
             shift_reg_proc : process(clock_i,areset_i)
             begin
                 if(areset_i ='1') then
@@ -106,7 +107,7 @@ begin
                         shift_reg_strb(index)    <= shift_reg_strb(index - 1) ;
                     end loop;
 
-                    if (strb_in = '1') then
+                    if (enable_shift = '1') then
 
                         shift_reg_data(0)       <= input_data;    
                         shift_reg_sideband(0)   <= sideband_data_in;    
