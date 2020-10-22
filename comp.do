@@ -70,6 +70,10 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_reg
 ## Wave Generator
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_generator/wave_generator.vhd
 
+## TOP
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_tx.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_rx.vhd
+
 
 ################################
 ##  Compile simulation files  ##
@@ -105,6 +109,10 @@ vcom -93  -novopt -O0 ../hdl/sim/pulser/pulser_tb.vhd
 ## Averager
 vcom -93 -novopt -O0 ../hdl/sim/averager/ring_fifo_tb.vhd
 vcom -93 -novopt -O0 ../hdl/sim/averager/averager_tb.vhd
+
+## TOP
+vcom -93 -novopt -O0 ../hdl/sim/top/top_tx_tb.vhd
+vcom -93 -novopt -O0 ../hdl/sim/top/top_tb.vhd
 
 ## Misc
 ##vcom -93  -novopt -O0 ../hdl/sim/misc/phase_adjust_tb.vhd
