@@ -40,6 +40,7 @@ entity pulser is
 
         -- Input interface
         strb_i                              : in  std_logic; -- Valid in for all inputs and mode interface
+        restart_i                           : in  std_logic;
         nb_repetitions_i                    : in  std_logic_vector( (NB_REPETITIONS_WIDTH - 1) downto 0);
         t1_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0); 
         t2_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0);
@@ -94,6 +95,8 @@ architecture behavioral of pulser is
     signal timer3                              : std_logic_vector( (TIMER_WIDTH - 1) downto 0);
     signal timer4                              : std_logic_vector( (TIMER_WIDTH - 1) downto 0);
     signal timer_damp                          : std_logic_vector( (TIMER_WIDTH - 1) downto 0);
+
+    signal restart                             : std_logic;
 
     signal bang                                : std_logic; 
 
@@ -158,6 +161,7 @@ begin
     
     -- Input
     input_strb          <= strb_i;
+    restart             <= restart_i;
     nb_repetitions      <= nb_repetitions_i;
     timer1              <= t1_i;
     timer2              <= t2_i;
@@ -222,7 +226,7 @@ begin
 
                     pulser_data         <= PULSER_ZERO;
 
-                    if(bang = '1') then                        
+                    if(bang = '1' or restart = '1') then                        
                         pulser_state       <= next_state;
                     else
                         pulser_state       <= ST_WAIT_BANG;
@@ -244,7 +248,8 @@ begin
                 when ST_T2 =>
     
                     pulser_data         <= PULSER_ZERO;
-                   
+                    pulser_strb         <= '1';                  
+
                     if( timer2_done = '1' ) then
                         pulser_state        <= next_state;
                         counter_timer2      <= TIMER_ONE_CTE;
@@ -269,6 +274,7 @@ begin
                 when ST_T4 =>
                     
                     pulser_data         <= PULSER_ZERO;
+                    pulser_strb         <= '1';                  
                    
                     if( timer4_done = '1' ) then
                         pulser_state        <= next_state;
@@ -284,11 +290,12 @@ begin
                         pulser_strb         <= '1';
                         pulser_data         <= pulser_neg_amplitude;
                     else
+                        pulser_strb         <= '1';                  
                         pulser_data         <= PULSER_ZERO;
                     end if;
                 
                     if( timer_damp_done = '1' ) then
-                        pulser_done    <= '1';
+                        pulser_done                 <= '1';
                         pulser_state                <= ST_WAIT_BANG;
                         counter_timer_damp          <= TIMER_ONE_CTE;
                         reset_repetitions_counter   <= '1';

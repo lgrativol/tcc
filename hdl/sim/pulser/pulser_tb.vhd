@@ -74,6 +74,7 @@ begin
 
         -- Input interface
         strb_i                              => strb_i,
+        restart_i                           => '0',
         nb_repetitions_i                    => nb_repetitions,
         t1_i                                => timer1,
         t2_i                                => timer2,
