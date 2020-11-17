@@ -62,6 +62,7 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/pulser/pulser.vhd
 ## Averager
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/ring_fifo.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager_v2.vhd
 
 ## Register Bank
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_regs_pkg.vhd
@@ -73,6 +74,7 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_generator/wave_generator.v
 ## TOP
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_tx.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_rx.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top.vhd
 
 
 ################################
@@ -109,6 +111,7 @@ vcom -93  -novopt -O0 ../hdl/sim/pulser/pulser_tb.vhd
 ## Averager
 vcom -93 -novopt -O0 ../hdl/sim/averager/ring_fifo_tb.vhd
 vcom -93 -novopt -O0 ../hdl/sim/averager/averager_tb.vhd
+vcom -93 -novopt -O0 ../hdl/sim/averager/averager_v2_tb.vhd
 
 ## TOP
 vcom -93 -novopt -O0 ../hdl/sim/top/top_tx_tb.vhd
