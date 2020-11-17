@@ -129,6 +129,8 @@ begin
                 pointer_head <= (others => '0');
             elsif ( wr_input_strb = '1' ) then
 
+                ram( to_integer(pointer_head) ) := wr_data;
+
                 if ( max_wr_reached = '1') then
 
                     pointer_head        <= (others => '0');
@@ -158,6 +160,8 @@ begin
                 pointer_tail <= (others => '0');
 
             elsif ( rd_en = '1' ) then
+                
+                rd_data <= ram( to_integer(pointer_tail) );
 
                -- if ( flag_empty = '0') then
                 if ( max_rd_reached = '1' ) then
@@ -175,55 +179,16 @@ begin
     max_rd_reached     <=           '1'       when( pointer_tail = config_max_addr_reg )
                             else    '0';
 
-    -- Write to and read from the RAM
-    proc_ram : process(clock_i)
-    begin
-        if ( rising_edge(clock_i) ) then
-
-            if (rd_en = '1') then
-                rd_data <= ram( to_integer(pointer_tail) );
-            end if;
-
-            if (wr_input_strb = '1') then
-                ram( to_integer(pointer_head) ) := wr_data;
-            end if;
-        end if;
-    end process;
 
     -- Update the fill count
     proc : process(pointer_head, pointer_tail)
     begin
         if ( pointer_head < pointer_tail ) then
-            fill_count <= pointer_head - pointer_tail + RAM_DEPTH;
+            fill_count <= pointer_tail - pointer_head ;
         else
             fill_count <= pointer_head - pointer_tail;
         end if;
     end process;
-
-    -- enable_fill_count <=            flag_empty  
-    --                             and wr_input_strb
-    --                         or
-    --                                 flag_full
-    --                             and rd_en
-
-    -- -- Update fill count
-    -- proc_fill_count : process (clock_i, areset_i)
-    -- begin
-    --     if (areset_i = '1') then
-    --         fill_count  <= (others => '0');
-    --     elsif ( rising_edge(clock_i) ) then
-            
-    --         if (enable_fill_count = '1') then
-    --             if (up_down = '1') then
-    --                 fill_count <= fill_count + 1;
-    --             else
-    --                 fill_count <= fill_count - 1;
-    --             end if;
-    --         end if;
-    --     end if;
-    -- end process;
-
-    
 
     -- Set the flags
     flag_empty      <=              '1'     when ( fill_count = to_unsigned (0 ,  fill_count'length) )
