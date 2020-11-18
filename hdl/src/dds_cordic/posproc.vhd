@@ -1,3 +1,23 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Agosto/2020                                                                           
+-- Module Name: posproc                                                                           
+-- Author Name: Lucas Grativol Ribeiro                                                                           
+--                                                                                         
+-- Revision Date: 18/11/2020                                                                         
+-- Tool version: Vivado 2017.4       
+--                                                                    
+-- Goal:          Corrigir o sinal do seno/cosseno , intrudizido pelo remapeamento do
+--                preprocessador 
+--                                                                         
+-- Description:   Para cada "phase_info" (quadrante de origem do ângulo) corrige
+--                o sinal do seno e do cosseno
+--                                                                                         
+--        Obs.(1): SIDEBAND serve para passar um sinal de SIDEBAND_WIDTH bits (sideband_data)
+--                 por todo o pipeline da entidade, o sinal não influencia no design
+--                 e pode ser usado para sincronizar sinais.  
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -33,15 +53,15 @@ entity posproc is
         sideband_data_o                     : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
         -- Input interface
-        strb_i                              : in  std_logic; -- Valid in
+        valid_i                             : in  std_logic; -- Indica que os sinais são válidos no ciclo atual
         sin_phase_i                         : in  sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
         cos_phase_i                         : in  sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
 
         -- Control Interface
-        phase_info_i                        : in  std_logic_vector(1 downto 0);
+        phase_info_i                        : in  std_logic_vector(1 downto 0); -- Informação de fase
 
         -- Output interface
-        strb_o                              : out std_logic;
+        valid_o                             : out std_logic; -- Indica que os sinais são válidos no ciclo atual
         sin_phase_o                         : out sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
         cos_phase_o                         : out sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART)
     ); 
@@ -59,7 +79,7 @@ architecture behavioral of posproc is
     -------------
     
     -- Input interface
-    signal strb_i_reg                       : std_logic;
+    signal valid_i_reg                       : std_logic;
     signal sin_phase_reg                    : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
     signal cos_phase_reg                    : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
 
@@ -71,20 +91,41 @@ architecture behavioral of posproc is
     signal phase_info_reg                   : std_logic_vector(1 downto 0);
 
     -- Output interface
-    signal strb_reg                         : std_logic;
+    signal valid_reg                         : std_logic;
     signal sin_phase                        : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
     signal cos_phase                        : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);   
+
 begin
 
-    -- Input
+    ------------------------------------------------------------------
+    --                     Input registering                           
+    --                                                                
+    --   Goal: Registrar os parâmetros fornecidos
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: valid_i;
+    --          sideband_data_i;
+    --          phase_info_i;
+    --          sin_phase_i;
+    --          cos_phase_i;
+    --
+    --   Output: valid_i_reg;
+    --           sideband_data_reg1;
+    --           sin_phase_reg;
+    --           cos_phase_reg;
+    --
+    --   Result: Salva os parâmetros (inputs) em registros
+    ------------------------------------------------------------------
     input_registering : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            strb_i_reg <= '0';
+            valid_i_reg <= '0';
         elsif (rising_edge(clock_i)) then
-            strb_i_reg <= strb_i;
+            valid_i_reg <= valid_i;
 
-            if (strb_i = '1') then
+            if (valid_i = '1') then
 
                 sideband_data_reg1 <= sideband_data_i;
 
@@ -95,23 +136,45 @@ begin
         end if;
     end process;
 
+    ------------------------------------------------------------------
+    --                     Corretor de phase                           
+    --                                                                
+    --   Goal: Corrigir a phase 
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: valid_i_reg;
+    --          sideband_data_reg1;
+    --          sin_phase_reg;
+    --          cos_phase_reg;
+    --          phase_info_reg;
+    --
+    --   Output: valid_reg;
+    --           sideband_data_reg2;
+    --           sin_phase;
+    --           cos_phase;
+    --
+    --   Result: Os sinais do cosseno são corrigidos 
+    ------------------------------------------------------------------
+
     phase_correction_proc : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            strb_reg <= '0';
+            valid_reg <= '0';
         elsif ( rising_edge(clock_i) ) then
             
-            strb_reg <= strb_i_reg;
+            valid_reg <= valid_i_reg;
 
-            if ( strb_i_reg = '1' ) then
+            if ( valid_i_reg = '1' ) then
 
                 sideband_data_reg2 <= sideband_data_reg1;
 
                 sin_phase   <= sin_phase_reg;
                 
-                if ( phase_info_reg = "00" or phase_info_reg = "10") then     -- phase in first quad
+                if ( phase_info_reg = "00" or phase_info_reg = "10") then-- phase no primeiro quadrante
                     cos_phase   <= cos_phase_reg;
-                else                                 -- phase in forth quad
+                else                                 -- phase no quarto quadrante
                     cos_phase   <=  resize(-cos_phase_reg, cos_phase);
                 end if;
                 
@@ -124,7 +187,7 @@ begin
 
     sideband_data_o         <= sideband_data_reg2;
 
-    strb_o                  <= strb_reg;
+    valid_o                  <= valid_reg;
     sin_phase_o             <= sin_phase;
     cos_phase_o             <= cos_phase;
 

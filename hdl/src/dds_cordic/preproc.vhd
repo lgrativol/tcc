@@ -1,3 +1,25 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Agosto/2020                                                                           
+-- Module Name: preproc
+-- Author Name: Lucas Grativol Ribeiro                                                                           
+--                                                                                         
+-- Revision Date: 18/11/2020                                                                         
+-- Tool version: Vivado 2017.4       
+--                                                                    
+-- Goal:          Como o algoritmo CORDIC só converge entre [-pi/2;pi/2]
+--                o pre_proc mapeia o ângulo [0;2pi] --> [-pi/2;pi/2]  
+--                                                                         
+-- Description:   Para cada phase de entrada, o ângulo é remapeado e é gerado um sinal
+--                phase_info que indica de qual quadrante ele foi mapeado (1°,2°,3°,4°)
+--                essa informação é usada pelo pos_proc para corrigir o sinal do seno/cosseno
+--                 
+--        Obs.(1): SIDEBAND serve para passar um sinal de SIDEBAND_WIDTH bits (sideband_data)
+--                 por todo o pipeline da entidade, o sinal não influencia no design
+--                 e pode ser usado para sincronizar sinais.  
+--
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -20,8 +42,8 @@ use work.utils_pkg.all;
 entity preproc is
     generic(
         SIDEBAND_WIDTH                      : integer;
-        PHASE_INTEGER_PART                  : natural;
-        PHASE_FRAC_PART                     : integer;
+        PHASE_INTEGER_PART                  : natural; -- phase integer part
+        PHASE_FRAC_PART                     : integer; -- phase fractional part
         OUTPUT_INTEGER_PART                 : natural; -- sfixed integer part 
         OUTPUT_FRAC_PART                    : integer  -- sfixed fractional part
     );
@@ -35,14 +57,14 @@ entity preproc is
         sideband_data_o                     : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
         -- Input interface
-        strb_i                              : in  std_logic; -- Valid in
-        phase_i                             : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
+        valid_i                             : in  std_logic; -- Indica que a phase é válida no ciclo atual
+        phase_i                             : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Fase entre [0;2pi]
 
         -- Control Interface
-        phase_info_o                        : out std_logic_vector(1 downto 0);
+        phase_info_o                        : out std_logic_vector(1 downto 0); -- Indica qual de qual quadrante a phase foi mapeada
 
         -- Output interface
-        strb_o                              : out std_logic;
+        valid_o                             : out std_logic; -- Indica que a reduced_phase é válida no ciclo atual
         reduced_phase_o                     : out sfixed(OUTPUT_INTEGER_PART downto OUTPUT_FRAC_PART)
     ); 
 end preproc;
@@ -77,7 +99,7 @@ architecture behavioral of preproc is
     -------------
     
     -- Input interface
-    signal strb_i_reg                       : std_logic;
+    signal valid_i_reg                      : std_logic;
     signal sphase_reg                       : sfixed((PHASE_INTEGER_PART + 1) downto PHASE_FRAC_PART);
 
     -- Sideband
@@ -92,45 +114,83 @@ architecture behavioral of preproc is
     signal phase_info                       : std_logic_vector(1 downto 0);
 
     -- Output interface
-    signal strb_reg                         : std_logic;
+    signal valid_reg                        : std_logic;
     signal reduced_phase_reg                : sfixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     
 begin
 
-    -- Input
+    ------------------------------------------------------------------
+    --                     Input registering                           
+    --                                                                
+    --   Goal: Registrar os parâmetros fornecidos
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: valid_i;
+    --          sideband_data_i;
+    --          phase_i;
+    --
+    --   Output: valid_i_reg;
+    --           sideband_data_reg1;
+    --           sphase_reg;
+    --
+    --   Result: Salva os parâmetros (inputs) em registros e converte
+    --           a phase de ufixed para sfixed
+    ------------------------------------------------------------------
     input_registering : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            strb_i_reg <= '0';
+            valid_i_reg <= '0';
         elsif (rising_edge(clock_i)) then
-            strb_i_reg <= strb_i;
+            valid_i_reg <= valid_i;
 
-            if (strb_i = '1') then
+            if (valid_i = '1') then
                 sideband_data_reg1  <= sideband_data_i;
                 sphase_reg <= to_sfixed(phase_i);
             end if;
         end if;
     end process;
 
+    ------------------------------------------------------------------
+    --                     Redutor de phase                           
+    --                                                                
+    --   Goal: Remapear a phase [0;2pi] -> [-pi/2;pi/2]
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: valid_i_reg;
+    --          sideband_data_reg1;
+    --          phase_i;
+    --
+    --   Output: valid_reg;
+    --           sideband_data_reg2;
+    --           phase_info;
+    --           reduced_phase_reg
+    --
+    --   Result: fase reduzida para funcionar no CORDIC
+    ------------------------------------------------------------------
+
     phase_reducer_proc : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            strb_reg <= '0';
+            valid_reg <= '0';
         elsif ( rising_edge(clock_i) ) then
             
-            strb_reg <= strb_i_reg;
+            valid_reg <= valid_i_reg;
 
-            if ( strb_i_reg = '1' ) then
+            if ( valid_i_reg = '1' ) then
 
                 sideband_data_reg2  <= sideband_data_reg1;
 
-                if ( phase_less_pi_2 = '1') then     -- phase in first quad
+                if ( phase_less_pi_2 = '1') then     -- phase no primeiro quadrante
                     phase_info        <= "00";
                     reduced_phase_reg <= resize(sphase_reg,PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase
-                elsif ( phase_less_3pi_2 = '1') then -- phase in second or thrid
+                elsif ( phase_less_3pi_2 = '1') then -- phase no segundo ou terceiro
                     phase_info        <= "01";
                     reduced_phase_reg <= resize((S_PI - sphase_reg),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- PI - phase
-                else                                 -- phase in forth quad
+                else                                 -- phase no quarto
                     phase_info        <= "10";
                     reduced_phase_reg <= resize((sphase_reg - PI2),PHASE_INTEGER_PART,PHASE_FRAC_PART); -- phase - 2PI
                 end if;
@@ -139,14 +199,14 @@ begin
         end if;
     end process;
 
-    phase_less_pi_2     <=          '1' when(sphase_reg <= PI_2) -- phase <= PI/2
+    phase_less_pi_2     <=          '1' when(sphase_reg <= PI_2) -- phase <= PI/2 (menor ou igual)
                             else    '0';
 
-    phase_less_3pi_2     <=         '1' when(sphase_reg <= PI3_2) -- phase <= 3PI/2
+    phase_less_3pi_2     <=         '1' when(sphase_reg <= PI3_2) -- phase <= 3PI/2 (menor ou igual)
                             else    '0';
 
     -- Output
-    strb_o                  <= strb_reg;
+    valid_o                  <= valid_reg;
     sideband_data_o         <= sideband_data_reg2;
     phase_info_o            <= phase_info;
     reduced_phase_o         <= resize(reduced_phase_reg, OUTPUT_INTEGER_PART,OUTPUT_FRAC_PART);
