@@ -14,6 +14,7 @@ vmap work work
 ########################
 
 vcom -93 ../hdl/pkg/utils_pkg.vhd
+vcom -93 ../hdl/pkg/random_pkg.vhd
 
 
 ############################
@@ -59,6 +60,10 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/dds_cordic_win.vhd
 ## Pulser
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/pulser/pulser.vhd
 
+## LookUp Table
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/lookup_wave/sync_ram.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/lookup_wave/lookup_wave.vhd
+
 ## Averager
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/ring_fifo.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager.vhd
@@ -86,6 +91,8 @@ vcom -93  -novopt -O0 ../hdl/sim/sim_input_pkg.vhd
 
 ## Testbench tools
 vcom -93  -novopt -O0 ../hdl/sim/testbench_tools/sim_write2file.vhd
+vcom -93  -novopt -O0 ../hdl/sim/testbench_tools/sim_empty_cycle.vhd
+vcom -93  -novopt -O0 ../hdl/sim/testbench_tools/sim_random_tb.vhd
 
 ## cordic
 vcom -93  -novopt -O0 ../hdl/sim/cordic/cordic_tb.vhd
@@ -108,6 +115,9 @@ vcom -93  -novopt -O0 ../hdl/sim/dds_win/dds_cordic_win_tb.vhd
 ## Pulser
 vcom -93  -novopt -O0 ../hdl/sim/pulser/pulser_tb.vhd
 
+## LookUp Table
+vcom -93 -check_synthesis -novopt -O0 ../hdl/sim/lookup_wave/lookup_wave_tb.vhd
+
 ## Averager
 vcom -93 -novopt -O0 ../hdl/sim/averager/ring_fifo_tb.vhd
 vcom -93 -novopt -O0 ../hdl/sim/averager/averager_tb.vhd
@@ -115,7 +125,7 @@ vcom -93 -novopt -O0 ../hdl/sim/averager/averager_v2_tb.vhd
 
 ## TOP
 vcom -93 -novopt -O0 ../hdl/sim/top/top_tx_tb.vhd
-vcom -93 -novopt -O0 ../hdl/sim/top/top_tb.vhd
+#vcom -93 -novopt -O0 ../hdl/sim/top/top_tb.vhd
 
 ## Misc
 ##vcom -93  -novopt -O0 ../hdl/sim/misc/phase_adjust_tb.vhd
