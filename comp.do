@@ -76,6 +76,10 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_reg
 ## Wave Generator
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_generator/wave_generator.vhd
 
+## FIR
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/gen_fir/fir_direct_slice.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/gen_fir/fir_transpose_slice.vhd
+
 ## TOP
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_tx.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_rx.vhd
