@@ -11,3 +11,4 @@ sim_top.do
 notes.txt
 *.png
 8sampling.pdf
+hdl/sim/testbench_tools/sim_random_tb.vhd

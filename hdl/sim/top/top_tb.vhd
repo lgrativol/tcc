@@ -35,18 +35,6 @@ end top_tb;
 
 architecture testbench of top_tb is
 
-    ---------------
-    -- Functions --
-    ---------------
-
-    impure function rand_real(min_val, max_val : real) return real is
-        variable seed1, seed2 : integer := 999;
-        variable r : real;
-    begin
-        uniform(seed1, seed2, r);
-        return r * (max_val - min_val) + min_val;
-    end function;
-
     -----------
     -- Types --
     -----------
@@ -66,7 +54,7 @@ architecture testbench of top_tb is
                                                                         x"DEAD_CAFE",       -- empty
                                                                         x"DEAD_CAFE",       -- empty
                                                                         x"DEAD_CAFE",       -- empty
-                                                                        x"0000_0002",       -- fsm nb_repetitions (6 bits)
+                                                                        x"0000_0004",       -- fsm nb_repetitions (6 bits)
                                                                         x"0000_0320",       -- fsm tx timer (18 bits)
                                                                         x"0000_000A",       -- fsm deadzone timer (18 bits)
                                                                         x"0000_0320",       -- fsm rx timer (18 bits)
@@ -90,81 +78,66 @@ architecture testbench of top_tb is
     -- Signals --
     -------------
     
-    -- TOP TX
-    -----AXI
+    -- TOP
+    -----AXI-Lite TX
     signal s_axi_aclk                       : std_logic;
     signal s_axi_aresetn                    : std_logic;
 
     signal s_axi_awready                    : std_logic;
     signal s_axi_awvalid                    : std_logic;
-    signal s_axi_awaddr                     : std_logic_vector(C_S_AXI_ADDR_WIDTH-1 downto 0);
+    signal s_axi_awaddr                     : std_logic_vector((C_S_AXI_ADDR_WIDTH - 1) downto 0);
     signal s_axi_awprot                     : std_logic_vector(2 downto 0);
 
     signal s_axi_wready                     : std_logic;
     signal s_axi_wvalid                     : std_logic;
-    signal s_axi_wstrb                      : std_logic_vector((C_S_AXI_DATA_WIDTH/8)-1 downto 0);
-    signal s_axi_wdata                      : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+    signal s_axi_wstrb                      : std_logic_vector(((C_S_AXI_DATA_WIDTH / 8) - 1) downto 0);
+    signal s_axi_wdata                      : std_logic_vector((C_S_AXI_DATA_WIDTH - 1) downto 0);
 
     signal s_axi_arready                    : std_logic;
     signal s_axi_arvalid                    : std_logic;
-    signal s_axi_araddr                     : std_logic_vector(C_S_AXI_ADDR_WIDTH-1 downto 0);
+    signal s_axi_araddr                     : std_logic_vector((C_S_AXI_ADDR_WIDTH - 1) downto 0);
     signal s_axi_arprot                     : std_logic_vector(2 downto 0);
 
     signal s_axi_rready                     : std_logic;
     signal s_axi_rvalid                     : std_logic;
     signal s_axi_rresp                      : std_logic_vector(1 downto 0);
-    signal s_axi_rdata                      : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+    signal s_axi_rdata                      : std_logic_vector((C_S_AXI_DATA_WIDTH - 1) downto 0);
 
     signal s_axi_bready                     : std_logic;
     signal s_axi_bresp                      : std_logic_vector(1 downto 0);
     signal s_axi_bvalid                     : std_logic;
 
-    ----- User
-    signal tx_wave_strb_o                      : std_logic;
-    signal tx_wave_data                        : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-    signal tx_wave_done                        : std_logic;
+    ----Wave out TX
+    signal tx_output_wave_valid             : std_logic;
+    signal tx_output_wave_data              : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
+    signal tx_output_wave_done              : std_logic;
 
-    signal tx_control_bang                     : std_logic;
-    signal tx_control_sample_frequency_strb_o  : std_logic;
-    signal tx_control_sample_frequency         : std_logic_vector(26 downto 0); --TBD
+    ----Wave in RX
+    signal rx_input_wave_valid              : std_logic;
+    signal rx_input_wave_data               : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
+    signal rx_input_wave_done               : std_logic;
 
-    signal tx_control_reset_averager           : std_logic;
-    signal tx_control_config_strb_o            : std_logic;
-    signal tx_control_nb_points_wave           : std_logic_vector(31 downto 0); -- TBD
-    signal tx_control_nb_repetitions_wave      : std_logic_vector(5 downto 0);  -- TBD
-
-    -- TOP RX
-    signal rx_wave_strb_i                      : std_logic;
-    signal rx_wave_data_i                      : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-    signal rx_wave_done_i                      : std_logic;
-
-    signal rx_control_bang                     : std_logic;
-    signal rx_control_sample_frequency_strb_i  : std_logic;
-    signal rx_control_sample_frequency         : std_logic_vector(26 downto 0); --TBD
-    
-    signal rx_control_reset_averager           : std_logic;
-    signal rx_control_config_strb_i            : std_logic;
-    signal rx_control_nb_points_wave           : std_logic_vector(31 downto 0); -- TBD
-    signal rx_control_nb_repetitions_wave      : std_logic_vector(5 downto 0);  -- TBD
-
-    signal rx_wave_strb_o                      : std_logic;
-    signal rx_wave_data_o                      : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-    signal rx_wave_done_o                      : std_logic;
+    ----AXI-Stream RX
+    signal s_axis_s2mm_0_tready             : std_logic;
+    signal s_axis_s2mm_0_tvalid             : std_logic;
+    signal s_axis_s2mm_0_tdata              : std_logic_vector ( (C_S_AXI_DATA_WIDTH - 1) downto 0 );
+    signal s_axis_s2mm_0_tkeep              : std_logic_vector ( ((C_S_AXI_DATA_WIDTH / 8) - 1) downto 0 );
+    signal s_axis_s2mm_0_tlast              : std_logic;
 
     -- Generic Shift
-    signal gsr_strb_i                          : std_logic;
-    signal gsr_input_data                      : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
-    signal gsr_sideband_data_i                 : std_logic_vector(0 downto 0);            
+    signal gsr_valid_i                      : std_logic;
+    signal gsr_input_data                   : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
+    signal gsr_sideband_data_i              : std_logic_vector(0 downto 0);            
 
-    signal gsr_strb_o                          : std_logic;
-    signal gsr_output_data                     : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
-    signal gsr_sideband_data_o                 : std_logic_vector(0 downto 0);
+    signal gsr_valid_o                      : std_logic;
+    signal gsr_output_data                  : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
+    signal gsr_sideband_data_o              : std_logic_vector(0 downto 0);
     
     -- Testbench
-    signal areset                              : std_logic;
-    signal noise_data                          : sfixed( 1 downto WORD_FRAC_PART );
-    signal sendIt                              : std_logic := '0';
-    signal readIt                              : std_logic := '0';
+    signal areset                           : std_logic;
+
+    signal sendIt                           : std_logic := '0';
+    signal readIt                           : std_logic := '0';
 
 begin
 
@@ -177,8 +150,11 @@ begin
         s_axi_aclk <= '0';
     end process;
 
+    rx_input_wave_valid <= gsr_valid_o;
+    rx_input_wave_data  <= gsr_output_data;
+    rx_input_wave_done  <= gsr_sideband_data_o(0);
 
-    UUT_TX: entity work.top_tx
+    UUT: entity work.top
         generic map(
             OUTPUT_WIDTH                        => OUTPUT_WIDTH,
             AXI_ADDR_WIDTH                      => C_S_AXI_ADDR_WIDTH,
@@ -189,9 +165,9 @@ begin
             axi_aclk                            => s_axi_aclk,
             axi_aresetn                         => s_axi_aresetn,
     
-            -------------------
-            -- AXI Interface --
-            -------------------
+            -----------------------------
+            -- TX - AXI Lite Interface --
+            -----------------------------
     
             -- AXI Write Address Channel
             s_axi_awaddr                        => s_axi_awaddr,
@@ -217,26 +193,29 @@ begin
             s_axi_bresp                         => s_axi_bresp,
             s_axi_bvalid                        => s_axi_bvalid,
             s_axi_bready                        => s_axi_bready,
-    
+
             ----------------------
-            -- Output Interface --
+            -- TX - Wave Output --
             ----------------------
-            
-            -- Wave
-            wave_strb_o                         => tx_wave_strb_o,
-            wave_data_o                         => tx_wave_data,
-            wave_done_o                         => tx_wave_done,
+            tx_wave_valid_o                     => tx_output_wave_valid,
+            tx_wave_data_o                      => tx_output_wave_data,
+            tx_wave_done_o                      => tx_output_wave_done,
+
+            ---------------------
+            -- RX - Wave Input --
+            ---------------------
+            rx_wave_valid_i                     => rx_input_wave_valid,
+            rx_wave_data_i                      => rx_input_wave_data,
+            rx_wave_done_i                      => rx_input_wave_done,
     
-            -- Control
-            control_bang_o                      => tx_control_bang,
-            
-            control_sample_frequency_strb_o     => tx_control_sample_frequency_strb_o,
-            control_sample_frequency_o          => tx_control_sample_frequency,
-    
-            control_reset_averager_o            => tx_control_reset_averager,
-            control_config_strb_o               => tx_control_config_strb_o,
-            control_nb_points_wave_o            => tx_control_nb_points_wave,
-            control_nb_repetitions_wave_o       => tx_control_nb_repetitions_wave
+        -------------------------------
+        -- RX - AXI Stream Interface --
+        -------------------------------
+            s_axis_s2mm_0_tready                => s_axis_s2mm_0_tready,
+            s_axis_s2mm_0_tvalid                => s_axis_s2mm_0_tvalid,
+            s_axis_s2mm_0_tdata                 => s_axis_s2mm_0_tdata,
+            s_axis_s2mm_0_tkeep                 => s_axis_s2mm_0_tkeep,
+            s_axis_s2mm_0_tlast                 => s_axis_s2mm_0_tlast
         );
 
     -- Initiate process which simulates a master wanting to write.
@@ -334,8 +313,6 @@ begin
         wait until s_axi_bvalid = '1';
         wait until s_axi_bvalid = '0';  --axi write finished
 
-        wait until tx_control_reset_averager = '1';
-        wait until rising_edge(s_axi_aclk);
 
         -- s_axi_awaddr    <= x"0000_002C";
         -- s_axi_wdata     <= x"0000_0110";
@@ -386,7 +363,7 @@ begin
         -- wait until s_axi_rvalid = '1';
         -- wait until s_axi_rvalid = '0';
             
-        wait; -- will wait forever
+        wait;
     end process;
 
     areset <= not s_axi_aresetn;
@@ -394,18 +371,14 @@ begin
     ----------------
     -- Delay line --
     ----------------
-
-    --noise_data <= resize(to_sfixed(tx_wave_data,noise_data) + to_sfixed(rand_real(-0.2,0.2),noise_data),noise_data); 
-
-    gsr_strb_i              <= tx_wave_strb_o;
-    --gsr_input_data          <= to_slv(noise_data);
-    gsr_input_data          <= tx_wave_data;
-    gsr_sideband_data_i(0)  <= tx_wave_done;
+    gsr_valid_i                 <= tx_output_wave_valid;
+    gsr_input_data              <= tx_output_wave_data;
+    gsr_sideband_data_i(0)      <= tx_output_wave_done;
 
     GSR : entity work.generic_shift_reg 
         generic map(
             WORD_WIDTH                          => OUTPUT_WIDTH,
-            SHIFT_SIZE                          => 8,
+            SHIFT_SIZE                          => 15,
             SIDEBAND_WIDTH                      => 1
         )
         port map(
@@ -413,61 +386,14 @@ begin
             clock_i                             => s_axi_aclk,
             areset_i                            => areset,
             -- Input interface
-            strb_i                              => gsr_strb_i,
+            valid_i                             => gsr_valid_i,
             input_data_i                        => gsr_input_data,
             sideband_data_i                     => gsr_sideband_data_i,
             
             -- Output interface
-            strb_o                              => gsr_strb_o,
+            valid_o                             => gsr_valid_o,
             output_data_o                       => gsr_output_data,
             sideband_data_o                     => gsr_sideband_data_o
         );
-
-    ------------
-    -- TOP RX --
-    ------------
-
-    rx_wave_strb_i                      <= gsr_strb_o;
-    rx_wave_data_i                      <= gsr_output_data;
-    rx_wave_done_i                      <= gsr_sideband_data_o(0);
-    
-    rx_control_sample_frequency_strb_i  <= tx_control_sample_frequency_strb_o;
-    rx_control_sample_frequency         <= tx_control_sample_frequency;
-
-    rx_control_reset_averager           <= tx_control_reset_averager;
-    rx_control_config_strb_i            <= tx_control_config_strb_o;
-    rx_control_nb_points_wave           <= tx_control_nb_points_wave;
-    rx_control_nb_repetitions_wave      <= tx_control_nb_repetitions_wave;
-
-    UUT_RX : entity work.top_rx
-        generic map(
-            OUTPUT_WIDTH                        => OUTPUT_WIDTH
-        )
-        port map(
-
-            clock_i                             => s_axi_aclk,
-            areset_i                            => areset,
-    
-            -- Wave
-            wave_strb_i                         => rx_wave_strb_i,
-            wave_data_i                         => rx_wave_data_i,
-            wave_done_i                         => rx_wave_done_i,
-    
-            -- Control
-            control_sample_frequency_strb_i     => rx_control_sample_frequency_strb_i,
-            control_sample_frequency_i          => rx_control_sample_frequency,
-    
-            --control_start_rx_i                  => rx_control_start_rx,
-            control_reset_averager_i            => rx_control_reset_averager,
-            control_config_strb_i               => rx_control_config_strb_i,
-            control_nb_points_wave_i            => rx_control_nb_points_wave,
-            control_nb_repetitions_wave_i       => rx_control_nb_repetitions_wave,
-
-            wave_strb_o                         => rx_wave_strb_o,
-            wave_data_o                         => rx_wave_data_o,
-            wave_done_o                         => rx_wave_done_o
-        );
-
-
 
 end testbench;

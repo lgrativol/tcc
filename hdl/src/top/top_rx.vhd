@@ -28,25 +28,28 @@ entity top_rx is
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Wave
-        wave_strb_i                         : in  std_logic;
+        wave_valid_i                        : in  std_logic;
         wave_data_i                         : in  std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
         wave_done_i                         : in  std_logic;
 
         -- Control
-        
-        control_sample_frequency_strb_i     : in  std_logic;
+        control_sample_frequency_valid_i    : in  std_logic;
         control_sample_frequency_i          : in  std_logic_vector(26 downto 0); --TBD
 
-        --control_start_rx_i                  : in  std_logic;
+        control_enable_rx_i                 : in  std_logic;
         control_reset_averager_i            : in  std_logic;
-        control_config_strb_i               : in  std_logic;
+        control_config_valid_i              : in  std_logic;
         control_nb_points_wave_i            : in  std_logic_vector(31 downto 0); -- TBD
         control_nb_repetitions_wave_i       : in  std_logic_vector(5 downto 0);  -- TBD
 
-        -- Output
-        wave_strb_o                         : out std_logic;
-        wave_data_o                         : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-        wave_done_o                         : out std_logic
+        ----------------------------------
+        -- Output  AXI Stream Interface --
+        ----------------------------------
+        sending_o                           : out std_logic;
+        s_axis_st_tready_i                  : in  std_logic;
+        s_axis_st_tvalid_o                  : out std_logic;
+        s_axis_st_tdata_o                   : out std_logic_vector ((OUTPUT_WIDTH - 1) downto 0);
+        s_axis_st_tlast_o                   : out std_logic
     );
 end top_rx;
 
@@ -70,19 +73,20 @@ architecture behavioral of top_rx is
     -------------
 
     -- Avg
-    signal avg_config_strb_i                : std_logic;
+    signal avg_output_ready                 : std_logic;
+    signal avg_config_valid_i               : std_logic;
     signal avg_config_max_addr              : std_logic_vector( (ADDR_WIDTH  - 1 ) downto 0 );
     signal avg_config_reset_pointers        : std_logic;
     signal avg_config_nb_repetitions        : std_logic_vector( (AVG_NB_REPETITIONS_WIDTH - 1) downto 0 ); --TBD
 
-    signal avg_input_strb                   : std_logic;
+    signal avg_input_valid                  : std_logic;
     signal avg_input_data                   : sfixed( 1 downto AVG_WORD_FRAC_PART );
 
     signal avg_input_last_word              : std_logic;
-    signal avg_output_strb                  : std_logic;
-    signal avg_output_data                  : sfixed( 1 downto AVG_WORD_FRAC_PART );
+    signal avg_output_sending               : std_logic;
+    signal avg_output_valid                 : std_logic;
+    signal avg_output_data                  : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
     signal avg_output_last_word             : std_logic;
-
 
 begin
 
@@ -90,16 +94,20 @@ begin
     -- Averager --
     --------------
 
-    avg_config_strb_i           <= control_config_strb_i;
+    avg_output_ready            <= s_axis_st_tready_i;
+
+    avg_config_valid_i          <= control_config_valid_i;
     avg_config_max_addr         <= std_logic_vector(   resize( unsigned(control_nb_points_wave_i) - 1, ADDR_WIDTH) )  ;
     avg_config_reset_pointers   <= control_reset_averager_i;
     avg_config_nb_repetitions   <= control_nb_repetitions_wave_i;
 
-    avg_input_strb              <= wave_strb_i;
+    avg_input_valid             <=          wave_valid_i
+                                        and control_enable_rx_i;
+
     avg_input_data              <= to_sfixed (wave_data_i,avg_input_data);
     avg_input_last_word         <= wave_done_i;
 
-    averager: entity work.averager 
+    averager: entity work.averager_v2 
         generic map(
             -- Behavioral
             NB_REPETITIONS_WIDTH        => AVG_NB_REPETITIONS_WIDTH,
@@ -111,25 +119,30 @@ begin
             areset_i                    => areset_i,
     
             -- Config  interface
-            config_strb_i               => avg_config_strb_i,
+            config_valid_i              => avg_config_valid_i,
             config_max_addr_i           => avg_config_max_addr, -- (NB_POINTS - 1)
             config_nb_repetitions_i     => avg_config_nb_repetitions, -- Only powers of 2 ( 2^0, 2^1, 2^2, 2^3 ....)
             config_reset_pointers_i     => avg_config_reset_pointers,
     
             -- Input interface 
-            input_strb_i                => avg_input_strb,
+            input_valid_i               => avg_input_valid,
             input_data_i                => avg_input_data,
             input_last_word_i           => avg_input_last_word,
-    
-            -- Output interface
-            output_strb_o               => avg_output_strb,
-            output_data_o               => avg_output_data,
-            output_last_word_o          => avg_output_last_word
+
+            ----------------------------------
+            -- Output  AXI Stream Interface --
+            ----------------------------------
+            sending_o                   => avg_output_sending,           
+            s_axis_st_tready_i          => avg_output_ready,
+            s_axis_st_tvalid_o          => avg_output_valid,
+            s_axis_st_tdata_o           => avg_output_data,
+            s_axis_st_tlast_o           => avg_output_last_word
         );
 
     -- Output
-    wave_strb_o     <= avg_output_strb;
-    wave_data_o     <= to_slv(avg_output_data);
-    wave_done_o     <= avg_output_last_word;
+    sending_o                   <= avg_output_sending;
+    s_axis_st_tvalid_o          <= avg_output_valid;
+    s_axis_st_tdata_o           <= avg_output_data;
+    s_axis_st_tlast_o           <= avg_output_last_word;
 
 end behavioral;

@@ -73,6 +73,7 @@ architecture testbench of top_tx_tb is
     -----AXI
     signal s_axi_aclk                       : std_logic;
     signal s_axi_aresetn                    : std_logic;
+    signal areset                           : std_logic;
 
     signal s_axi_awready                    : std_logic;
     signal s_axi_awvalid                    : std_logic;
@@ -99,16 +100,16 @@ architecture testbench of top_tx_tb is
     signal s_axi_bvalid                     : std_logic;
 
     ----- User
-    signal wave_strb_o                      : std_logic;
+    signal wave_valid_o                      : std_logic;
     signal wave_data                        : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
     signal wave_done                        : std_logic;
 
     signal control_bang                     : std_logic;
-    signal control_sample_frequency_strb_o  : std_logic;
+    signal control_sample_frequency_valid_o  : std_logic;
     signal control_sample_frequency         : std_logic_vector(26 downto 0); --TBD
 
     signal control_reset_averager           : std_logic;
-    signal control_config_strb_o            : std_logic;
+    signal control_config_valid_o            : std_logic;
     signal control_nb_points_wave           : std_logic_vector(31 downto 0); -- TBD
     signal control_nb_repetitions_wave      : std_logic_vector(5 downto 0);  -- TBD
     
@@ -127,6 +128,7 @@ begin
         s_axi_aclk <= '0';
     end process;
 
+    areset <= not s_axi_aresetn;
 
     UUT: entity work.top_tx
         generic map(
@@ -138,7 +140,8 @@ begin
             -- Clock and Reset
             axi_aclk                            => s_axi_aclk,
             axi_aresetn                         => s_axi_aresetn,
-    
+            areset_i                            => areset,
+
             -------------------
             -- AXI Interface --
             -------------------
@@ -173,18 +176,20 @@ begin
             ----------------------
             
             -- Wave
-            wave_strb_o                         => wave_strb_o,
+            wave_valid_o                         => wave_valid_o,
             wave_data_o                         => wave_data,
             wave_done_o                         => wave_done,
     
             -- Control
             control_bang_o                      => control_bang,
             
-            control_sample_frequency_strb_o     => control_sample_frequency_strb_o,
+            control_sample_frequency_valid_o     => control_sample_frequency_valid_o,
             control_sample_frequency_o          => control_sample_frequency,
     
+            control_enable_rx_o                 => open,
+            control_system_sending_i            => '0',
             control_reset_averager_o            => control_reset_averager,
-            control_config_strb_o               => control_config_strb_o,
+            control_config_valid_o              => control_config_valid_o,
             control_nb_points_wave_o            => control_nb_points_wave,
             control_nb_repetitions_wave_o       => control_nb_repetitions_wave
         );

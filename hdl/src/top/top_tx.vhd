@@ -23,6 +23,7 @@ entity top_tx is
         -- Clock and Reset
         axi_aclk                            : in  std_logic;
         axi_aresetn                         : in  std_logic;
+        areset_i                            : in  std_logic;
 
         -------------------
         -- AXI Interface --
@@ -58,19 +59,20 @@ entity top_tx is
         ----------------------
         
         -- Wave
-        wave_strb_o                         : out std_logic;
+        wave_valid_o                        : out std_logic;
         wave_data_o                         : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
         wave_done_o                         : out std_logic;
 
         -- Control
         control_bang_o                      : out std_logic;
         
-        control_sample_frequency_strb_o     : out std_logic;
+        control_sample_frequency_valid_o    : out std_logic;
         control_sample_frequency_o          : out std_logic_vector(26 downto 0); --TBD
 
-        control_start_rx_o                  : out std_logic;
+        control_enable_rx_o                 : out std_logic;
+        control_system_sending_i            : in  std_logic;
         control_reset_averager_o            : out std_logic;
-        control_config_strb_o               : out std_logic;
+        control_config_valid_o              : out std_logic;
         control_nb_points_wave_o            : out std_logic_vector(31 downto 0); -- TBD
         control_nb_repetitions_wave_o       : out std_logic_vector(5 downto 0)  -- TBD
     );
@@ -100,8 +102,6 @@ architecture behavioral of top_tx is
     
     -- User signals
 
-    signal      areset                                  : std_logic;
-
     signal      bang                                    : std_logic;
     signal      bang_strobe                             : std_logic;
     signal      bang_field                              : std_logic_vector(0 downto 0);
@@ -117,6 +117,7 @@ architecture behavioral of top_tx is
     
     signal      fsm_nb_repetitions_strobe               : std_logic;
     signal      fsm_nb_repetitions_value                : std_logic_vector((FSM_NB_REPETITIONS_WIDTH - 1) downto 0); -- TBD
+    signal      delay_timer_value                       : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
     signal      tx_timer_value                          : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
     signal      deadzone_timer_value                    : std_logic_vector((TX_OFF_TIME_WIDTH - 1) downto 0);
     signal      rx_timer_value                          : std_logic_vector((RX_TIME_WIDTH - 1) downto 0);
@@ -158,29 +159,31 @@ architecture behavioral of top_tx is
     signal      wave_gen_dds_nb_repetitions             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      wave_gen_dds_mode_time                  : std_logic;
 
-    signal      wave_gen_strb_o                         : std_logic;
+    signal      wave_gen_valid_o                        : std_logic;
     signal      wave_gen_wave_data_o                    : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
     signal      wave_gen_wave_done                      : std_logic;
 
     --FSM         
-    signal      fsm_bang                                : std_logic;
+    signal      fsm_bang_i                              : std_logic;
+    signal      fsm_bang_o                              : std_logic;
     signal      fsm_nb_repetitions                      : std_logic_vector((FSM_NB_REPETITIONS_WIDTH - 1) downto 0); -- TBD
+    signal      fsm_delay_time                          : std_logic_vector((DELAY_TIME_WIDTH - 1) downto 0);
     signal      fsm_tx_time                             : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
     signal      fsm_tx_off_time                         : std_logic_vector((TX_OFF_TIME_WIDTH - 1) downto 0);
     signal      fsm_rx_time                             : std_logic_vector((RX_TIME_WIDTH - 1) downto 0);
     signal      fsm_off_time                            : std_logic_vector((OFF_TIME_WIDTH - 1) downto 0);
-    signal      fsm_output_strb                         : std_logic;
+    
+    signal      fsm_output_valid                        : std_logic;
+    signal      fsm_system_busy                         : std_logic;
    
-    signal      fsm_start_rx                            : std_logic;
+    signal      fsm_enable_rx                           : std_logic;
     signal      fsm_restart_cycles                      : std_logic;
     signal      fsm_end_zons_cycles                     : std_logic;
 
     -- Output
-    signal      control_config_output_strb              : std_logic;
+    signal      control_config_output_valid             : std_logic;
 
 begin
-
-    areset <= not axi_aresetn;
 
     -------------------
     -- Register Bank --
@@ -283,7 +286,7 @@ begin
     -- Wave Gen --
     --------------   
     
-    wave_gen_bang           <=          bang;
+    wave_gen_bang           <=          fsm_bang_o;
 
     wave_gen_pulser_nb_repetitions_value    <= pulser_nb_repetitions_value;
     wave_gen_pulser_t1_value                <= pulser_t1_value;
@@ -311,7 +314,7 @@ begin
         port map(
             -- Clock interface
             clock_i                             => axi_aclk,
-            areset_i                            => areset,
+            areset_i                            => areset_i,
     
             -- Input interface
             bang_i                              => wave_gen_bang,
@@ -335,7 +338,7 @@ begin
             dds_mode_time_i                     => wave_gen_dds_mode_time,
     
             -- Output interface
-            strb_o                              => wave_gen_strb_o,
+            valid_o                              => wave_gen_valid_o,
             wave_data_o                         => wave_gen_wave_data_o,
             wave_done_o                         => wave_gen_wave_done
         );
@@ -344,14 +347,17 @@ begin
     -- FSM --
     ---------
 
-    fsm_bang            <=              bang;
+    fsm_bang_i          <=              bang;
 
     fsm_nb_repetitions  <= fsm_nb_repetitions_value;
+    --fsm_delay_time      <= delay_timer_value;
+    fsm_delay_time      <= tx_timer_value;
     fsm_tx_time         <= tx_timer_value;
     fsm_tx_off_time     <= deadzone_timer_value;
     fsm_rx_time         <= rx_timer_value;
     fsm_off_time        <= idle_timer_value;
-    fsm_output_strb     <= wave_gen_strb_o;
+    fsm_output_valid    <= wave_gen_valid_o;
+    fsm_system_busy     <= control_system_sending_i;
 
     fsm_zone_inst : entity work.fsm_time_zones_v2
         generic map(
@@ -360,40 +366,46 @@ begin
         port map(
             -- Clock interface
             clock_i                             => axi_aclk,
-            areset_i                            => areset,
+            areset_i                            => areset_i,
     
             -- Input interface
-            strb_i                              => fsm_bang,
+            bang_i                              => fsm_bang_i,
             nb_repetitions_i                    => fsm_nb_repetitions,
+            delay_time_i                        => fsm_delay_time,
             tx_time_i                           => fsm_tx_time,
             tx_off_time_i                       => fsm_tx_off_time,
             rx_time_i                           => fsm_rx_time,
             off_time_i                          => fsm_off_time,
-            output_strb_i                       => fsm_output_strb,
-    
+            
+            -- Feedback interface
+            output_valid_i                      => fsm_output_valid,
+            system_busy_i                       => fsm_system_busy,
+            bang_o                              => fsm_bang_o,
+
             -- Control Interface
-            start_rx_o                          => fsm_start_rx,
+            enable_rx_o                         => fsm_enable_rx,
             restart_cycles_o                    => fsm_restart_cycles,
             end_zones_cycle_o                   => fsm_end_zons_cycles
         );
 
     -- Output
 
-    wave_strb_o                         <= wave_gen_strb_o;
+    wave_valid_o                        <= wave_gen_valid_o;
     wave_data_o                         <= wave_gen_wave_data_o;
     wave_done_o                         <= wave_gen_wave_done;
 
     -- Control
-    control_bang_o                      <= bang;
+    control_bang_o                      <= fsm_bang_o;
     
-    control_sample_frequency_strb_o     <= sample_frequency_strobe;
+    control_sample_frequency_valid_o    <= sample_frequency_strobe;
     control_sample_frequency_o          <= sample_frequency_value;
 
-    control_start_rx_o                  <= fsm_start_rx;   
+    control_enable_rx_o                 <= fsm_enable_rx;   
     control_reset_averager_o            <= fsm_end_zons_cycles;
     
-    control_config_strb_o               <=          fsm_nb_repetitions_strobe
+    control_config_valid_o              <=          fsm_nb_repetitions_strobe
                                                 or  wave_nb_points_strobe;
+                                                
     control_nb_points_wave_o            <= wave_nb_points_value;
     control_nb_repetitions_wave_o       <= fsm_nb_repetitions_value;
 
