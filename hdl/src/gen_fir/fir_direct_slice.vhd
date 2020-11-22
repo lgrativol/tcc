@@ -31,8 +31,8 @@ use ieee_proposed.fixed_pkg.all;
 entity fir_direct_slice is
     generic(
         WEIGHT                          : std_logic_vector;
-        WEIGTH_INT_PART                 : natural;
-        WEIGTH_FRAC_PART                : integer;
+        WEIGHT_INT_PART                 : natural;
+        WEIGHT_FRAC_PART                : integer;
         WORD_INT_PART                   : natural;
         WORD_FRAC_PART                  : integer;
         SIDEBAND_WIDTH                  : natural
@@ -73,7 +73,7 @@ architecture behavioral of fir_direct_slice is
     ---------------
 
     -- Weight
-    constant SFIXED_WEIGHT                  : sfixed(WEIGTH_INT_PART downto WEIGTH_FRAC_PART) := to_sfixed(WEIGHT,WEIGTH_INT_PART,WEIGTH_FRAC_PART);
+    constant SFIXED_WEIGHT                  : sfixed(WEIGHT_INT_PART downto WEIGHT_FRAC_PART) := to_sfixed(WEIGHT,WEIGHT_INT_PART,WEIGHT_FRAC_PART);
 
     -------------
     -- Signals --
@@ -86,7 +86,7 @@ architecture behavioral of fir_direct_slice is
     signal upside_out_data                  : sfixed(WORD_INT_PART downto WORD_FRAC_PART);
     
     -- Downside Logic
-    signal downside_mult                    : sfixed(WEIGTH_INT_PART downto WEIGTH_FRAC_PART);
+    signal downside_mult                    : sfixed(WEIGHT_INT_PART downto WEIGHT_FRAC_PART);
     signal downside_add_mult                : sfixed(WORD_INT_PART downto WORD_FRAC_PART);
     signal downside_out_valid               : std_logic;
     signal downside_out_data                : sfixed(WORD_INT_PART downto WORD_FRAC_PART);

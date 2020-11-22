@@ -12,14 +12,14 @@ package fir_weights_pkg is
     ---------------
     
     -- Definitions
-    constant WEIGHTS_WIDTH     : positive  := 12;
-    constant WEIGHTS_INT_PART  : positive  := 2;
-    constant WEIGHTS_WIDTH     : integer   := WEIGHTS_INT_PART - WEIGHTS_WIDTH;   -- int. negative
+    constant WEIGHT_WIDTH     : positive  := 12;
+    constant WEIGHT_INT_PART  : positive  := 1;
+    constant WEIGHT_FRAC_PART : integer   := (WEIGHT_INT_PART + 1) - WEIGHT_WIDTH;   -- int. negative
     
     constant NB_TAPS           : positive  := 10; 
 
     -- Weights
-    type fir_weights_tp    is array (natural range <>) of std_logic_vector( (C_S_AXI_DATA_WIDTH - 1) downto 0 );
+    type fir_weights_tp    is array (natural range <>) of std_logic_vector( (WEIGHT_WIDTH - 1) downto 0 );
     
     constant FIR_WEIGHTS                   : fir_weights_tp(0 to (NB_TAPS - 1)) := (    x"002",
                                                                                         x"100",
