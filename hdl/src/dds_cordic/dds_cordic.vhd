@@ -60,7 +60,7 @@ entity dds_cordic is
         CORDIC_FRAC_PART                    : integer; -- Cordic frac part
         N_CORDIC_ITERATIONS                 : natural; -- Número de iterações do CORDIC (tamanho do pipeline)
         NB_POINTS_WIDTH                     : natural; -- Número de bits de nb_points e nb_repetitions 
-        EN_POSPROC                          : boolean -- Enable bloco pos_processador, necessário para o cosseno
+        EN_POSPROC                          : boolean  -- Enable bloco pos_processador, necessário para o cosseno
     );
     port(
         -- Clock interface

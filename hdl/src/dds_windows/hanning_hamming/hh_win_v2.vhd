@@ -34,13 +34,13 @@ entity hh_win_v2 is
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        strb_i                              : in  std_logic; -- Valid in
+        valid_i                              : in  std_logic; -- Valid in
         phase_term_i                        : in  ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART);
         nb_points_i                         : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0 );
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
-        strb_o                              : out std_logic;
+        valid_o                              : out std_logic;
         hh_result_o                         : out sfixed(HH_INTEGER_PART downto HH_FRAC_PART)
     );
 end hh_win_v2;
@@ -100,7 +100,7 @@ architecture behavioral of hh_win_v2 is
     -------------
     
     -- Stage 1 DDS CORDIC
-    signal      dds_hh_strb_i                   : std_logic;
+    signal      dds_hh_valid_i                   : std_logic;
     signal      dds_hh_phase_term               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);   
     signal      dds_hh_initial_phase            : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_hh_nb_points                : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
@@ -109,18 +109,18 @@ architecture behavioral of hh_win_v2 is
     signal      dds_hh_restart_cycles           : std_logic;
     signal      dds_hh_done_cycles              : std_logic;
 
-    signal      dds_hh_strb_o                   : std_logic;
+    signal      dds_hh_valid_o                   : std_logic;
     signal      dds_hh_cos_phase                : sfixed(HH_INTEGER_PART downto HH_FRAC_PART);
     
     -- Stage 2 Window result
-    signal      win_strb_i                      : std_logic;
+    signal      win_valid_i                      : std_logic;
     signal      win_sin_phase                   : sfixed(HH_INTEGER_PART downto HH_FRAC_PART);
     signal      win_cos_phase                   : sfixed(HH_INTEGER_PART downto HH_FRAC_PART);
 
-    signal      win_strb_1_reg                  : std_logic;
+    signal      win_valid_1_reg                  : std_logic;
     signal      win_minus_a1_cos_reg            : sfixed(HH_INTEGER_PART downto HH_FRAC_PART);
     
-    signal      win_strb_2_reg                  : std_logic;
+    signal      win_valid_2_reg                  : std_logic;
     signal      win_a0_minus_a1_cos_reg         : sfixed(HH_INTEGER_PART downto HH_FRAC_PART);    
 
 begin
@@ -129,7 +129,7 @@ begin
     -- Stage 1 --
     -------------
     
-    dds_hh_strb_i              <= strb_i;
+    dds_hh_valid_i              <= valid_i;
     dds_hh_phase_term          <= phase_term_i;
     dds_hh_initial_phase       <= (others => '0');
     dds_hh_nb_points           <= nb_points_i;
@@ -152,7 +152,7 @@ begin
             areset_i                            => areset_i,
     
             -- Input interface
-            strb_i                              => dds_hh_strb_i,
+            valid_i                              => dds_hh_valid_i,
             phase_term_i                        => dds_hh_phase_term,
             initial_phase_i                     => dds_hh_initial_phase,
             nb_points_i                         => dds_hh_nb_points,
@@ -163,7 +163,7 @@ begin
             restart_cycles_i                    => dds_hh_restart_cycles,
             
             -- Output interface
-            strb_o                              => dds_hh_strb_o,
+            valid_o                              => dds_hh_valid_o,
             sine_phase_o                        => open,
             cos_phase_o                         => dds_hh_cos_phase,
             done_cycles_o                       => dds_hh_done_cycles,
@@ -174,18 +174,18 @@ begin
     -- Stage 2 --
     -------------
 
-    win_strb_i    <= dds_hh_strb_o;
+    win_valid_i    <= dds_hh_valid_o;
     win_cos_phase <= dds_hh_cos_phase;
   
     a1_minus_cos : process (clock_i,areset_i) 
     begin
         if (areset_i = '1') then
-            win_strb_1_reg  <= '0';
+            win_valid_1_reg  <= '0';
         elsif (rising_edge(clock_i)) then
 
-            win_strb_1_reg  <= win_strb_i;
+            win_valid_1_reg  <= win_valid_i;
 
-            if (win_strb_i = '1') then
+            if (win_valid_i = '1') then
                 win_minus_a1_cos_reg <= resize ( WIN_MINUS_A1 *  win_cos_phase ,win_minus_a1_cos_reg);
             end if;
         end if;
@@ -194,12 +194,12 @@ begin
     a0_minus_a1_cos : process (clock_i,areset_i) 
     begin
         if (areset_i = '1') then
-            win_strb_2_reg  <= '0';
+            win_valid_2_reg  <= '0';
         elsif (rising_edge(clock_i)) then
 
-            win_strb_2_reg  <= win_strb_1_reg;
+            win_valid_2_reg  <= win_valid_1_reg;
 
-            if (win_strb_1_reg = '1') then
+            if (win_valid_1_reg = '1') then
                 win_a0_minus_a1_cos_reg <= resize ( WIN_A0 +  win_minus_a1_cos_reg ,win_a0_minus_a1_cos_reg);
             end if;
         end if;
@@ -208,7 +208,7 @@ begin
     ------------
     -- Output --
     ------------
-    strb_o              <= win_strb_2_reg;
+    valid_o              <= win_valid_2_reg;
     hh_result_o         <= win_a0_minus_a1_cos_reg ;
 
     end behavioral;

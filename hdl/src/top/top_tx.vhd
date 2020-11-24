@@ -91,7 +91,7 @@ architecture behavioral of top_tx is
     constant    VERSION                             : std_logic_vector(7 downto 0)  :=x"01" ;
 
     constant    WAVE_GEN_OUTPUT_DATA_WIDTH          : positive  := 10;
-    constant    FSM_NB_REPETITIONS_WIDTH            : positive  := 6;
+    constant    NB_SHOTS_WIDTH            : positive  := 6;
 
     constant    CONFIG_NB_POINTS_WIDTH              : positive  := control_nb_points_wave_o'length;
 
@@ -115,13 +115,13 @@ architecture behavioral of top_tx is
     signal      wave_nb_points_strobe                   : std_logic;
     signal      wave_nb_points_value                    : std_logic_vector(31 downto 0);
     
-    signal      fsm_nb_repetitions_strobe               : std_logic;
-    signal      fsm_nb_repetitions_value                : std_logic_vector((FSM_NB_REPETITIONS_WIDTH - 1) downto 0); -- TBD
+    signal      fsm_nb_shots_strobe               : std_logic;
+    signal      fsm_nb_shots_value                : std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0); -- TBD
     signal      delay_timer_value                       : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
     signal      tx_timer_value                          : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
-    signal      deadzone_timer_value                    : std_logic_vector((TX_OFF_TIME_WIDTH - 1) downto 0);
+    signal      deadzone_timer_value                    : std_logic_vector((DEADZONE_TIME_WIDTH - 1) downto 0);
     signal      rx_timer_value                          : std_logic_vector((RX_TIME_WIDTH - 1) downto 0);
-    signal      idle_timer_value                        : std_logic_vector((OFF_TIME_WIDTH - 1) downto 0);
+    signal      idle_timer_value                        : std_logic_vector((IDLE_TIME_WIDTH - 1) downto 0);
     
     signal      pulser_nb_repetitions_value             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      pulser_t1_value                         : std_logic_vector((TIMER_WIDTH - 1) downto 0);
@@ -166,12 +166,12 @@ architecture behavioral of top_tx is
     --FSM         
     signal      fsm_bang_i                              : std_logic;
     signal      fsm_bang_o                              : std_logic;
-    signal      fsm_nb_repetitions                      : std_logic_vector((FSM_NB_REPETITIONS_WIDTH - 1) downto 0); -- TBD
+    signal      fsm_nb_shots                      : std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0); -- TBD
     signal      fsm_delay_time                          : std_logic_vector((DELAY_TIME_WIDTH - 1) downto 0);
     signal      fsm_tx_time                             : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
-    signal      fsm_tx_off_time                         : std_logic_vector((TX_OFF_TIME_WIDTH - 1) downto 0);
+    signal      fsm_deadzone_time                         : std_logic_vector((DEADZONE_TIME_WIDTH - 1) downto 0);
     signal      fsm_rx_time                             : std_logic_vector((RX_TIME_WIDTH - 1) downto 0);
-    signal      fsm_off_time                            : std_logic_vector((OFF_TIME_WIDTH - 1) downto 0);
+    signal      fsm_idle_time                            : std_logic_vector((IDLE_TIME_WIDTH - 1) downto 0);
     
     signal      fsm_output_valid                        : std_logic;
     signal      fsm_system_busy                         : std_logic;
@@ -242,8 +242,8 @@ begin
             sample_frequency_value => sample_frequency_value,
             wave_nb_points_strobe => wave_nb_points_strobe,
             wave_nb_points_value => wave_nb_points_value,
-            fsm_nb_repetitions_strobe => fsm_nb_repetitions_strobe,
-            fsm_nb_repetitions_value => fsm_nb_repetitions_value,
+            fsm_nb_repetitions_strobe => fsm_nb_shots_strobe,
+            fsm_nb_repetitions_value => fsm_nb_shots_value,
             tx_timer_strobe => open,
             tx_timer_value => tx_timer_value,
             deadzone_timer_strobe => open,
@@ -349,19 +349,19 @@ begin
 
     fsm_bang_i          <=              bang;
 
-    fsm_nb_repetitions  <= fsm_nb_repetitions_value;
+    fsm_nb_shots  <= fsm_nb_shots_value;
     --fsm_delay_time      <= delay_timer_value;
     fsm_delay_time      <= tx_timer_value;
     fsm_tx_time         <= tx_timer_value;
-    fsm_tx_off_time     <= deadzone_timer_value;
+    fsm_deadzone_time     <= deadzone_timer_value;
     fsm_rx_time         <= rx_timer_value;
-    fsm_off_time        <= idle_timer_value;
+    fsm_idle_time        <= idle_timer_value;
     fsm_output_valid    <= wave_gen_valid_o;
     fsm_system_busy     <= control_system_sending_i;
 
     fsm_zone_inst : entity work.fsm_time_zones_v2
         generic map(
-            NB_REPETITIONS_WIDTH                => FSM_NB_REPETITIONS_WIDTH
+            NB_SHOTS_WIDTH                      => NB_SHOTS_WIDTH
         )
         port map(
             -- Clock interface
@@ -370,12 +370,12 @@ begin
     
             -- Input interface
             bang_i                              => fsm_bang_i,
-            nb_repetitions_i                    => fsm_nb_repetitions,
+            nb_shots_i                          => fsm_nb_shots,
             delay_time_i                        => fsm_delay_time,
             tx_time_i                           => fsm_tx_time,
-            tx_off_time_i                       => fsm_tx_off_time,
+            deadzone_time_i                     => fsm_deadzone_time,
             rx_time_i                           => fsm_rx_time,
-            off_time_i                          => fsm_off_time,
+            idle_time_i                         => fsm_idle_time,
             
             -- Feedback interface
             output_valid_i                      => fsm_output_valid,
@@ -403,10 +403,10 @@ begin
     control_enable_rx_o                 <= fsm_enable_rx;   
     control_reset_averager_o            <= fsm_end_zons_cycles;
     
-    control_config_valid_o              <=          fsm_nb_repetitions_strobe
+    control_config_valid_o              <=          fsm_nb_shots_strobe
                                                 or  wave_nb_points_strobe;
                                                 
     control_nb_points_wave_o            <= wave_nb_points_value;
-    control_nb_repetitions_wave_o       <= fsm_nb_repetitions_value;
+    control_nb_repetitions_wave_o       <= fsm_nb_shots_value;
 
 end behavioral;

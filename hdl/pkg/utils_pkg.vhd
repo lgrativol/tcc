@@ -35,10 +35,11 @@ package utils_pkg is
     constant CORDIC_FRAC_PART       : integer  := -(N_CORDIC_ITERATIONS - (CORDIC_INTEGER_PART + 1));
 
     -- Time zones
+    constant  DELAY_TIME_WIDTH      : positive := 18; -- Max time = 2.62 ms
     constant  TX_TIME_WIDTH         : positive := 18; -- Max time = 2.62 ms
-    constant  TX_OFF_TIME_WIDTH     : positive := 18; -- Max time = 2.62 ms
+    constant  DEADZONE_TIME_WIDTH   : positive := 18; -- Max time = 2.62 ms
     constant  RX_TIME_WIDTH         : positive := 18; -- Max time = 2.62 ms
-    constant  OFF_TIME_WIDTH        : positive := 18; -- Max time = 2.62 ms
+    constant  IDLE_TIME_WIDTH       : positive := 18; -- Max time = 2.62 ms
 
     -- Pulser
     constant  TIMER_WIDTH           : positive := 10;

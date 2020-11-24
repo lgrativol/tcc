@@ -1,3 +1,32 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: 12/11/2020                                                                         
+-- Module Name: hh_blkm_blkh_win 
+--              ( O nome abreviado significa : Hanning, Hamming, Blackman e Blackman-Harris)                                                                           
+-- Author Name: Lucas Grativol Ribeiro                          
+--                                                                                         
+-- Revision Date: 24/11/2020                                                                         
+-- Tool version: Vivado 2017.4                                                                           
+--                                                                      
+-- Goal: Gerar a janela desejada entre as opções        
+--
+-- Description:  O módulo possibilita a escolha entre 6 tipos de janelas
+--               * 01 : Hanning window          
+--               * 10 : Hamming window         
+--               * 11 : Blackman         
+--               * 00 : Blackman-Harris         
+--              
+--               O tipo de janela é fornecido pelo sinal "win_type_i"
+--               e o resto é multiplexado para obter a janela desejada;
+--
+--               Para o bloco é fornecido:
+--               * phase_term : a variação de fase usada para pelo acumulador de fase para gerar os ângulos
+--                              phase_term = 2pi/(nb_points da janela)
+--                 Obs.: É fornecido a fase em 2pi, as outras fases necessárias 4pi e 6pi
+--                       são geradas pelo módulo
+--               * nb_points  : Número de pontos da janela
+--
+---------------------------------------------------------------------------------------------
 ---------------
 -- Libraries --
 ---------------
@@ -5,7 +34,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use ieee.math_real.all;
 
 library ieee_proposed;                      
 use ieee_proposed.fixed_float_types.all;
@@ -20,12 +48,12 @@ use work.utils_pkg.all;
 
 entity hh_blkm_blkh_win is
     generic( 
-        WIN_PHASE_INTEGER_PART             : natural  := 0;
-        WIN_PHASE_FRAC_PART                : integer  := -1;
-        WORD_INTEGER_PART                  : positive := 2;
-        WORD_FRAC_PART                     : integer  := -4;
-        NB_ITERATIONS                      : positive := 10;
-        NB_POINTS_WIDTH                    : positive := 17             
+        WIN_PHASE_INTEGER_PART             : natural; -- phase integer part
+        WIN_PHASE_FRAC_PART                : integer; -- phase fractional part
+        WORD_INTEGER_PART                  : natural; -- Windows integer part
+        WORD_FRAC_PART                     : integer; -- Windows frac part
+        NB_ITERATIONS                      : positive; -- Número de iterações das janelas (tamanho do pipeline)
+        NB_POINTS_WIDTH                    : positive -- Número de bits de nb_points           
    );
     port(
         -- Clock interface
@@ -33,15 +61,17 @@ entity hh_blkm_blkh_win is
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        valid_i                             : in  std_logic; -- Valid in
-        win_type_i                          : in  std_logic_vector(1 downto 0);
-        phase_term_i                        : in  ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART);
-        nb_points_i                         : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0 );
-        restart_cycles_i                    : in  std_logic; 
+        valid_i                             : in  std_logic; -- Indica que todos os parâmetros abaixo são válidos no ciclo atual e inicia o sinal
+        win_type_i                          : in  std_logic_vector(1 downto 0); -- Ver descrição acima
+        phase_term_i                        : in  ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART); -- Ver descrição acima
+        nb_points_i                         : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0 ); -- Ver descrição acima
+        restart_cycles_i                    : in  std_logic; -- Restart a geração da onda definina nos parâmetros anteriores
+                                                             -- todos os parâmetros são salvos, com um tick de restart
+                                                             -- a onda é gerada com os últimos parâmetros, não depende do "valid_i"
         
         -- Output interface
-        valid_o                             : out std_logic;
-        win_result_o                        : out sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART)
+        valid_o                             : out std_logic; -- Indica que as saída abaixo são válidas no ciclo atual
+        win_result_o                        : out sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART) -- valor da janela[k]
     );
 end hh_blkm_blkh_win;
 
@@ -50,30 +80,30 @@ end hh_blkm_blkh_win;
 ------------------
 architecture behavioral of hh_blkm_blkh_win is
     
-    
     ---------------
     -- Constants --
     ---------------
 
     -- Windows Win Mode Code
-    constant    WIN_MODE_HANN               : std_logic_vector := "01";
-    constant    WIN_MODE_HAMM               : std_logic_vector := "10";
-    constant    WIN_MODE_BLKM               : std_logic_vector := "11";
-    constant    WIN_MODE_BLKH               : std_logic_vector := "00";
+    constant    WIN_MODE_HANN       : std_logic_vector := "01";
+    constant    WIN_MODE_HAMM       : std_logic_vector := "10";
+    constant    WIN_MODE_BLKM       : std_logic_vector := "11";
+    constant    WIN_MODE_BLKH       : std_logic_vector := "00";
 
     -- CORDIC
-    constant    CORDIC_FACTOR               : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART) := to_sfixed( (0.607253) , WORD_INTEGER_PART, WORD_FRAC_PART);
-    constant    SIDEBAND_WIDTH              : natural  := 2;
-    constant    DDS_WORD_WIDTH              : natural  := (WORD_INTEGER_PART - WORD_FRAC_PART + 1);
+    -- 0,607253 = 1/Ak = limit(k->+infinito) prod(k=0)^(k=infinito) cos(arctg(2^-k))
+    constant    CORDIC_FACTOR       : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART) := to_sfixed( (0.607253) , WORD_INTEGER_PART, WORD_FRAC_PART);
+    constant    SIDEBAND_WIDTH      : natural  := 2;
+    constant    DDS_WORD_WIDTH      : natural  := (WORD_INTEGER_PART - WORD_FRAC_PART + 1);
     
     -- Phase adjust
-    constant    PHASE_FACTOR_A2             : positive := 2; -- From 2pi to 4Pi
-    constant    PHASE_FACTOR_A3             : positive := 3; -- From 2pi to 6Pi
+    constant    PHASE_FACTOR_A2     : positive := 2; -- From 2pi to 4Pi
+    constant    PHASE_FACTOR_A3     : positive := 3; -- From 2pi to 6Pi
 
     -- Generic Shift
-    constant    LATENCY                     : positive := 2; -- Used because the phase adjust has 2 registers, sync a1 and a2 cos
+    constant    LATENCY             : positive := 2; -- Used because the phase adjust has 2 registers, sync a1 and a2 cos
     
-    -- Windows constants
+    -- Windows coefs.
    
     ---- Hanning
     constant    WIN_HANN_A0         : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART) := to_sfixed( (0.5) , WORD_INTEGER_PART, WORD_FRAC_PART);
@@ -132,7 +162,7 @@ architecture behavioral of hh_blkm_blkh_win is
     signal      phase_adjust_4pi_nb_points              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      phase_adjust_4pi_sideband_data_i        : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
     
-    signal      phase_adjust_4pi_valid_o                 : std_logic;
+    signal      phase_adjust_4pi_valid_o                : std_logic;
     signal      phase_adjust_4pi_phase_term_o           : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      phase_adjust_4pi_nb_points_o            : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      phase_adjust_4pi_nb_rept_o              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
@@ -171,7 +201,6 @@ architecture behavioral of hh_blkm_blkh_win is
     signal      dds_6pi_cos_phase                       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
     -- Stage 7 Window result
-
     signal      win_a0                                  : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
     signal      win_minus_a1                            : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
     signal      win_a2                                  : sfixed(WORD_INTEGER_PART downto WORD_FRAC_PART);
@@ -200,6 +229,21 @@ architecture behavioral of hh_blkm_blkh_win is
 
 begin
 
+    ------------------------------------------------------------------
+    --                     Window Mode registering                           
+    --                                                                
+    --   Goal: Registrar o valor do tipo da janela
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: win_type_i;
+    --          win_mode_i;
+    --
+    --   Output: win_type;
+    --           
+    --   Result: Salva o win_mode em um registro
+    ------------------------------------------------------------------
     register_win_type : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
@@ -290,7 +334,7 @@ begin
     -- Stage 3 --
     -------------
 
-    phase_adjust_4pi_valid_i         <= valid_i;
+    phase_adjust_4pi_valid_i        <= valid_i;
     phase_adjust_4pi_phase_term     <= phase_term_i;
     phase_adjust_4pi_nb_points      <= nb_points_i;
     --phase_adjust_4pi_sideband_data_i <= ;
@@ -309,7 +353,7 @@ begin
             areset_i                            => areset_i,
     
             -- Input interface
-            valid_i                              => phase_adjust_4pi_valid_i,
+            valid_i                             => phase_adjust_4pi_valid_i,
             phase_in_i                          => phase_adjust_4pi_phase_term,
             nb_cycles_in_i                      => phase_adjust_4pi_nb_points,
             
@@ -328,7 +372,7 @@ begin
     -- Stage 4  --
     --------------
 
-    dds_4pi_valid_i         <= phase_adjust_4pi_valid_o;
+    dds_4pi_valid_i        <= phase_adjust_4pi_valid_o;
     dds_4pi_phase_term     <= phase_adjust_4pi_phase_term_o;
     dds_4pi_nb_points      <= phase_adjust_4pi_nb_points_o;
     dds_4pi_nb_repetitions <= phase_adjust_4pi_nb_rept_o;
@@ -373,7 +417,7 @@ begin
     -- Stage 5 --
     -------------
 
-    phase_adjust_6pi_valid_i         <= valid_i;
+    phase_adjust_6pi_valid_i        <= valid_i;
     phase_adjust_6pi_phase_term     <= phase_term_i;
     phase_adjust_6pi_nb_points      <= nb_points_i;
     --phase_adjust_6pi_sideband_data_i <= ;
@@ -392,7 +436,7 @@ begin
             areset_i                            => areset_i,
     
             -- Input interface
-            valid_i                              => phase_adjust_6pi_valid_i,
+            valid_i                             => phase_adjust_6pi_valid_i,
             phase_in_i                          => phase_adjust_6pi_phase_term,
             nb_cycles_in_i                      => phase_adjust_6pi_nb_points,
             
@@ -401,7 +445,7 @@ begin
             sideband_data_o                     => open,
             
             -- Output interface
-            valid_o                              => phase_adjust_6pi_valid_o,
+            valid_o                             => phase_adjust_6pi_valid_o,
             phase_out_o                         => phase_adjust_6pi_phase_term_o,
             nb_cycles_out_o                     => phase_adjust_6pi_nb_points_o,
             nb_rept_out_o                       => phase_adjust_6pi_nb_rept_o
@@ -411,7 +455,7 @@ begin
     -- Stage 6  --
     --------------
 
-    dds_6pi_valid_i         <= phase_adjust_6pi_valid_o;
+    dds_6pi_valid_i        <= phase_adjust_6pi_valid_o;
     dds_6pi_phase_term     <= phase_adjust_6pi_phase_term_o;
     dds_6pi_nb_points      <= phase_adjust_6pi_nb_points_o;
     dds_6pi_nb_repetitions <= phase_adjust_6pi_nb_rept_o;
@@ -477,6 +521,29 @@ begin
     win_cos_4pi_phase   <= dds_4pi_cos_phase;
     win_cos_6pi_phase   <= dds_6pi_cos_phase;
 
+    ------------------------------------------------------------------
+    --                     Grupo Equação 1                           
+    --                                                                
+    --   Goal: Calcular os termos -a1.cos(2pi);a2.cos(4pi);-a3.cos(6pi)
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: win_valid_i;
+    --          win_minus_a1;
+    --          win_a2;
+    --          win_minus_a3;
+    --          win_cos_2pi_phase;
+    --          win_cos_4pi_phase;
+    --          win_cos_6pi_phase;
+    --
+    --   Output: win_valid_1_reg;
+    --           win_minus_a1_cos2pi_reg;
+    --           win_a2_cos4pi_reg;
+    --           win_minus_a3_cos6pi_reg;
+    --           
+    --   Result: Os termos usados em todas as janelas são calculados com os coeficientes
+    ------------------------------------------------------------------
     eq_part_1 : process (clock_i,areset_i) 
     begin
         if (areset_i = '1') then
@@ -492,6 +559,31 @@ begin
             end if;
         end if;
     end process;
+
+    ------------------------------------------------------------------
+    --                     Grupo Equação 2                          
+    --                                                                
+    --   Goal: Calcular os termos -> a0 - a1.cos(2pi)
+    --                            -> a2.cos(4pi) - a3.cos(6pi)
+    --         Registrar o termo  -> a2.cos(4pi)
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: win_valid_1_reg;
+    --          win_a0;
+    --          win_a2;
+    --          win_minus_a1_cos2pi_reg;
+    --          win_minus_a3_cos6pi_reg;
+    --          win_a2_cos4pi_reg;
+    --
+    --   Output: win_valid_2_reg;
+    --           win_a0_minus_a1_reg;
+    --           win_a2_minus_a3_reg;
+    --           win_a2_cos4pi_sync_reg;
+    --           
+    --   Result: Os termos usados em todas as janelas são calculados com os coeficientes
+    ------------------------------------------------------------------
 
     eq_part_2 : process (clock_i,areset_i) 
     begin
@@ -509,6 +601,28 @@ begin
         end if;
     end process;
 
+    ------------------------------------------------------------------
+    --                     Grupo Equação 3                          
+    --                                                                
+    --   Goal: Calcular os termos -> a0 - a1.cos(2pi) + a2.cos(4pi) - a3.cos(6pi) [Blackman-Harris]
+    --                            -> a0 - a1.cos(2pi) + a2.cos(4pi) [Blackman]
+    --         Registrar o termo  -> a0 - a1.cos(2pi) [Hanning or Hamming]
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: win_valid_2_reg;
+    --          win_a0_minus_a1_reg;
+    --          win_a2_cos4pi_sync_reg;
+    --          win_a2_minus_a3_reg;
+    --
+    --   Output: win_valid_3_reg;
+    --           win_a0_minus_a1_sync_reg;
+    --           win_a0_minus_a1_plus_a2_reg;
+    --           win_a0_minus_a1_plus_a2_minus_a3_reg;
+    --           
+    --   Result: Os termos usados em todas as janelas são calculados com os coeficientes
+    ------------------------------------------------------------------
     eq_part_3 : process (clock_i,areset_i) 
     begin
         if (areset_i = '1') then

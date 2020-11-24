@@ -39,11 +39,6 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_control/fsm_time_zones_v2.v
 ## Double Driver
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/double_driver/double_driver.vhd
 
-## Reciprocal
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/reciprocal/cordic_slice_recp.vhd
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/reciprocal/cordic_core_recp.vhd
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/reciprocal/reciprocal_xy.vhd
-
 ## Generic Shift-reg
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/generic_shift_reg/generic_shift_reg.vhd
 
@@ -114,9 +109,6 @@ vcom -93  -novopt -O0 ../hdl/sim/fsm_control/fsm_time_zones_tb.vhd
 
 ## Double Driver
 vcom  -novopt -O0 ../hdl/sim/double_driver/double_driver_tb.vhd
-
-## Reciprocal
-vcom -93  -novopt -O0 ../hdl/sim/reciprocal/reciprocal_xy_tb.vhd
 
 ## DDS Win
 vcom -93  -novopt -O0 ../hdl/sim/dds_win/dds_cordic_win_tb.vhd

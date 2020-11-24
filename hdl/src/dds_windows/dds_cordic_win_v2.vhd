@@ -1,3 +1,43 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Agosto/2020                                                                         
+-- Module Name: dds_cordic_win_v2                                                                           
+-- Author Name: Lucas Grativol Ribeiro                          
+--                                                                                         
+-- Revision Date: 24/11/2020                                                                         
+-- Tool version: Vivado 2017.4                                                                           
+--                                                                      
+-- Goal: Gerar um seno múltiplicado por uma das possíveis janelas        
+--
+-- Description:  O módulo possibilita a escolha entre 6 tipos de janelas
+--               * 000 : Nenhuma janela é aplicada, a saída é o seno puro
+--               * 001 : Hanning window          
+--               * 010 : Hamming window         
+--               * 011 : Blackman         
+--               * 100 : Blackman-Harris         
+--               * 101 : Tukey
+--              
+--               O tipo de janela é fornecido pelo sinal "win_mode_i"
+--               e o resto é multiplexado para obter o sinal janelado desejado;
+--
+--               Para o bloco é fornecido:
+--               * phase_term : a variação de fase usada para pelo acumulador de fase para gerar os ângulos
+--                              phase_term = 2pi/(nb_points)
+--               * window_term : a variação de fase usada para pelo acumulador de fase para gerar os ângulos
+--                              window_term = 2pi/(nb_points da janela)
+--                 Obs.: É fornecido a fase em 2pi, as outras fases necessárias 4pi e 6pi
+--                       são geradas pelo módulo
+--               * nb_points  : Número de pontos do seno/cosseno em 1 período 
+--                              nb_points = (f_sampling/f_target)
+--                              f_target = frequência desejada para o seno/cosseno
+--               * initial_phase : Fase inicial do seno/cosseno
+--               * nb_repetitions: Número de períodos do seno/cosseno a serem gerados
+--               * mode_time : Modo "especial" que transforma a fase inicial em um delay para o seno
+--                             no tempo, da forma : número_de_ciclos_delay = initial_phase / phase_term
+--
+--
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -20,15 +60,15 @@ use work.utils_pkg.all;
 
 entity dds_cordic_win_v2 is
     generic(
-        PHASE_INTEGER_PART                  : natural  :=   4;
-        PHASE_FRAC_PART                     : integer  := -27;
-        CORDIC_INTEGER_PART                 : natural  :=   1; 
-        CORDIC_FRAC_PART                    : integer  := -19;
-        N_CORDIC_ITERATIONS                 : natural  :=  21;
-        NB_POINTS_WIDTH                     : natural  :=  10;  
-        WIN_INTEGER_PART                    : positive := 1;
-        WIN_FRAC_PART                       : integer  := -19;
-        WIN_NB_ITERATIONS                   : positive := 10    
+        PHASE_INTEGER_PART                  : natural; -- phase integer part
+        PHASE_FRAC_PART                     : integer; -- phase fractional part
+        CORDIC_INTEGER_PART                 : natural; -- Cordic integer part
+        CORDIC_FRAC_PART                    : integer; -- Cordic frac part
+        N_CORDIC_ITERATIONS                 : natural; -- Número de iterações do CORDIC (tamanho do pipeline)
+        NB_POINTS_WIDTH                     : natural; -- Número de bits de nb_points e nb_repetitions 
+        WIN_INTEGER_PART                    : natural; -- Windows integer part
+        WIN_FRAC_PART                       : integer; -- Windows frac part
+        WIN_NB_ITERATIONS                   : positive -- Número de iterações das janelas (tamanho do pipeline)
     );
     port(
         -- Clock interface
@@ -36,20 +76,23 @@ entity dds_cordic_win_v2 is
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        valid_i                             : in  std_logic; -- Valid in
-        win_mode_i                          : in  std_logic_vector(2 downto 0);
-        phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
-        window_term_i                       : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
-        initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
-        nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
-        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
-        mode_time_i                         : in  std_logic; 
-        restart_cycles_i                    : in  std_logic; 
+        valid_i                             : in  std_logic; -- Indica que todos os parâmetros abaixo são válidos no ciclo atual e inicia o sinal
+        win_mode_i                          : in  std_logic_vector(2 downto 0); -- Ver descrição acima
+        phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver descrição acima
+        window_term_i                       : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver descrição acima
+        initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver descrição acima 
+        nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0); -- Ver descrição acima
+        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0); -- Ver descrição acima
+        mode_time_i                         : in  std_logic;  -- Ver descrição acima
+        
+        restart_cycles_i                    : in  std_logic; -- Restart a geração da onda definina nos parâmetros anteriores
+                                                              -- todos os parâmetros são salvos, com um tick de restart
+                                                              -- a onda é gerada com os últimos parâmetros, não depende do "valid_i"
         
         -- Output interface
-        valid_o                             : out std_logic;
-        sine_win_phase_o                    : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
-        last_word_o                         : out std_logic
+        valid_o                             : out std_logic; -- Indica que as saída abaixo são válidas no ciclo atual
+        sine_win_phase_o                    : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); -- Seno[k] * janela[k]
+        last_word_o                         : out std_logic -- Indica que é o último clock ("last signal")
     );
 end dds_cordic_win_v2;
 
@@ -58,18 +101,6 @@ end dds_cordic_win_v2;
 ------------------
 architecture behavioral of dds_cordic_win_v2 is
     
-    -- -- TOTAL LATENCY =  PHASE_ACC + PREPROCESSOR +      CORDIC         
-    -- --                  2         +      2       +  N_CORDIC_ITERATIONS
-    -- constant    DDS_CORDIC_LATENCY                  : positive := 2 +  2 + N_CORDIC_ITERATIONS;
-
-    -- -- PHASE_CORRECTION + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
-    -- --         2        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        3
-    -- constant    HH_BLKM_BLKH_LATENCY    : natural := 2 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 3; --
-    
-    -- -- + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
-    -- --        4        +      2       + WIN_NB_ITERATIONS +       2      +        2
-    -- constant    TKEY_LATENCY    : natural := 4 + 2  + WIN_NB_ITERATIONS + 2 + 2; -- Tukey window 
-
     ---------------
     -- Constants --
     ---------------
@@ -89,14 +120,33 @@ architecture behavioral of dds_cordic_win_v2 is
     -- Window phase
     constant    WIN_PHASE_INTEGER_PART              : natural := PHASE_INTEGER_PART;
     constant    WIN_PHASE_FRAC_PART                 : integer := PHASE_FRAC_PART;    
-    constant    WIN_NB_POINTS_WIDTH                 : natural := 17; 
+    constant    WIN_NB_POINTS_WIDTH                 : natural := 17; -- Harcode TODO: review 
     constant    WIN_WORD_WIDTH                      : natural := (WIN_INTEGER_PART - WIN_FRAC_PART + 1);
    
     -- Shift register
     constant    SIDEBAND_WIDTH                      : natural  := 1;
 
+    -- -- TOTAL LATENCY =  PHASE_ACC + PREPROCESSOR +      CORDIC         
+    -- --                  2         +      2       +  N_CORDIC_ITERATIONS
+    constant    DDS_CORDIC_LATENCY                  : natural := 2 +  2 + N_CORDIC_ITERATIONS;
+
+    -- -- PHASE_CORRECTION + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
+    -- --         2        +      2        +      2       + WIN_NB_ITERATIONS +       2      +        3
+    constant    HH_BLKM_BLKH_LATENCY                : natural := 2 + 2 + 2 + WIN_NB_ITERATIONS + 2 + 3; -- Worst case
+    
+    -- -- + WIN_PHASE_ACC + PREPROCESSOR +      CORDIC       + POSPROCESSOR + WINDOW OPERATION 
+    -- --        4        +      2       + WIN_NB_ITERATIONS +       2      +        2
+    constant    TKEY_LATENCY                        : natural := 4 + 2  + WIN_NB_ITERATIONS + 2 + 2; -- Tukey window 
+ 
     -- Latency
-    constant    WIN_LATENCY                         : natural  := 11; -- Max entre HH e Tukey
+    -- O conjunto de janelas representado por "hh_blkm_blkh" (Haninng, Hamming, Blackman e Blackman-Harris)
+    -- possui uma latência fixa de 10 ciclos, ignorando o número de iterações, a janela Tukey possui 11 ciclos fixos. 
+    -- Para sincronizar com o CORDIC que possui menos ciclos totais, é utilizado um shift-register genérico que 
+    -- gera toda a sincronia baseado no tamanhos abaixo. 
+    -- Um tamanho zero ou menor, transformar o shift-register genérico em apenas signals nem registros.
+    constant    WIN_LATENCY                         : natural := TKEY_LATENCY;
+    constant    WIN_TO_DDS_LATENCY                  : integer  := (WIN_LATENCY  -  DDS_CORDIC_LATENCY );
+    constant    DDS_TO_WIN_LATENCY                  : integer  := (- WIN_TO_DDS_LATENCY );
 
     -------------
     -- Signals --
@@ -116,7 +166,9 @@ architecture behavioral of dds_cordic_win_v2 is
     signal      dds_cordic_done                     : std_logic;
     signal      dds_cordic_flag_full_cycle          : std_logic;
     
-    -- Stage 2 Window 
+    -- Stage 2 Windows
+    signal      win_mode                            : std_logic_vector(2 downto 0);
+
     signal      win_hh_blkm_blkh_valid_i            : std_logic;
     signal      win_hh_blkm_blkh_restart_cycles     : std_logic;
     signal      win_hh_blkm_blkh_valid_o            : std_logic;
@@ -140,6 +192,14 @@ architecture behavioral of dds_cordic_win_v2 is
     signal      dds_generic_shift_valid_o           : std_logic;
     signal      dds_generic_shift_output_data       : std_logic_vector((DDS_WORD_WIDTH - 1) downto 0);
     signal      dds_generic_shift_sideband_data_o   : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+
+    signal      win_generic_shift_valid_i           : std_logic;
+    signal      win_generic_shift_input_data        : std_logic_vector((WIN_WORD_WIDTH - 1) downto 0);
+    signal      win_generic_shift_sideband_data_i   : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+
+    signal      win_generic_shift_valid_o           : std_logic;
+    signal      win_generic_shift_output_data       : std_logic_vector((WIN_WORD_WIDTH - 1) downto 0);
+    signal      win_generic_shift_sideband_data_o   : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
     -- Stage 4 Multiply
     signal      stage_4_valid_i                     : std_logic;
@@ -202,22 +262,49 @@ begin
     -- Stage 2 --
     -------------
 
-    win_hh_blkm_blkh_valid_i            <=          valid_i             when (      win_mode_i = WIN_MODE_HANN  
-                                                                                or  win_mode_i = WIN_MODE_HAMM  
-                                                                                or  win_mode_i = WIN_MODE_BLKM  
-                                                                                or  win_mode_i = WIN_MODE_BLKH )  
+    ------------------------------------------------------------------
+    --                     Window Mode registering                           
+    --                                                                
+    --   Goal: Registrar o valor do tipo da janela
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: valid_i;
+    --          win_mode_i;
+    --
+    --   Output: win_mode;
+    --           
+    --   Result: Salva o win_mode em um registro
+    ------------------------------------------------------------------
+    register_win_mode : process(clock_i,areset_i)
+    begin
+        if (areset_i = '1') then
+            win_mode <= (others => '0');
+        elsif(rising_edge(clock_i)) then
+            if (valid_i = '1') then
+                win_mode    <= win_mode_i;
+            end if;
+        end if;
+    end process;
+
+
+    win_hh_blkm_blkh_valid_i            <=          valid_i             when (      win_mode = WIN_MODE_HANN  
+                                                                                or  win_mode = WIN_MODE_HAMM  
+                                                                                or  win_mode = WIN_MODE_BLKM  
+                                                                                or  win_mode = WIN_MODE_BLKH )  
                                             else    '0';
 
-    win_tukey_valid_i                   <=          valid_i             when (      win_mode_i = WIN_MODE_TUKEY)
+    win_tukey_valid_i                   <=          valid_i             when (      win_mode = WIN_MODE_TUKEY)
                                             else    '0';
 
-    win_hh_blkm_blkh_restart_cycles     <=          restart_cycles_i    when (      win_mode_i = WIN_MODE_HANN  
-                                                                                or  win_mode_i = WIN_MODE_HAMM  
-                                                                                or  win_mode_i = WIN_MODE_BLKM  
-                                                                                or  win_mode_i = WIN_MODE_BLKH )
+    win_hh_blkm_blkh_restart_cycles     <=          restart_cycles_i    when (      win_mode = WIN_MODE_HANN  
+                                                                                or  win_mode = WIN_MODE_HAMM  
+                                                                                or  win_mode = WIN_MODE_BLKM  
+                                                                                or  win_mode = WIN_MODE_BLKH )
                                             else    '0';
 
-    win_tukey_restart_cycles            <=          restart_cycles_i    when (win_mode_i = WIN_MODE_TUKEY)
+    win_tukey_restart_cycles            <=          restart_cycles_i    when (win_mode = WIN_MODE_TUKEY)
                                             else    '0';
     
     win_window_term                     <= window_term_i;
@@ -274,6 +361,23 @@ begin
                 tk_result_o                         => win_tukey_result
             );
 
+    ------------------------------------------------------------------
+    --                     Sync windows                           
+    --                                                                
+    --   Goal: Sincronizar as duas janelas
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: win_hh_blkm_blkh_valid_o;
+    --          win_hh_blkm_blkh_result;
+    --
+    --   Output: sync_win_hh_blkm_blkh_valid_o;
+    --           sync_win_hh_blkm_blkh_result;
+    --           
+    --   Result: O resultado das duas entidades que produzem as janelas
+    --           tem a mesma latência relativa
+    ------------------------------------------------------------------
     sync_windows_latency : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
@@ -292,6 +396,9 @@ begin
     -- Stage 3 --
     -------------
 
+    -- Stage 3 serve para sincronizar todos sinais, devido ao tamanho diferente das
+    -- janelas e do CORDIC
+
     dds_generic_shift_valid_i               <= dds_cordic_valid_o;
     dds_generic_shift_input_data            <= to_slv(dds_cordic_sine_phase);
     dds_generic_shift_sideband_data_i(0)    <= dds_cordic_done;
@@ -299,7 +406,7 @@ begin
     stage_3_dds_generic_shift: entity work.generic_shift_reg 
         generic map(
             WORD_WIDTH                          => DDS_WORD_WIDTH,
-            SHIFT_SIZE                          => WIN_LATENCY,
+            SHIFT_SIZE                          => WIN_TO_DDS_LATENCY,
             SIDEBAND_WIDTH                      => SIDEBAND_WIDTH
         )
         port map(
@@ -318,17 +425,63 @@ begin
             sideband_data_o                     => dds_generic_shift_sideband_data_o
         );
 
+    win_generic_shift_valid_i           <=              sync_win_hh_blkm_blkh_valid_o
+                                                    or  win_tukey_valid_o;
+
+    win_generic_shift_input_data        <=              to_slv(win_tukey_result)                when(win_mode = WIN_MODE_TUKEY)
+                                                else    to_slv(sync_win_hh_blkm_blkh_result);
+   
+    stage_3_win_generic_shift: entity work.generic_shift_reg 
+        generic map(
+            WORD_WIDTH                          => DDS_WORD_WIDTH,
+            SHIFT_SIZE                          => DDS_TO_WIN_LATENCY,
+            SIDEBAND_WIDTH                      => SIDEBAND_WIDTH
+        )
+        port map(
+            -- Clock interface
+            clock_i                             => clock_i,
+            areset_i                            => areset_i,
+
+            -- Input interface
+            valid_i                             => win_generic_shift_valid_i,
+            input_data_i                        => win_generic_shift_input_data,
+            sideband_data_i                     => win_generic_shift_sideband_data_i,
+            
+            -- Output interface
+            valid_o                             => win_generic_shift_valid_o,
+            output_data_o                       => win_generic_shift_output_data,
+            sideband_data_o                     => win_generic_shift_sideband_data_o
+        );
+
     -------------
     -- Stage 4 --
     -------------
 
-    stage_4_valid_i     <=      sync_win_hh_blkm_blkh_valid_o
-                            or  win_tukey_valid_o; 
+    ------------------------------------------------------------------
+    --                     Cordic Window multiplier                           
+    --                                                                
+    --   Goal: Multiplicar o CORDIC e o seno pela janela desejada
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: stage_4_valid_i;
+    --          stage_4_sine_phase;
+    --          stage_4_win_result;
+    --          dds_generic_shift_sideband_data_o(0);
+    --
+    --   Output: stage_4_valid_reg;
+    --           stage_4_result
+    --           stage_4_done
+    --           
+    --   Result: Produz o sinal janelado resultante
+    ------------------------------------------------------------------
+
+    stage_4_valid_i     <=   win_generic_shift_valid_o;   
 
     stage_4_sine_phase  <= to_sfixed( dds_generic_shift_output_data, stage_4_sine_phase);
 
-    stage_4_win_result  <=          win_tukey_result                when(win_mode_i = WIN_MODE_TUKEY)
-                            else    sync_win_hh_blkm_blkh_result ;
+    stage_4_win_result  <=  to_sfixed(win_generic_shift_output_data, stage_4_win_result);
     
     stage_4_result_proc : process(clock_i,areset_i)
     begin
@@ -349,12 +502,12 @@ begin
     ------------
     -- Output --
     ------------
-    valid_o             <=          dds_cordic_valid_o      when (win_mode_i = WIN_MODE_NONE)
+    valid_o             <=          dds_cordic_valid_o      when (win_mode = WIN_MODE_NONE)
                             else    stage_4_valid_reg;
                                 
-    sine_win_phase_o    <=          dds_cordic_sine_phase   when (win_mode_i = WIN_MODE_NONE)
+    sine_win_phase_o    <=          dds_cordic_sine_phase   when (win_mode = WIN_MODE_NONE)
                             else    stage_4_result;
 
-    last_word_o         <=          dds_cordic_done         when (win_mode_i = WIN_MODE_NONE)
+    last_word_o         <=          dds_cordic_done         when (win_mode = WIN_MODE_NONE)
                             else    stage_4_done;
 end behavioral;

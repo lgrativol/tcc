@@ -1,3 +1,34 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Agosto/2020                                                                         
+-- Module Name: fsm_time_zones (Use a versão v2)                                                                           
+-- Author Name: Lucas Grativol Ribeiro                                                                           
+--                                                                                         
+-- Revision Date: 24/11/2020                                                                         
+-- Tool version: Vivado 2017.4                                                                           
+--                                                                      
+-- Goal: Máquina de estados que controla o proceso de transmissão                                                
+--               e recepção do sinal.        
+--
+-- Description:  O cotrole do processo do sinal se faz com simples contadores                                        
+--               para o tempo de cada uma das zonas permitidas para o sinal           
+--               Zonas de tempo:                                                                          
+--               -- Tx timer : Momento que é permitido o envio do sinal,                                                                         
+--               -- Deadzone timer : Tempo entre a transmissão e a recepção,                   
+--               --                  em que nada acontece; 
+--               -- Rx timer : Tempo reservado a recepção do sinal;                    
+--               -- Idle timer : Tempo em que nada acontece;                   
+--                                  
+--               O controle não interfere na síntese do sinal TX;                    
+--               Ao invés disso, o controle decide o tempo entre o inicio da RX 
+--               e o fim de TX, habilitando a RX;
+--               O tempo idle final marca o tempo para recomeçar a o envio de um sinal,
+--               controlando múltiplos disparos.
+--
+--               Obs.: Não existe proteção de tempos nulos, caso um sinal seja zero b"[0..0]
+--                     a lógica transformar o contador em b"[1..1], número máximo                    
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -20,12 +51,12 @@ entity fsm_time_zones is
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        strb_i                              : in  std_logic; -- Valid in
+        valid_i                              : in  std_logic; -- Valid in
         tx_time_i                           : in  std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
-        tx_off_time_i                       : in  std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
+        tx_off_time_i                       : in  std_logic_vector(( DEADZONE_TIME_WIDTH - 1) downto 0);
         rx_time_i                           : in  std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
-        off_time_i                          : in  std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
-        output_strb_i                       : in  std_logic;
+        off_time_i                          : in  std_logic_vector(( IDLE_TIME_WIDTH - 1) downto 0);
+        output_valid_i                       : in  std_logic;
         
         -- Control Interface
         restart_cycles_o                    : out std_logic;
@@ -52,23 +83,23 @@ architecture behavioral of fsm_time_zones is
     -- Input
     
     signal  tx_time                             : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
-    signal  tx_off_time                         : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
+    signal  tx_off_time                         : std_logic_vector(( DEADZONE_TIME_WIDTH - 1) downto 0);
     signal  rx_time                             : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
-    signal  off_time                            : std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
+    signal  off_time                            : std_logic_vector(( IDLE_TIME_WIDTH - 1) downto 0);
 
     -- FSM
     signal  time_state                          : tp_time_state;
 
     -- Behavioral
     signal  tx_time_reg                         : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
-    signal  tx_off_time_reg                     : std_logic_vector(( TX_OFF_TIME_WIDTH - 1) downto 0);
+    signal  tx_off_time_reg                     : std_logic_vector(( DEADZONE_TIME_WIDTH - 1) downto 0);
     signal  rx_time_reg                         : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
-    signal  off_time_reg                        : std_logic_vector(( OFF_TIME_WIDTH - 1) downto 0);
+    signal  off_time_reg                        : std_logic_vector(( IDLE_TIME_WIDTH - 1) downto 0);
     
     signal  counter_tx_time                     : unsigned(( TX_TIME_WIDTH - 1) downto 0);
-    signal  counter_tx_off_time                 : unsigned(( TX_OFF_TIME_WIDTH - 1) downto 0);
+    signal  counter_tx_off_time                 : unsigned(( DEADZONE_TIME_WIDTH - 1) downto 0);
     signal  counter_rx_time                     : unsigned(( RX_TIME_WIDTH - 1) downto 0);
-    signal  counter_off_time                    : unsigned(( OFF_TIME_WIDTH - 1) downto 0);
+    signal  counter_off_time                    : unsigned(( IDLE_TIME_WIDTH - 1) downto 0);
     
     signal  counter_tx_time_done                : std_logic;
     signal  counter_tx_off_time_done            : std_logic;
@@ -91,7 +122,7 @@ begin
     input_reg : process (clock_i)
     begin
         if(rising_edge(clock_i)) then
-            if (strb_i = '1') then
+            if (valid_i = '1') then
                 tx_time_reg      <= tx_time;      
                 tx_off_time_reg  <= tx_off_time;
                 rx_time_reg      <= rx_time;      
@@ -117,7 +148,7 @@ begin
                 
                 when ST_INPUT =>
 
-                    if(strb_i = '1') then                        
+                    if(valid_i = '1') then                        
                         counter_tx_time  <= (others => '0');
                         time_state       <= ST_TX;
                     else
@@ -128,7 +159,7 @@ begin
                     
                     --restart_cycles <= '1';
 
-                    if(output_strb_i = '1') then
+                    if(output_valid_i = '1') then
                         if (counter_tx_time_done = '1') then
                             time_state       <= ST_TX_OFF;
                             counter_tx_off_time <= (others => '0');
