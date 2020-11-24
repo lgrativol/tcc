@@ -55,7 +55,9 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/blackman/blackman_w
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/blackman_harris/blackman_harris_win.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/tukey/tukey_phase_acc.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/tukey/tukey_win.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/hh_blkm_blkh_win.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/dds_cordic_win.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_windows/dds_cordic_win_v2.vhd
 
 ## Pulser
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/pulser/pulser.vhd
@@ -132,7 +134,7 @@ vcom -93 -novopt -O0 ../hdl/sim/averager/averager_v2_tb.vhd
 
 ## TOP
 vcom -93 -novopt -O0 ../hdl/sim/top/top_tx_tb.vhd
-#vcom -93 -novopt -O0 ../hdl/sim/top/top_tb.vhd
+vcom -93 -novopt -O0 ../hdl/sim/top/top_tb.vhd
 
 ## Misc
 ##vcom -93  -novopt -O0 ../hdl/sim/misc/phase_adjust_tb.vhd
