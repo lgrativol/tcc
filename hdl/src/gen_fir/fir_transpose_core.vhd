@@ -34,6 +34,9 @@ use work.fir_weights_pkg;
 
 entity fir_direct_core is
     generic(
+        WEIGHT_INT_PART                 : natural;
+        WEIGHT_FRAC_PART                : integer;  
+        NB_TAPS                         : positive;
         WORD_INT_PART                   : natural;
         WORD_FRAC_PART                  : integer;
         SIDEBAND_WIDTH                  : natural
@@ -43,8 +46,10 @@ entity fir_direct_core is
         clock_i                         : in  std_logic;
         areset_i                        : in  std_logic; 
         
-        -- Sideband
-        
+        -- Weights
+        weights_valid_i                 : in std_logic_vector((NB_TAPS - 1) downto 0);
+        weights_data_i                  : in std_logic_vector( ((NB_TAPS *(WEIGHT_INT_PART + 1 - WEIGHT_FRAC_PART)) - 1) downto  0);
+
         --Input
         valid_i                         : in  std_logic; 
         data_i                          : in  sfixed(WORD_INT_PART downto WORD_FRAC_PART);
@@ -68,16 +73,22 @@ architecture behavioral of fir_direct_core is
     -----------
     type data_vector_tp       is array (natural range <>) of sfixed(WORD_INT_PART downto WORD_FRAC_PART);
     type sideband_vector_type is array (natural range <>) of std_logic_vector(((SIDEBAND_WIDTH + 1) - 1) downto 0); 
+    type weight_vector_tp     is array (natural range <>) of sfixed(WEIGHT_INT_PART downto WEIGHT_FRAC_PART);
 
     ---------------
     -- Constants --
     ---------------
 
-    constant FIR_NB_TAPS                    : positive := fir_weights_pkg.NB_TAPS;
+    constant FIR_NB_TAPS                    : positive := NB_TAPS;
+    constant WEIGHT_WIDTH                   : positive := WEIGHT_INT_PART + 1 - WEIGHT_FRAC_PART;
 
     -------------
     -- Signals --
     -------------
+
+    --Weights
+    signal  weights_valid                   : std_logic_vector((FIR_NB_TAPS - 1) downto 0);
+    signal  weights_data_vector             : weight_vector_tp(0 to (FIR_NB_TAPS - 1));
 
     -- Slices vectors
     signal fir_valid                        : std_logic;
@@ -100,6 +111,23 @@ begin
     slv_valid(0)                    <= valid_i;
     sideband_data_vector(0)         <= sideband_data_i & slv_valid;
 
+    weights_reg : process(clock_i,areset_i)
+    begin
+        if(areset_i = '1') then
+            weights_valid   <= (others => '0');
+        elsif (rising_edge(clock_i)) then
+            weights_valid <= weights_valid_i;
+            for weight_index in 0 to (FIR_NB_TAPS - 1) loop
+                if (weights_valid_i(weight_index) = '1') then
+                    weights_data_vector(weight_index)   <= to_sfixed(weights_data_i( (((weight_index + 1) * WEIGHT_WIDTH) - 1) 
+                                                                              downto (       weight_index * WEIGHT_WIDTH)    ),
+                                                                    WEIGHT_INT_PART,WEIGHT_FRAC_PART);
+                end if; 
+            end loop;           
+        end if;
+    end process;
+
+
     ------------------------------------
     -- FIR Transpose slices instances --
     ------------------------------------
@@ -107,9 +135,8 @@ begin
     fir_transpose_vector : for fir_index in 0 to (FIR_NB_TAPS - 1) generate
         fir_transpose_slice_inst : entity work.fir_transpose_slice
         generic map (
-            WEIGHT              => fir_weights_pkg.FIR_WEIGHTS((FIR_NB_TAPS - 1) - fir_index),
-            WEIGHT_INT_PART     => fir_weights_pkg.WEIGHT_INT_PART,
-            WEIGHT_FRAC_PART    => fir_weights_pkg.WEIGHT_FRAC_PART,
+            WEIGHT_INT_PART     => WEIGHT_INT_PART,
+            WEIGHT_FRAC_PART    => WEIGHT_FRAC_PART,
             WORD_INT_PART       => WORD_INT_PART,
             WORD_FRAC_PART      => WORD_FRAC_PART,
             SIDEBAND_WIDTH      => SIDEBAND_WIDTH + 1 -- +1 for valid
@@ -120,6 +147,9 @@ begin
 
             sideband_data_i     => sideband_data_vector(fir_index),
             sideband_data_o     => sideband_data_vector(fir_index + 1),
+
+            weight_valid_i      => weights_valid(fir_index),
+            weight_data_i       => weights_data_vector(fir_index),
             
             fir_valid_i         => fir_valid,
             sample_data_i       => sample_data,

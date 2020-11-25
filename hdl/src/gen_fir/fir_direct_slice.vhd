@@ -30,7 +30,6 @@ use ieee_proposed.fixed_pkg.all;
 
 entity fir_direct_slice is
     generic(
-        WEIGHT                          : std_logic_vector;
         WEIGHT_INT_PART                 : natural;
         WEIGHT_FRAC_PART                : integer;
         WORD_INT_PART                   : natural;
@@ -45,7 +44,11 @@ entity fir_direct_slice is
         -- Sideband
         sideband_data_i                 : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
         sideband_data_o                 : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
-        
+
+        -- Weight
+        weight_valid_i                  : in  std_logic;
+        weight_data_i                   : in  sfixed(WEIGHT_INT_PART downto WEIGHT_FRAC_PART);
+
         --Input
         upside_valid_i                  : in  std_logic; 
         upside_data_i                   : in  sfixed(WORD_INT_PART downto WORD_FRAC_PART);
@@ -72,12 +75,12 @@ architecture behavioral of fir_direct_slice is
     -- Constants --
     ---------------
 
-    -- Weight
-    constant SFIXED_WEIGHT                  : sfixed(WEIGHT_INT_PART downto WEIGHT_FRAC_PART) := to_sfixed(WEIGHT,WEIGHT_INT_PART,WEIGHT_FRAC_PART);
-
     -------------
     -- Signals --
     -------------
+
+    -- Weight logic
+    signal weight                           : sfixed(WEIGHT_INT_PART downto WEIGHT_FRAC_PART);
 
     -- Upside Logic
     signal upside_inter_valid               : std_logic;
@@ -95,6 +98,14 @@ architecture behavioral of fir_direct_slice is
         
 begin
 
+    weight_reg : process(clock_i)
+    begin
+        if (rising_edge(clock_i)) then
+            if (weight_valid_i = '1') then
+                weight   <= weight_data_i;
+            end if; 
+        end if;
+    end process;
 
     upside_logic1 : process(clock_i, areset_i)
     begin
@@ -122,7 +133,7 @@ begin
         end if;
     end process;
 
-    downside_mult       <= resize(upside_data_i * SFIXED_WEIGHT , downside_mult);
+    downside_mult       <= resize(upside_data_i * weight , downside_mult);
     downside_add_mult   <= resize(downside_mult + downside_data_i , downside_add_mult);
 
     downside_logic : process(clock_i, areset_i)
