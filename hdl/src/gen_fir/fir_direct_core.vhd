@@ -106,7 +106,8 @@ begin
     upside_valid_vector(0)          <= valid_i; 
     upside_data_vector(0)           <= data_i;
     downside_valid_vector(0)        <= valid_i; 
-    downside_data_vector(0)         <= data_i;
+    --downside_data_vector(0)         <= data_i;
+    downside_data_vector(0)         <= (others => '0');
 
     sideband_data_vector(0)         <= sideband_data_i;
 

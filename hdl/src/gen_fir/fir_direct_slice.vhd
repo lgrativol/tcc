@@ -124,6 +124,7 @@ begin
     begin
         if (areset_i = '1') then
             upside_out_valid <= '0';
+            upside_out_data   <= (others => '0');
         elsif (rising_edge(clock_i)) then
             upside_out_valid  <=  upside_inter_valid;
 
@@ -139,7 +140,8 @@ begin
     downside_logic : process(clock_i, areset_i)
     begin
         if (areset_i = '1') then
-            downside_out_valid <= '0';
+            downside_out_valid  <= '0';
+            downside_out_data   <= (others => '0');
         elsif (rising_edge(clock_i)) then
             downside_out_valid  <=  downside_valid_i;
 

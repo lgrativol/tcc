@@ -129,9 +129,7 @@ begin
     sideband_proc : process(clock_i)
     begin
         if ( rising_edge(clock_i) )then
-            if (fir_valid_i = '1') then 
-                sideband_data_reg <= sideband_data_i;
-            end if;
+            sideband_data_reg <= sideband_data_i;
         end if;
     end process;
     
