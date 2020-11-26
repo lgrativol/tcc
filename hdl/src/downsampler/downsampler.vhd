@@ -123,39 +123,37 @@ begin
     fir_in_data             <= to_sfixed(wave_data_i,fir_in_data);
     fir_in_sideband(0)      <= wave_last_i;
 
-    -- --fir_inst : entity work.fir_direct_core
-    -- fir_inst : entity work.fir_transpose_core
-    --     generic map(
-    --         WEIGHT_INT_PART                 => WEIGHT_INT_PART,
-    --         WEIGHT_FRAC_PART                => WEIGHT_FRAC_PART,
-    --         NB_TAPS                         => NB_TAPS,
-    --         WORD_INT_PART                   => FIR_WORD_INT_PART,
-    --         WORD_FRAC_PART                  => FIR_WORD_FRAC_PART,
-    --         SIDEBAND_WIDTH                  => FIR_SIDEBAND_WIDTH
-    --     )
-    --     port map(
-    --         -- Clock interface
-    --         clock_i                         => clock_i,
-    --         areset_i                        => areset_i,
+    fir_inst : entity work.fir_direct_core
+    --fir_inst : entity work.fir_transpose_core
+        generic map(
+            WEIGHT_INT_PART                 => WEIGHT_INT_PART,
+            WEIGHT_FRAC_PART                => WEIGHT_FRAC_PART,
+            NB_TAPS                         => NB_TAPS,
+            WORD_INT_PART                   => FIR_WORD_INT_PART,
+            WORD_FRAC_PART                  => FIR_WORD_FRAC_PART,
+            SIDEBAND_WIDTH                  => FIR_SIDEBAND_WIDTH
+        )
+        port map(
+            -- Clock interface
+            clock_i                         => clock_i,
+            areset_i                        => areset_i,
             
-    --         -- Weights
-    --         weights_valid_i                 => fir_weights_valid,
-    --         weights_data_i                  => fir_weights_data,
+            -- Weights
+            weights_valid_i                 => fir_weights_valid,
+            weights_data_i                  => fir_weights_data,
             
-    --         --Input
-    --         valid_i                         => fir_in_valid,
-    --         data_i                          => fir_in_data,
-    --         sideband_data_i                 => fir_in_sideband,
+            --Input
+            valid_i                         => fir_in_valid,
+            data_i                          => fir_in_data,
+            sideband_data_i                 => fir_in_sideband,
         
-    --         -- Ouput 
-    --         valid_o                         => fir_out_valid,
-    --         data_o                          => fir_out_data,
-    --         sideband_data_o                 => fir_out_sideband
-    --     );
+            -- Ouput 
+            valid_o                         => fir_out_valid,
+            data_o                          => fir_out_data,
+            sideband_data_o                 => fir_out_sideband
+        );
 
-    fir_out_valid       <= fir_in_valid;
-    fir_out_data        <= fir_in_data;
-    fir_out_sideband    <= fir_in_sideband;
+
     wave_last           <= fir_out_sideband(0);
 
     -- Downsample factor register

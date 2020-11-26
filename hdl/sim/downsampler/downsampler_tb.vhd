@@ -49,7 +49,7 @@ architecture testbench of downsampler_tb is
 
 
     -- Upsampler
-    signal      downsampler_in_wave_valid         : std_logic;
+    signal      downsampler_in_wave_valid         : std_logic :='0';
     signal      downsampler_in_wave_data          : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal      downsampler_in_wave_last          : std_logic;
 
@@ -155,8 +155,10 @@ begin
         downsampler_factor_valid          <= '1';
         downsampler_weights_valid         <= (others => '1');
         downsampler_weights_data          <= (others => '0');
-        downsampler_factor                <= std_logic_vector( to_unsigned(  1  ,downsampler_factor'length)); 
+        downsampler_factor                <= std_logic_vector( to_unsigned(  4 ,downsampler_factor'length)); 
         
+        wait for CLK_PERIOD;
+        wait until (rising_edge(clk));
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
         
@@ -165,9 +167,7 @@ begin
         
         write_memory(x"0102030405060708090A0B0C0D0E0F");
 
-        wait until downsampler_out_wave_last = '1';
-        wait until (rising_edge(clk));
-        write_memory(x"0102030405060708090A0B0C0D0E0F");
+      --  write_memory(x"0102030405060708090A0B0C0D0E0F");
 
         wait;
         
