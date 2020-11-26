@@ -40,13 +40,13 @@ architecture testbench of ring_fifo_tb is
     signal clk                                  : std_logic :='0';
     signal areset                               : std_logic :='0';
 
-    signal config_strb_i                        : std_logic := '0';
+    signal config_valid_i                        : std_logic := '0';
     signal config_max_addr                      : std_logic_vector( (ADDR_WIDTH  - 1 ) downto 0 ) := std_logic_vector( to_unsigned (RAM_DEPTH - 1 ,ADDR_WIDTH ) );
     signal config_reset_pointers                : std_logic := '0';
-    signal wr_strb_i                            : std_logic := '0';
+    signal wr_valid_i                            : std_logic := '0';
     signal wr_data                              : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal rd_en                                : std_logic := '0';
-    signal rd_strb_o                            : std_logic;
+    signal rd_valid_o                            : std_logic;
     signal rd_data                              : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal empty                                : std_logic;
     signal full                                 : std_logic;
@@ -72,17 +72,17 @@ begin
         areset_i                    => areset,
 
         -- Config  port
-        config_strb_i               => config_strb_i,
+        config_valid_i               => config_valid_i,
         config_max_addr_i           => config_max_addr,
         config_reset_pointers_i     => config_reset_pointers,
 
         -- Write port
-        wr_strb_i                   => wr_strb_i,
+        wr_valid_i                   => wr_valid_i,
         wr_data_i                   => wr_data,
 
         -- Read port
         rd_en_i                     => rd_en,
-        rd_strb_o                   => rd_strb_o, 
+        rd_valid_o                   => rd_valid_o, 
         rd_data_o                   => rd_data, 
 
         -- Flags
@@ -99,11 +99,11 @@ begin
 
         begin
 
-            wr_strb_i <= '0';
+            wr_valid_i <= '0';
 
             for idx in 0 to (NB_WORDS - 2) loop
 
-                wr_strb_i <= '1';
+                wr_valid_i <= '1';
                 wr_data   <= data ( ( (idx * DATA_WIDTH ) )  to ( ( (idx + 1) * DATA_WIDTH ) - 1)  );
                 
                 if (full = '1') then
@@ -115,7 +115,7 @@ begin
 
             end loop;
             
-            wr_strb_i <= '0';
+            wr_valid_i <= '0';
             
             wait for CLK_PERIOD;
             wait until (rising_edge(clk));
@@ -131,13 +131,13 @@ begin
         
         areset <= '0';
         
-        config_strb_i       <= '1';
+        config_valid_i       <= '1';
         config_max_addr     <= std_logic_vector( to_unsigned(  4   ,config_max_addr'length)); 
         
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
         
-        config_strb_i <= '0';
+        config_valid_i <= '0';
         
         write_memory(x"0102030405060708090A0B0C0D0E0F");
 

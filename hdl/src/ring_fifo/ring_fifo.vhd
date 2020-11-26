@@ -16,25 +16,25 @@ use work.utils_pkg.all;
 
 entity ring_fifo is
     generic (
-        DATA_WIDTH      : natural;
-        RAM_DEPTH       : natural -- RAM_DEPTH = 2^N
+        DATA_WIDTH      : natural := 10;
+        RAM_DEPTH       : natural := 512-- RAM_DEPTH = 2^N
     );
     port (
         clock_i                 : in std_logic;
         areset_i                : in std_logic;
 
         -- Config  port
-        config_strb_i           : in std_logic;
+        config_valid_i          : in std_logic;
         config_max_addr_i       : in std_logic_vector( ( ceil_log2(RAM_DEPTH + 1) - 1 ) downto 0 );
         config_reset_pointers_i : in std_logic;
 
         -- Write port
-        wr_strb_i               : in std_logic;
+        wr_valid_i              : in std_logic;
         wr_data_i               : in std_logic_vector(DATA_WIDTH - 1 downto 0);
 
         -- Read port
         rd_en_i                 : in std_logic;
-        rd_strb_o               : out std_logic;
+        rd_valid_o              : out std_logic;
         rd_data_o               : out std_logic_vector(DATA_WIDTH - 1 downto 0);
 
         -- Flags
@@ -68,10 +68,10 @@ architecture behavioral of ring_fifo is
     ------------
 
     -- Input
-    signal config_input_strb        : std_logic;
+    signal config_input_valid        : std_logic;
     signal config_max_addr          : std_logic_vector( ( MAX_ADDR_WIDTH - 1 ) downto 0 );
     signal config_reset_pointers    : std_logic;
-    signal wr_input_strb            : std_logic;
+    signal wr_input_valid            : std_logic;
     signal wr_data                  : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal rd_en                    : std_logic;
     
@@ -95,11 +95,11 @@ architecture behavioral of ring_fifo is
 
 begin
     -- Input
-    config_input_strb       <= config_strb_i;
+    config_input_valid       <= config_valid_i;
     config_max_addr         <= config_max_addr_i;
     config_reset_pointers   <= config_reset_pointers_i;
 
-    wr_input_strb           <= wr_strb_i;       
+    wr_input_valid           <= wr_valid_i;       
     wr_data                 <= wr_data_i;    
 
     rd_en                   <= rd_en_i;
@@ -111,7 +111,7 @@ begin
             config_max_addr_reg <= MAX_ADDR;
         elsif( rising_edge(clock_i)) then
 
-            if (config_input_strb = '1') then
+            if (config_input_valid = '1') then
                 config_max_addr_reg <= unsigned(config_max_addr);
             end if;
         end if;
@@ -127,7 +127,7 @@ begin
             if (config_reset_pointers = '1') then
 
                 pointer_head <= (others => '0');
-            elsif ( wr_input_strb = '1' ) then
+            elsif ( wr_input_valid = '1' ) then
 
                 ram( to_integer(pointer_head) ) := wr_data;
 
@@ -199,7 +199,7 @@ begin
 
     -- Output
 
-    rd_strb_o       <= rd_valid;
+    rd_valid_o       <= rd_valid;
     rd_data_o       <= rd_data;
 
     empty           <= flag_empty;
