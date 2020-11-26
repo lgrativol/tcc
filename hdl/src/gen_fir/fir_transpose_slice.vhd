@@ -99,9 +99,11 @@ begin
     pipeline_mult       <= resize(sample_data_i * weight , pipeline_mult);
     pipeline_add_mult   <= resize(pipeline_mult + pipeline_data_i , pipeline_add_mult);
 
-    pipeline_logic : process(clock_i)
+    pipeline_logic : process(clock_i,areset_i)
     begin
-        if (rising_edge(clock_i)) then
+        if (areset_i = '1') then
+            pipeline_out_data   <= (others => '0');
+        elsif (rising_edge(clock_i)) then
             if (fir_valid_i = '1') then
                 pipeline_out_data   <= pipeline_add_mult;
             end if; 
