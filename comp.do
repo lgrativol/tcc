@@ -88,6 +88,9 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_fifo/wave_fifo.vhd
 ## Upsamplper
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/upsampler/upsampler.vhd
 
+## Upsamplper
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/downsampler/downsampler.vhd
+
 ## TOP
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_tx.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_rx.vhd
@@ -132,6 +135,9 @@ vcom -93 -novopt -O0 ../hdl/sim/ring_fifo/ring_fifo_tb.vhd
 
 ## Upsampler
 vcom -93 -novopt -O0 ../hdl/sim/upsampler/upsampler_tb.vhd
+
+## Upsampler
+vcom -93 -novopt -O0 ../hdl/sim/downsampler/downsampler_tb.vhd
 
 ## Averager
 vcom -93 -novopt -O0 ../hdl/sim/averager/averager_tb.vhd
