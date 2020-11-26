@@ -62,7 +62,9 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/lookup_wave/sync_ram.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/lookup_wave/lookup_wave.vhd
 
 ## Averager
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/ring_fifo.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/ring_fifo/ring_fifo.vhd
+
+## Averager
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager_v2.vhd
 
@@ -79,6 +81,12 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/gen_fir/fir_direct_slice.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/gen_fir/fir_transpose_slice.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/gen_fir/fir_direct_core.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/gen_fir/fir_transpose_core.vhd
+
+## Wave FiFo
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_fifo/wave_fifo.vhd
+
+## Upsamplper
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/upsampler/upsampler.vhd
 
 ## TOP
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_tx.vhd
@@ -119,8 +127,13 @@ vcom -93  -novopt -O0 ../hdl/sim/pulser/pulser_tb.vhd
 ## LookUp Table
 vcom -93 -check_synthesis -novopt -O0 ../hdl/sim/lookup_wave/lookup_wave_tb.vhd
 
+## Ring Fifo
+vcom -93 -novopt -O0 ../hdl/sim/ring_fifo/ring_fifo_tb.vhd
+
+## Upsampler
+vcom -93 -novopt -O0 ../hdl/sim/upsampler/upsampler_tb.vhd
+
 ## Averager
-vcom -93 -novopt -O0 ../hdl/sim/averager/ring_fifo_tb.vhd
 vcom -93 -novopt -O0 ../hdl/sim/averager/averager_tb.vhd
 vcom -93 -novopt -O0 ../hdl/sim/averager/averager_v2_tb.vhd
 
