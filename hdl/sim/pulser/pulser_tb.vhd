@@ -33,7 +33,7 @@ architecture testbench of pulser_tb is
     signal clk                                 : std_logic :='0';
     signal areset                              : std_logic :='0';
 
-    signal strb_i                              : std_logic := '0';
+    signal valid_i                             : std_logic := '0';
     signal nb_repetitions                      : std_logic_vector( (NB_REPETITIONS_WIDTH - 1) downto 0);
     signal timer1                              : std_logic_vector( (TIMER_WIDTH - 1) downto 0); 
     signal timer2                              : std_logic_vector( (TIMER_WIDTH - 1) downto 0);
@@ -46,7 +46,7 @@ architecture testbench of pulser_tb is
     signal invert_pulser                       : std_logic;
     signal triple_pulser                       : std_logic;    
 
-    signal strb_o                              : std_logic;
+    signal valid_o                             : std_logic;
     signal pulser_done                         : std_logic;
     signal pulser_data                         : std_logic_vector(1 downto 0);
 
@@ -73,7 +73,7 @@ begin
         areset_i                            => areset,
 
         -- Input interface
-        strb_i                              => strb_i,
+        valid_i                              => valid_i,
         restart_i                           => '0',
         nb_repetitions_i                    => nb_repetitions,
         t1_i                                => timer1,
@@ -90,7 +90,7 @@ begin
         triple_pulser_i                     => triple_pulser,
         
         -- Output interface
-        strb_o                              => strb_o,
+        valid_o                              => valid_o,
         pulser_done_o                       => pulser_done,
         pulser_data_o                       => pulser_data
     );
@@ -98,7 +98,7 @@ begin
     stim_proc : process
     begin
         areset <= '1';
-        strb_i <= '0';
+        valid_i <= '0';
         
         for I in 0 to 3 loop
             wait for CLK_PERIOD;
@@ -111,7 +111,7 @@ begin
         report ("Teste simples");
         -- Inputs --
 
-        strb_i <= '1';
+        valid_i <= '1';
         nb_repetitions  <= std_logic_vector( to_unsigned(   1   ,nb_repetitions'length));
         timer1          <= std_logic_vector( to_unsigned(   2   ,timer1'length));
         timer2          <= std_logic_vector( to_unsigned(   2   ,timer2'length));
@@ -124,7 +124,7 @@ begin
         
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
-        strb_i <= '0';
+        valid_i <= '0';
         bang   <= '1';
 
         wait for CLK_PERIOD;
@@ -142,7 +142,7 @@ begin
         report ("Triple pulser");
         -- Inputs --
 
-        strb_i <= '1';
+        valid_i <= '1';
         nb_repetitions  <= std_logic_vector( to_unsigned(   1   ,nb_repetitions'length));
         timer1          <= std_logic_vector( to_unsigned(   2   ,timer1'length));
         timer2          <= std_logic_vector( to_unsigned(   4   ,timer2'length));
@@ -155,7 +155,7 @@ begin
         
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
-        strb_i <= '0';
+        valid_i <= '0';
         bang   <= '1';
 
         wait for CLK_PERIOD;
@@ -172,7 +172,7 @@ begin
         report ("Inverted pulser");
         -- Inputs --
 
-        strb_i <= '1';
+        valid_i <= '1';
         nb_repetitions  <= std_logic_vector( to_unsigned(   1   ,nb_repetitions'length));
         timer1          <= std_logic_vector( to_unsigned(   2   ,timer1'length));
         timer2          <= std_logic_vector( to_unsigned(   4   ,timer2'length));
@@ -185,7 +185,7 @@ begin
         
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
-        strb_i <= '0';
+        valid_i <= '0';
         bang   <= '1';
 
         wait for CLK_PERIOD;
@@ -203,7 +203,7 @@ begin
         report ("Zeros test 1");
         -- Inputs --
 
-        strb_i <= '1';
+        valid_i <= '1';
         nb_repetitions  <= std_logic_vector( to_unsigned(   4   ,nb_repetitions'length));
         timer1          <= std_logic_vector( to_unsigned(   2   ,timer1'length));
         timer2          <= std_logic_vector( to_unsigned(   0   ,timer2'length));
@@ -216,7 +216,7 @@ begin
         
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
-        strb_i <= '0';
+        valid_i <= '0';
         bang   <= '1';
 
         wait for CLK_PERIOD;
@@ -232,7 +232,7 @@ begin
         report ("Zeros test 2");
         -- Inputs --
 
-        strb_i <= '1';
+        valid_i <= '1';
         nb_repetitions  <= std_logic_vector( to_unsigned(   3   ,nb_repetitions'length));
         timer1          <= std_logic_vector( to_unsigned(   0   ,timer1'length));
         timer2          <= std_logic_vector( to_unsigned(   0   ,timer2'length));
@@ -245,7 +245,7 @@ begin
         
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
-        strb_i <= '0';
+        valid_i <= '0';
         bang   <= '1';
 
         wait for CLK_PERIOD;

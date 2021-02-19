@@ -1,3 +1,17 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Dezembro/2020                                                                
+-- Module Name: wave_generator
+-- Author Name: Lucas Grativol Ribeiro            
+--                                                                                         
+-- Revision Date: 15/01/2021
+-- Tool version: Vivado 2017.4                                                             
+--                                                                                         
+-- Goal: Servir de bloco para instanciar os geradores de sinal (exemplo)
+--          
+-- Description: Instancia um DDS CORDIC e um Pulser
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -12,6 +26,7 @@ use ieee_proposed.fixed_float_types.all;
 use ieee_proposed.fixed_pkg.all;         
 
 library work;
+use work.defs_pkg.all;
 use work.utils_pkg.all;
 
 ------------
@@ -19,20 +34,18 @@ use work.utils_pkg.all;
 ------------
 
 entity wave_generator is
-    generic(
-        OUTPUT_WIDTH                        : positive
-    );
     port(
         -- Clock interface
-        clock_i                             : in  std_logic; 
+        clock_i                             : in  std_logic; -- Clock
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        bang_i                              : in  std_logic;
-        wave_config_i                       : in  std_logic_vector(7 downto 0); 
-        restart_wave_i                      : in  std_logic;
+        bang_i                              : in  std_logic; -- Indica que o sinal deve começar a ser produzido
+        wave_config_i                       : in  std_logic_vector(0 downto 0); -- Indica qual sinal deve ser produzido (DDS =0, Pulser =1)
+        restart_wave_i                      : in  std_logic; -- Sinal para reiniciar a geração do sinal, utilizando os parâmetros 
+                                                             -- fornecidos no último sinal de valid/run
 
-        -- Pulser
+        -- Pulser (Ver pulser)
         pulser_nb_repetitions_value_i       : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
         pulser_t1_value_i                   : in  std_logic_vector((TIMER_WIDTH - 1) downto 0);
         pulser_t2_value_i                   : in  std_logic_vector((TIMER_WIDTH - 1) downto 0);
@@ -42,17 +55,17 @@ entity wave_generator is
         pulser_config_invert_i              : in  std_logic;
         pulser_config_triple_i              : in  std_logic;
 
-        -- Cordic 
+        -- Cordic  (Ver DDS CORDIC)
         dds_phase_term_value_i              : in  std_logic_vector((PHASE_WIDTH - 1) downto 0);
         dds_init_phase_value_i              : in  std_logic_vector((PHASE_WIDTH - 1) downto 0);
         dds_nb_points_i                     : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-        dds_nb_repetitions_i                : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+        dds_nb_repetitions_i                : in  std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
         dds_mode_time_i                     : in  std_logic;
     
         -- Output interface
-        strb_o                              : out std_logic;
-        wave_data_o                         : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-        wave_done_o                         : out std_logic
+        valid_o                             : out std_logic; -- Indica a validade do sinal de saída no clico atual de clock
+        wave_data_o                         : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0); -- Amostra
+        wave_done_o                         : out std_logic -- Indica que a última amostra do sinal
     );
 end wave_generator;
 
@@ -62,17 +75,13 @@ end wave_generator;
 
 architecture behavioral of wave_generator is
     
-    
-    
     ---------------
     -- Constants --
     ---------------
 
-    constant    TYPE_PULSER                     : std_logic_vector := x"1";
-    constant    TYPE_CORDIC                     : std_logic_vector := x"2";
-    constant    PULSER_NB_REPETITIONS_WIDTH     : positive         := NB_POINTS_WIDTH;
-
-
+    constant    TYPE_CORDIC                     : std_logic := '0';
+    constant    TYPE_PULSER                     : std_logic := '1';
+    constant    PULSER_NB_REPETITIONS_WIDTH     : positive  := NB_REPT_WIDTH;
 
     -------------
     -- Signals --
@@ -81,23 +90,23 @@ architecture behavioral of wave_generator is
     -- Input
     signal bang                               : std_logic;
     signal bang_reg                           : std_logic;
-    signal wave_config                        : std_logic_vector(7 downto 0);
-    signal wave_config_reg                    : std_logic_vector(7 downto 0);
+    signal wave_config                        : std_logic_vector(0 downto 0);
+    signal wave_config_reg                    : std_logic_vector(0 downto 0);
     signal restart_wave                       : std_logic;
 
-    signal wave_type                          : std_logic_vector(3 downto 0);
-    signal win_type                           : std_logic_vector(3 downto 0);
+    signal wave_type                          : std_logic_vector(0 downto 0);
+    --signal win_type                           : std_logic_vector(3 downto 0);
 
     -- CORDIC
-    signal cordic_strb_i                      : std_logic;
+    signal cordic_valid_i                     : std_logic;
     signal cordic_phase_term                  : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal cordic_nb_points                   : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal cordic_nb_repetitions              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal cordic_nb_repetitions              : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal cordic_initial_phase               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal cordic_mode_time                   : std_logic;
     signal cordic_restart_cycles              : std_logic;
     
-    signal cordic_strb_o                      : std_logic;
+    signal cordic_valid_o                     : std_logic;
     signal cordic_sine_phase                  : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     signal cordic_done_cycles                 : std_logic;
     signal cordic_flag_full_cycle             : std_logic;
@@ -106,8 +115,8 @@ architecture behavioral of wave_generator is
 
     -- Pulser
     signal pulser_bang                        : std_logic; 
-    signal pulser_strb_i                      : std_logic; -- Valid in for all inputs and mode interface
-    signal pulser_restart                     : std_logic; -- Valid in for all inputs and mode interface
+    signal pulser_valid_i                     : std_logic; 
+    signal pulser_restart                     : std_logic; 
     signal pulser_nb_repetitions              : std_logic_vector( (PULSER_NB_REPETITIONS_WIDTH - 1) downto 0);
     signal pulser_timer1                      : std_logic_vector( (TIMER_WIDTH - 1) downto 0); 
     signal pulser_timer2                      : std_logic_vector( (TIMER_WIDTH - 1) downto 0);
@@ -118,14 +127,14 @@ architecture behavioral of wave_generator is
     signal pulser_invert_pulser               : std_logic;
     signal pulser_triple_pulser               : std_logic; 
     
-    signal pulser_strb_o                      : std_logic;
+    signal pulser_valid_o                     : std_logic;
     signal pulser_done                        : std_logic;
     signal pulser_data                        : std_logic_vector(1 downto 0);
 
     signal resized_pulser_data                : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
 
     -- Output
-    signal output_strb                        : std_logic;
+    signal output_valid                       : std_logic;
     signal output_wave_data                   : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
     signal wave_done                          : std_logic;
 
@@ -137,7 +146,7 @@ begin
     restart_wave        <= restart_wave_i;
 
     --------------------
-    -- WAVE TYPE STRB --
+    -- WAVE TYPE valid --
     --------------------
 
     reg_wave_type : process(clock_i,areset_i)
@@ -156,36 +165,28 @@ begin
     end process;
 
 
-    -- 0x0 -> Nothing
+    -- 0x0 -> DDS Cordic
     -- 0x1 -> Pulser
-    -- 0x2 -> DDS Cordic
-    -- TBD
 
-    wave_type   <= wave_config_reg(3 downto 0);
+    wave_type   <= wave_config_reg;
 
-    -- 0x0 -> Nothing
-    -- 0x1 -> None (no window)
-
-    win_type    <= wave_config_reg(7 downto 4); 
-
-
-    pulser_strb_i          <=               bang_reg       when ( wave_type = TYPE_PULSER)
+    pulser_valid_i          <=               bang_reg       when ( wave_type(0) = TYPE_PULSER)
                                     else    '0';  
 
-    pulser_restart          <=              restart_wave   when ( wave_type = TYPE_PULSER)
+    pulser_restart          <=              restart_wave   when ( wave_type(0) = TYPE_PULSER)
                                     else    '0';   
 
-    cordic_strb_i           <=              bang_reg       when ( wave_type = TYPE_CORDIC)
+    cordic_valid_i           <=              bang_reg       when ( wave_type(0) = TYPE_CORDIC)
                                     else    '0';         
     
-    cordic_restart_cycles  <=               restart_wave   when ( wave_type = TYPE_CORDIC)
+    cordic_restart_cycles  <=               restart_wave   when ( wave_type(0) = TYPE_CORDIC)
                                     else    '0';   
                                     
 
     ------------
     -- Pulser --
     ------------
-    pulser_bang            <= pulser_strb_i; 
+    pulser_bang            <= pulser_valid_i; 
     pulser_nb_repetitions  <= pulser_nb_repetitions_value_i; 
     pulser_timer1          <= pulser_t1_value_i;
     pulser_timer2          <= pulser_t2_value_i; 
@@ -197,7 +198,7 @@ begin
 
     wave_pulser: entity work.pulser
     generic map(
-            NB_REPETITIONS_WIDTH                => NB_POINTS_WIDTH,
+            NB_REPETITIONS_WIDTH                => NB_REPT_WIDTH,
             TIMER_WIDTH                         => TIMER_WIDTH
         )
         port map(
@@ -206,7 +207,7 @@ begin
             areset_i                            => areset_i,
             
             -- Input interface
-            strb_i                              => pulser_strb_i,
+            valid_i                             => pulser_valid_i,
             restart_i                           => pulser_restart,
             nb_repetitions_i                    => pulser_nb_repetitions,
             t1_i                                => pulser_timer1,
@@ -223,7 +224,7 @@ begin
             triple_pulser_i                     => pulser_triple_pulser,
             
             -- Output interface
-            strb_o                              => pulser_strb_o,
+            valid_o                             => pulser_valid_o,
             pulser_done_o                       => pulser_done,
             pulser_data_o                       => pulser_data
             );  
@@ -246,6 +247,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                       => NB_REPT_WIDTH,
             EN_POSPROC                          => FALSE
         )
         port map(
@@ -254,18 +256,18 @@ begin
             areset_i                            => areset_i,
     
             -- Input interface
-            strb_i                              => cordic_strb_i,
+            valid_i                             => cordic_valid_i,
             phase_term_i                        => cordic_phase_term,
             initial_phase_i                     => cordic_initial_phase,
             nb_points_i                         => cordic_nb_points,
             nb_repetitions_i                    => cordic_nb_repetitions,
-            mode_time_i                         => cordic_mode_time, -- Forced FALSE
+            mode_time_i                         => cordic_mode_time,
             
             -- Control interface
             restart_cycles_i                    => cordic_restart_cycles,
             
             -- Output interface
-            strb_o                              => cordic_strb_o,
+            valid_o                             => cordic_valid_o,
             sine_phase_o                        => cordic_sine_phase,
             cos_phase_o                         => open,
             done_cycles_o                       => cordic_done_cycles,
@@ -280,17 +282,17 @@ begin
 
 
                                 
-    strb_o          <=          pulser_strb_o       when (wave_type = TYPE_PULSER)
-                        else    cordic_strb_o       when (wave_type = TYPE_CORDIC)
+    valid_o          <=          pulser_valid_o       when (wave_type(0) = TYPE_PULSER)
+                        else    cordic_valid_o       when (wave_type(0) = TYPE_CORDIC)
                         else    '0';
     
-    wave_data_o     <=          resized_pulser_data     when (wave_type = TYPE_PULSER)
-                        else    slv_cordic_sine_phase   when (wave_type = TYPE_CORDIC)
+    wave_data_o     <=          resized_pulser_data     when (wave_type(0) = TYPE_PULSER)
+                        else    slv_cordic_sine_phase   when (wave_type(0) = TYPE_CORDIC)
                         else    (others => '0');                     
     
     
-    wave_done_o     <=          pulser_done         when (wave_type = TYPE_PULSER)
-                        else    cordic_done_cycles  when (wave_type = TYPE_CORDIC) -- TODO: Add done signal
+    wave_done_o     <=          pulser_done         when (wave_type(0) = TYPE_PULSER)
+                        else    cordic_done_cycles  when (wave_type(0) = TYPE_CORDIC)
                         else    '0';                      
     
             

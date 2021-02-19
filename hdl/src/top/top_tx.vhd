@@ -1,3 +1,17 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Dezembro/2020                                                                
+-- Module Name: top_tx
+-- Author Name: Lucas Grativol Ribeiro            
+--                                                                                         
+-- Revision Date: 15/01/2021
+-- Tool version: Vivado 2017.4                                                             
+--                                                                                         
+-- Goal: Implementar a estrutura top de transmissão (exemplo de implementação)
+--          
+-- Description: Instancia o banco de registros, a FSM de controle e o wave generator
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -8,17 +22,13 @@ use ieee.numeric_std.all;
 
 library work;
 use work.utils_pkg.all;
+use work.defs_pkg.all;
 
 ------------
 -- Entity --
 ------------
 
 entity top_tx is
-    generic(
-        OUTPUT_WIDTH                        : positive                      := 10;
-        AXI_ADDR_WIDTH                      : positive                      := 32;  -- width of the AXI address bus
-        BASEADDR                            : std_logic_vector(31 downto 0) := x"00000000" -- the register file's system base address		
-    );
     port(
         -- Clock and Reset
         axi_aclk                            : in  std_logic;
@@ -59,22 +69,17 @@ entity top_tx is
         ----------------------
         
         -- Wave
-        wave_valid_o                        : out std_logic;
-        wave_data_o                         : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-        wave_done_o                         : out std_logic;
+        wave_valid_o                        : out std_logic; -- Indica a validade do sinal de saída no clico atual de clock
+        wave_data_o                         : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0); -- Amostra
+        wave_done_o                         : out std_logic; -- Indica que a última amostra do sinal
 
         -- Control
-        control_bang_o                      : out std_logic;
-        
-        control_sample_frequency_valid_o    : out std_logic;
-        control_sample_frequency_o          : out std_logic_vector(26 downto 0); --TBD
-
-        control_enable_rx_o                 : out std_logic;
-        control_system_sending_i            : in  std_logic;
-        control_reset_averager_o            : out std_logic;
-        control_config_valid_o              : out std_logic;
-        control_nb_points_wave_o            : out std_logic_vector(31 downto 0); -- TBD
-        control_nb_repetitions_wave_o       : out std_logic_vector(5 downto 0)  -- TBD
+        control_rx_last_word_o              : out std_logic; -- Indica que é a última palavra na RX
+        control_enable_rx_o                 : out std_logic; -- Indica que a recepção é válida
+        control_system_sending_i            : in  std_logic; -- Indica que a operação de envio para o host está acontecendo 
+        control_config_valid_o              : out std_logic; -- India que as informações de configuração são válida nesse ciclo de clock
+        control_nb_points_wave_o            : out std_logic_vector((WAVE_NB_POINTS_WIDTH - 1) downto 0); -- Número de pontos totais do sinal 
+        control_nb_repetitions_wave_o       : out std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0)  -- Número de shots do sinal (para cálculo da média)
     );
 
 end top_tx;
@@ -91,10 +96,8 @@ architecture behavioral of top_tx is
     constant    VERSION                             : std_logic_vector(7 downto 0)  :=x"01" ;
 
     constant    WAVE_GEN_OUTPUT_DATA_WIDTH          : positive  := 10;
-    constant    NB_SHOTS_WIDTH            : positive  := 6;
 
-    constant    CONFIG_NB_POINTS_WIDTH              : positive  := control_nb_points_wave_o'length;
-
+    --constant    CONFIG_NB_POINTS_WIDTH              : positive  := control_nb_points_wave_o'length;
 
     -------------
     -- Signals --
@@ -106,45 +109,41 @@ architecture behavioral of top_tx is
     signal      bang_strobe                             : std_logic;
     signal      bang_field                              : std_logic_vector(0 downto 0);
 
-    signal      wave_config_wave_type                   : std_logic_vector(3 downto 0); -- TBD
-    signal      wave_config_win_type                    : std_logic_vector(3 downto 0); -- TBD
-
-    signal      sample_frequency_strobe                 : std_logic;
-    signal      sample_frequency_value                  : std_logic_vector(26 downto 0); --TBD
-
+    signal      wave_nb_periods_strobe                  : std_logic;
+    signal      wave_nb_periods_value                   : std_logic_vector(7 downto 0);
     signal      wave_nb_points_strobe                   : std_logic;
     signal      wave_nb_points_value                    : std_logic_vector(31 downto 0);
-    
-    signal      fsm_nb_shots_strobe               : std_logic;
-    signal      fsm_nb_shots_value                : std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0); -- TBD
-    signal      delay_timer_value                       : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
-    signal      tx_timer_value                          : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
-    signal      deadzone_timer_value                    : std_logic_vector((DEADZONE_TIME_WIDTH - 1) downto 0);
-    signal      rx_timer_value                          : std_logic_vector((RX_TIME_WIDTH - 1) downto 0);
-    signal      idle_timer_value                        : std_logic_vector((IDLE_TIME_WIDTH - 1) downto 0);
-    
-    signal      pulser_nb_repetitions_value             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      pulser_t1_value                         : std_logic_vector((TIMER_WIDTH - 1) downto 0);
-    signal      pulser_t2_value                         : std_logic_vector((TIMER_WIDTH - 1) downto 0);
-    signal      pulser_t3_value                         : std_logic_vector((TIMER_WIDTH - 1) downto 0);
-    signal      pulser_t4_value                         : std_logic_vector((TIMER_WIDTH - 1) downto 0);
-    signal      pulser_tdamp_value                      : std_logic_vector((TIMER_WIDTH - 1) downto 0);
+    signal      wave_config_strobe                      : std_logic;
+    signal      wave_config_value                       : std_logic_vector(0 downto 0);
+
+    signal      fsm_nb_repetitions_strobe               : std_logic;
+    signal      fsm_nb_repetitions_value                : std_logic_vector(5 downto 0);
+    signal      fsm_setup_timer_value                   : std_logic_vector(17 downto 0);
+    signal      fsm_tx_timer_value                      : std_logic_vector(17 downto 0);
+    signal      fsm_deadzone_timer_value                : std_logic_vector(17 downto 0);
+    signal      fsm_rx_timer_value                      : std_logic_vector(17 downto 0);
+    signal      fsm_idle_timer_value                    : std_logic_vector(17 downto 0);
+
+    signal      pulser_t1_value                         : std_logic_vector(9 downto 0);
+    signal      pulser_t2_value                         : std_logic_vector(9 downto 0);
+    signal      pulser_t3_value                         : std_logic_vector(9 downto 0);
+    signal      pulser_t4_value                         : std_logic_vector(9 downto 0);
+    signal      pulser_t5_value                         : std_logic_vector(9 downto 0);
     signal      pulser_config_invert                    : std_logic_vector(0 downto 0);
     signal      pulser_config_triple                    : std_logic_vector(0 downto 0);
 
-    signal      dds_phase_term_value                    : std_logic_vector((PHASE_WIDTH - 1) downto 0);
-    signal      dds_init_phase_value                    : std_logic_vector((PHASE_WIDTH - 1) downto 0);
-    signal      dds_nb_points                           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      dds_nb_repetitions                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      dds_phase_term_value                    : std_logic_vector(31 downto 0);
+    signal      dds_nb_points_value                     : std_logic_vector(17 downto 0);
+    signal      dds_init_phase_value                    : std_logic_vector(31 downto 0);
     signal      dds_mode_time                           : std_logic_vector(0 downto 0);
 
     -- Wave Generator
     signal      wave_gen_bang                           : std_logic;
     signal      wave_gen_restart_wave                   : std_logic;
 
-    signal      wave_gen_wave_config                    : std_logic_vector(7 downto 0);
+    signal      wave_gen_wave_config                    : std_logic_vector(0 downto 0);
 
-    signal      wave_gen_pulser_nb_repetitions_value    : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      wave_gen_pulser_nb_repetitions_value    : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal      wave_gen_pulser_t1_value                : std_logic_vector((TIMER_WIDTH - 1) downto 0);
     signal      wave_gen_pulser_t2_value                : std_logic_vector((TIMER_WIDTH - 1) downto 0);
     signal      wave_gen_pulser_t3_value                : std_logic_vector((TIMER_WIDTH - 1) downto 0);
@@ -156,7 +155,7 @@ architecture behavioral of top_tx is
     signal      wave_gen_dds_phase_term_value           : std_logic_vector((PHASE_WIDTH - 1) downto 0);
     signal      wave_gen_dds_init_phase_value           : std_logic_vector((PHASE_WIDTH - 1) downto 0);
     signal      wave_gen_dds_nb_points                  : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      wave_gen_dds_nb_repetitions             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      wave_gen_dds_nb_repetitions             : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal      wave_gen_dds_mode_time                  : std_logic;
 
     signal      wave_gen_valid_o                        : std_logic;
@@ -166,19 +165,20 @@ architecture behavioral of top_tx is
     --FSM         
     signal      fsm_bang_i                              : std_logic;
     signal      fsm_bang_o                              : std_logic;
-    signal      fsm_nb_shots                      : std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0); -- TBD
+    signal      fsm_nb_shots                            : std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0); 
     signal      fsm_delay_time                          : std_logic_vector((DELAY_TIME_WIDTH - 1) downto 0);
     signal      fsm_tx_time                             : std_logic_vector((TX_TIME_WIDTH - 1) downto 0);
-    signal      fsm_deadzone_time                         : std_logic_vector((DEADZONE_TIME_WIDTH - 1) downto 0);
+    signal      fsm_deadzone_time                       : std_logic_vector((DEADZONE_TIME_WIDTH - 1) downto 0);
     signal      fsm_rx_time                             : std_logic_vector((RX_TIME_WIDTH - 1) downto 0);
-    signal      fsm_idle_time                            : std_logic_vector((IDLE_TIME_WIDTH - 1) downto 0);
+    signal      fsm_idle_time                           : std_logic_vector((IDLE_TIME_WIDTH - 1) downto 0);
     
     signal      fsm_output_valid                        : std_logic;
     signal      fsm_system_busy                         : std_logic;
    
+    signal      fsm_rx_last_word                        : std_logic;
     signal      fsm_enable_rx                           : std_logic;
     signal      fsm_restart_cycles                      : std_logic;
-    signal      fsm_end_zons_cycles                     : std_logic;
+    signal      fsm_end_zone_cycles                     : std_logic;
 
     -- Output
     signal      control_config_output_valid             : std_logic;
@@ -188,72 +188,64 @@ begin
     -------------------
     -- Register Bank --
     -------------------
-
-    register_bank_inst : entity work.register_bank_regs
-    generic map (
-            AXI_ADDR_WIDTH      => AXI_ADDR_WIDTH,
-            BASEADDR            => BASEADDR
+    register_bank_inst: entity work.register_bank_v1_regs
+        generic map (
+            AXI_ADDR_WIDTH => AXI_ADDR_WIDTH,
+            BASEADDR => BASEADDR
         )
         port map(
             -- Clock and Reset
-            axi_aclk                            => axi_aclk,   
-            axi_aresetn                         => axi_aresetn,
-
-            -------------------
-            -- AXI Interface --
-            -------------------
-
+            axi_aclk    => axi_aclk,   
+            axi_aresetn => axi_aresetn,
             -- AXI Write Address Channel
-            s_axi_awaddr                        => s_axi_awaddr, 
-            s_axi_awprot                        => s_axi_awprot, 
-            s_axi_awvalid                       => s_axi_awvalid,
-            s_axi_awready                       => s_axi_awready,
+            s_axi_awaddr  => s_axi_awaddr, 
+            s_axi_awprot  => s_axi_awprot, 
+            s_axi_awvalid => s_axi_awvalid,
+            s_axi_awready => s_axi_awready,
             -- AXI Write Data Channel
-            s_axi_wdata                         => s_axi_wdata, 
-            s_axi_wstrb                         => s_axi_wstrb, 
-            s_axi_wvalid                        => s_axi_wvalid,
-            s_axi_wready                        => s_axi_wready,
+            s_axi_wdata   => s_axi_wdata, 
+            s_axi_wstrb   => s_axi_wstrb, 
+            s_axi_wvalid  => s_axi_wvalid,
+            s_axi_wready  => s_axi_wready,
             -- AXI Read Address Channel
-            s_axi_araddr                        => s_axi_araddr, 
-            s_axi_arprot                        => s_axi_arprot,         
-            s_axi_arready                       => s_axi_arready,
-            s_axi_arvalid                       => s_axi_arvalid,
+            s_axi_araddr  => s_axi_araddr, 
+            s_axi_arprot  => s_axi_arprot,         
+            s_axi_arvalid => s_axi_arvalid,
+            s_axi_arready => s_axi_arready,
             -- AXI Read Data Channel
-            s_axi_rdata                         => s_axi_rdata, 
-            s_axi_rresp                         => s_axi_rresp, 
-            s_axi_rvalid                        => s_axi_rvalid,
-            s_axi_rready                        => s_axi_rready,
+            s_axi_rdata   => s_axi_rdata, 
+            s_axi_rresp   => s_axi_rresp, 
+            s_axi_rvalid  => s_axi_rvalid,
+            s_axi_rready  => s_axi_rready,
             -- AXI Write Response Channel
-            s_axi_bresp                         => s_axi_bresp,
-            s_axi_bvalid                        => s_axi_bvalid, 
-            s_axi_bready                        => s_axi_bready,
-            
-            ----------------
-            -- User Ports --
-            ----------------
+            s_axi_bresp   => s_axi_bresp,
+            s_axi_bvalid  => s_axi_bvalid, 
+            s_axi_bready  => s_axi_bready,
+            -- User Ports  
             version_strobe => open,
             version_field => VERSION,
             bang_strobe => bang_strobe,
             bang_field => bang_field,
-            wave_config_strobe => open,
-            wave_config_wave_type => wave_config_wave_type,
-            wave_config_win_type => wave_config_win_type,
-            sample_frequency_strobe => sample_frequency_strobe,
-            sample_frequency_value => sample_frequency_value,
+            sample_frequency_strobe => open,
+            sample_frequency_value => open,
+            wave_nb_periods_strobe => wave_nb_periods_strobe,
+            wave_nb_periods_value => wave_nb_periods_value,
             wave_nb_points_strobe => wave_nb_points_strobe,
             wave_nb_points_value => wave_nb_points_value,
-            fsm_nb_repetitions_strobe => fsm_nb_shots_strobe,
-            fsm_nb_repetitions_value => fsm_nb_shots_value,
-            tx_timer_strobe => open,
-            tx_timer_value => tx_timer_value,
-            deadzone_timer_strobe => open,
-            deadzone_timer_value => deadzone_timer_value,
-            rx_timer_strobe => open,
-            rx_timer_value => rx_timer_value,
-            idle_timer_strobe => open,
-            idle_timer_value => idle_timer_value,
-            pulser_nb_repetitions_strobe => open,
-            pulser_nb_repetitions_value => pulser_nb_repetitions_value,
+            wave_config_strobe => wave_config_strobe,
+            wave_config_value => wave_config_value,
+            fsm_nb_repetitions_strobe => fsm_nb_repetitions_strobe,
+            fsm_nb_repetitions_value => fsm_nb_repetitions_value,
+            fsm_setup_timer_strobe => open,
+            fsm_setup_timer_value => fsm_setup_timer_value,
+            fsm_tx_timer_strobe => open,
+            fsm_tx_timer_value => fsm_tx_timer_value,
+            fsm_deadzone_timer_strobe => open,
+            fsm_deadzone_timer_value => fsm_deadzone_timer_value,
+            fsm_rx_timer_strobe => open,
+            fsm_rx_timer_value => fsm_rx_timer_value,
+            fsm_idle_timer_strobe => open,
+            fsm_idle_timer_value => fsm_idle_timer_value,
             pulser_t1_strobe => open,
             pulser_t1_value => pulser_t1_value,
             pulser_t2_strobe => open,
@@ -262,21 +254,20 @@ begin
             pulser_t3_value => pulser_t3_value,
             pulser_t4_strobe => open,
             pulser_t4_value => pulser_t4_value,
-            pulser_tdamp_strobe => open,
-            pulser_tdamp_value => pulser_tdamp_value,
+            pulser_t5_strobe => open,
+            pulser_t5_value => pulser_t5_value,
             pulser_config_strobe => open,
             pulser_config_invert => pulser_config_invert,
             pulser_config_triple => pulser_config_triple,
             dds_phase_term_strobe => open,
             dds_phase_term_value => dds_phase_term_value,
+            dds_nb_points_strobe => open,
+            dds_nb_points_value => dds_nb_points_value,
             dds_init_phase_strobe => open,
             dds_init_phase_value => dds_init_phase_value,
-            dds_nb_strobe => open,
-            dds_nb_points => dds_nb_points,
-            dds_nb_repetitions => dds_nb_repetitions,
             dds_mode_strobe => open,
             dds_mode_time => dds_mode_time
-        );
+    );
 
     bang        <=              bang_strobe 
                             and bang_field(0);
@@ -286,31 +277,29 @@ begin
     -- Wave Gen --
     --------------   
     
-    wave_gen_bang           <=          fsm_bang_o;
+    wave_gen_bang                           <=          fsm_bang_o; 
 
-    wave_gen_pulser_nb_repetitions_value    <= pulser_nb_repetitions_value;
+    wave_gen_pulser_nb_repetitions_value    <= std_logic_vector( resize( unsigned(wave_nb_periods_value), NB_REPT_WIDTH));
     wave_gen_pulser_t1_value                <= pulser_t1_value;
     wave_gen_pulser_t2_value                <= pulser_t2_value;
     wave_gen_pulser_t3_value                <= pulser_t3_value;
     wave_gen_pulser_t4_value                <= pulser_t4_value;
-    wave_gen_pulser_tdamp_value             <= pulser_tdamp_value;
+    wave_gen_pulser_tdamp_value             <= pulser_t5_value;
     wave_gen_pulser_config_invert           <= pulser_config_invert(0);
     wave_gen_pulser_config_triple           <= pulser_config_triple(0);
 
     wave_gen_dds_phase_term_value           <= dds_phase_term_value;
     wave_gen_dds_init_phase_value           <= dds_init_phase_value;
-    wave_gen_dds_nb_points                  <= dds_nb_points;
-    wave_gen_dds_nb_repetitions             <= dds_nb_repetitions;
+    wave_gen_dds_nb_points                  <= std_logic_vector( resize( unsigned(dds_nb_points_value), NB_POINTS_WIDTH));
+    wave_gen_dds_nb_repetitions             <= wave_gen_pulser_nb_repetitions_value;
     wave_gen_dds_mode_time                  <= dds_mode_time(0);
 
-    wave_gen_wave_config                    <= ( wave_config_win_type & wave_config_wave_type );   
+    --wave_gen_wave_config                    <= ( wave_config_win_type & wave_config_wave_type );   
+    wave_gen_wave_config                    <= ( wave_config_value );   
 
     wave_gen_restart_wave                   <= fsm_restart_cycles;        
 
     wave_gen_inst : entity work.wave_generator
-        generic map(
-            OUTPUT_WIDTH                        => WAVE_GEN_OUTPUT_DATA_WIDTH
-        )
         port map(
             -- Clock interface
             clock_i                             => axi_aclk,
@@ -338,7 +327,7 @@ begin
             dds_mode_time_i                     => wave_gen_dds_mode_time,
     
             -- Output interface
-            valid_o                              => wave_gen_valid_o,
+            valid_o                             => wave_gen_valid_o,
             wave_data_o                         => wave_gen_wave_data_o,
             wave_done_o                         => wave_gen_wave_done
         );
@@ -349,13 +338,12 @@ begin
 
     fsm_bang_i          <=              bang;
 
-    fsm_nb_shots  <= fsm_nb_shots_value;
-    --fsm_delay_time      <= delay_timer_value;
-    fsm_delay_time      <= tx_timer_value;
-    fsm_tx_time         <= tx_timer_value;
-    fsm_deadzone_time     <= deadzone_timer_value;
-    fsm_rx_time         <= rx_timer_value;
-    fsm_idle_time        <= idle_timer_value;
+    fsm_nb_shots        <= fsm_nb_repetitions_value;
+    fsm_delay_time      <= fsm_setup_timer_value;
+    fsm_tx_time         <= fsm_tx_timer_value;
+    fsm_deadzone_time   <= fsm_deadzone_timer_value;
+    fsm_rx_time         <= fsm_rx_timer_value;
+    fsm_idle_time       <= fsm_idle_timer_value;
     fsm_output_valid    <= wave_gen_valid_o;
     fsm_system_busy     <= control_system_sending_i;
 
@@ -385,7 +373,8 @@ begin
             -- Control Interface
             enable_rx_o                         => fsm_enable_rx,
             restart_cycles_o                    => fsm_restart_cycles,
-            end_zones_cycle_o                   => fsm_end_zons_cycles
+            rx_last_word_o                      => fsm_rx_last_word,
+            end_zones_cycle_o                   => fsm_end_zone_cycles
         );
 
     -- Output
@@ -395,18 +384,13 @@ begin
     wave_done_o                         <= wave_gen_wave_done;
 
     -- Control
-    control_bang_o                      <= fsm_bang_o;
-    
-    control_sample_frequency_valid_o    <= sample_frequency_strobe;
-    control_sample_frequency_o          <= sample_frequency_value;
-
+    control_rx_last_word_o              <= fsm_rx_last_word;   
     control_enable_rx_o                 <= fsm_enable_rx;   
-    control_reset_averager_o            <= fsm_end_zons_cycles;
     
-    control_config_valid_o              <=          fsm_nb_shots_strobe
+    control_config_valid_o              <=          fsm_nb_repetitions_strobe
                                                 or  wave_nb_points_strobe;
                                                 
-    control_nb_points_wave_o            <= wave_nb_points_value;
-    control_nb_repetitions_wave_o       <= fsm_nb_shots_value;
+    control_nb_points_wave_o            <= std_logic_vector( resize( unsigned(wave_nb_points_value), WAVE_NB_POINTS_WIDTH));
+    control_nb_repetitions_wave_o       <= fsm_nb_repetitions_value;
 
 end behavioral;

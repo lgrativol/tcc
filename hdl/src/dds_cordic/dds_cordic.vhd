@@ -48,6 +48,9 @@ library ieee_proposed;
 use ieee_proposed.fixed_float_types.all;
 use ieee_proposed.fixed_pkg.all;         
 
+library work;
+use work.utils_pkg.all;
+ 
 ------------
 -- Entity --
 ------------
@@ -56,10 +59,11 @@ entity dds_cordic is
     generic(
         PHASE_INTEGER_PART                  : natural; -- phase integer part
         PHASE_FRAC_PART                     : integer; -- phase fractional part
-        CORDIC_INTEGER_PART                 : integer; -- Cordic integer part
+        CORDIC_INTEGER_PART                 : integer;-- Cordic integer part
         CORDIC_FRAC_PART                    : integer; -- Cordic frac part
         N_CORDIC_ITERATIONS                 : natural; -- Número de iterações do CORDIC (tamanho do pipeline)
-        NB_POINTS_WIDTH                     : natural; -- Número de bits de nb_points e nb_repetitions 
+        NB_POINTS_WIDTH                     : natural; -- Número de bits de nb_points
+        NB_REPT_WIDTH                       : natural; -- Número de bits de nb_repetitions 
         EN_POSPROC                          : boolean  -- Enable bloco pos_processador, necessário para o cosseno
     );
     port(
@@ -72,7 +76,7 @@ entity dds_cordic is
         phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver descrição acima
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver descrição acima
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0); -- Ver descrição acima
-        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0); -- Ver descrição acima
+        nb_repetitions_i                    : in  std_logic_vector( (NB_REPT_WIDTH - 1) downto 0); -- Ver descrição acima
         mode_time_i                         : in  std_logic;  -- Ver descrição acima
         
         restart_cycles_i                    : in  std_logic;  -- Restart a geração da onda definina nos parâmetros anteriores
@@ -111,7 +115,7 @@ architecture behavioral of dds_cordic is
     signal      phase_acc_phase_term        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);   
     signal      phase_acc_initial_phase     : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      phase_acc_nb_points         : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      phase_acc_nb_repetitions    : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      phase_acc_nb_repetitions    : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal      phase_acc_mode_time         : std_logic;
 
     signal      phase_acc_restart_cycles    : std_logic;
@@ -178,7 +182,8 @@ begin
         generic map(
             PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
             PHASE_FRAC_PART                    => PHASE_FRAC_PART,
-            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH
+            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                      => NB_REPT_WIDTH
         )
         port map(
             -- Clock interface
@@ -267,13 +272,13 @@ begin
             sideband_data_i                 => cordic_core_sideband_i,
             sideband_data_o                 => cordic_core_sideband_o,
             
-            valid_i                          => cordic_core_valid_i, -- Valid in
+            valid_i                         => cordic_core_valid_i, -- Valid in
             
             X_i                             => cordic_core_x_i,   -- X coordenada inicial
             Y_i                             => cordic_core_y_i,   -- Y coordenada inicial
             Z_i                             => cordic_core_z_i,   -- ângulo para rotação
             
-            valid_o                          => cordic_core_valid_o, -- Valid out
+            valid_o                         => cordic_core_valid_o, -- Valid out
             X_o                             => cordic_core_x_o, -- cosseno 
             Y_o                             => cordic_core_y_o, -- seno
             Z_o                             => cordic_core_z_o  -- ângulo depois da rotação
@@ -283,7 +288,7 @@ begin
     -- Stage 4  --
     --------------
 
-    posproc_valid_i        <=  cordic_core_valid_o;
+    posproc_valid_i       <=  cordic_core_valid_o;
     posproc_sin_phase_i   <=  cordic_core_y_o;
     posproc_cos_phase_i   <=  cordic_core_x_o;
     posproc_phase_info    <=  cordic_core_sideband_o(1 downto 0);

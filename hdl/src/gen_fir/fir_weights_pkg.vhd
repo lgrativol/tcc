@@ -1,3 +1,13 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: 21/11/2020                                                                                                                      
+-- Author Name: Lucas Grativol Ribeiro            
+--                                                                                                                                                  
+-- Tool version: Vivado 2017.4                                                             
+--                                                                                         
+-- Goal: Pacote usado como exemplo para os pesos e configuração dos FIRs 
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------

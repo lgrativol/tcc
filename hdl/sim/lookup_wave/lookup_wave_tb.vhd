@@ -42,7 +42,7 @@ architecture testbench of lookup_wave_tb is
     signal areset                               : std_logic :='0';
 
     signal new_wave                             : std_logic;
-    signal nb_points                            : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_points                            : std_logic_vector((ADDR_WIDTH - 1) downto 0);
     signal nb_repetitions                       : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     
     signal bang                                 : std_logic;
@@ -73,7 +73,7 @@ begin
             INIT_FILE                   => "",
             WORD_WIDTH                  => WORD_WIDTH,
             RAM_DEPTH                   => MAX_NB_POINTS,
-            NB_POINTS_WIDTH             => NB_POINTS_WIDTH
+            NB_REPT_WIDTH               => NB_POINTS_WIDTH
         )
         port map(
             clock_i                     => clk,

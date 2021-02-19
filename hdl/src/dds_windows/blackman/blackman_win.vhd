@@ -1,3 +1,18 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Outubro/2020                                                                         
+-- Module Name: blackman_win                                                                      
+-- Author Name: Lucas Grativol Ribeiro                          
+--                                                                                         
+-- Revision Date: 24/11/2020                                                                         
+-- Tool version: Vivado 2017.4                                                                           
+--                                                                      
+-- Goal: Gerador da janela blackman       
+--
+-- Description:  Primeira versão do arquivo que gera a janela. Instância uma só das
+--               janelas. O arquivo "hh_blkm_blkh_win" possui todas as janelas de uma vez.
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -12,7 +27,7 @@ use ieee_proposed.fixed_float_types.all;
 use ieee_proposed.fixed_pkg.all;         
 
 library work;
-use work.utils_pkg.all;
+use work.utils_pkg.all; 
 
 ------------
 -- Entity --
@@ -20,12 +35,16 @@ use work.utils_pkg.all;
 
 entity blackman_win is
     generic( 
-        WIN_PHASE_INTEGER_PART             : natural  := 0;
-        WIN_PHASE_FRAC_PART                : integer  := -1;
-        BLKM_INTEGER_PART                  : positive := 2;
-        BLKM_FRAC_PART                     : integer  := -4;
-        BLKM_NB_ITERATIONS                 : positive := 10;
-        NB_POINTS_WIDTH                    : positive := 17             
+        PHASE_INTEGER_PART                 : natural; 
+        PHASE_FRAC_PART                    : integer; 
+        CORDIC_INTEGER_PART                : natural; 
+        CORDIC_FRAC_PART                   : integer; 
+        WIN_PHASE_INTEGER_PART             : natural;  
+        WIN_PHASE_FRAC_PART                : integer;
+        BLKM_INTEGER_PART                  : positive; 
+        BLKM_FRAC_PART                     : integer;
+        BLKM_NB_ITERATIONS                 : positive;
+        NB_POINTS_WIDTH                    : positive              
    );
     port(
         -- Clock interface
@@ -33,13 +52,13 @@ entity blackman_win is
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        strb_i                              : in  std_logic; -- Valid in
+        valid_i                              : in  std_logic; -- Valid in
         phase_term_i                        : in  ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART);
         nb_points_i                         : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0 );
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
-        strb_o                              : out std_logic;
+        valid_o                              : out std_logic;
         blkm_result_o                       : out sfixed(BLKM_INTEGER_PART downto BLKM_FRAC_PART)
     );
 end blackman_win;
@@ -53,6 +72,10 @@ architecture behavioral of blackman_win is
     ---------------
     -- Constants --
     ---------------
+
+    constant    REPT_WIDTH          : natural  := 4; -- Hardcore
+
+    -- CORDIC
     constant    CORDIC_FACTOR       : sfixed(BLKM_INTEGER_PART downto BLKM_FRAC_PART) := to_sfixed( (0.607253) , BLKM_INTEGER_PART, BLKM_FRAC_PART);
     constant    SIDEBAND_WIDTH      : natural  := 2;
     constant    DDS_WORD_WIDTH      : natural  := (BLKM_INTEGER_PART - BLKM_FRAC_PART + 1);
@@ -75,56 +98,56 @@ architecture behavioral of blackman_win is
     -------------
     
     -- Stage 1 DDS a1
-    signal      dds_2pi_strb_i                           : std_logic;
+    signal      dds_2pi_valid_i                          : std_logic;
     signal      dds_2pi_phase_term                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_2pi_nb_points                        : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      dds_2pi_nb_repetitions                   : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      dds_2pi_nb_repetitions                   : std_logic_vector((REPT_WIDTH - 1) downto 0);
     signal      dds_2pi_initial_phase                    : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_2pi_restart_cycles                   : std_logic;
     
-    signal      dds_2pi_strb_o                           : std_logic;
+    signal      dds_2pi_valid_o                          : std_logic;
     signal      dds_2pi_cos_phase                        : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
     -- Stage 2 Generic Shift DDS a1
-    signal      dds_2pi_generic_shift_strb_i            : std_logic;
+    signal      dds_2pi_generic_shift_valid_i           : std_logic;
     signal      dds_2pi_generic_shift_input_data        : std_logic_vector((DDS_WORD_WIDTH - 1) downto 0);
     signal      dds_2pi_generic_shift_sideband_data_i   : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
-    signal      dds_2pi_generic_shift_strb_o            : std_logic;
+    signal      dds_2pi_generic_shift_valid_o           : std_logic;
     signal      dds_2pi_generic_shift_output_data       : std_logic_vector((DDS_WORD_WIDTH - 1) downto 0);
 
     -- Stage 3 Phase adjust
-    signal      phase_adjust_4pi_strb_i                 : std_logic;  
+    signal      phase_adjust_4pi_valid_i                : std_logic;  
     signal      phase_adjust_4pi_phase_term             : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);    
     signal      phase_adjust_4pi_nb_points              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal      phase_adjust_sideband_data_i            : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
     
-    signal      phase_adjust_4pi_strb_o                 : std_logic;
+    signal      phase_adjust_4pi_valid_o                : std_logic;
     signal      phase_adjust_4pi_phase_term_o           : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      phase_adjust_4pi_nb_points_o            : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      phase_adjust_4pi_nb_rept_o              : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      phase_adjust_4pi_nb_rept_o              : std_logic_vector((REPT_WIDTH - 1) downto 0);
 
     -- Stage 4 DDS a2
-    signal      dds_4pi_strb_i                          : std_logic;
+    signal      dds_4pi_valid_i                         : std_logic;
     signal      dds_4pi_phase_term                      : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_4pi_nb_points                       : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      dds_4pi_nb_repetitions                  : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      dds_4pi_nb_repetitions                  : std_logic_vector((REPT_WIDTH - 1) downto 0);
     signal      dds_4pi_initial_phase                   : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_4pi_restart_cycles                  : std_logic;
     
-    signal      dds_4pi_strb_o                          : std_logic;
+    signal      dds_4pi_valid_o                          : std_logic;
     signal      dds_4pi_cos_phase                       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
 
     -- Stage 5 Window result
-    signal      win_strb_i                              : std_logic;
+    signal      win_valid_i                              : std_logic;
     signal      win_cos_2pi_phase                       : sfixed(BLKM_INTEGER_PART downto BLKM_FRAC_PART);
     signal      win_cos_4pi_phase                       : sfixed(BLKM_INTEGER_PART downto BLKM_FRAC_PART);
 
-    signal      win_strb_1_reg                          : std_logic;
+    signal      win_valid_1_reg                          : std_logic;
     signal      win_minus_a1_cos_reg                    : sfixed(BLKM_INTEGER_PART downto BLKM_FRAC_PART);
     signal      win_a2_cos_reg                          : sfixed(BLKM_INTEGER_PART downto BLKM_FRAC_PART);
     
-    signal      win_strb_2_reg                          : std_logic;
+    signal      win_valid_2_reg                          : std_logic;
     signal      win_a0_minus_a1_plus_a2_reg             : sfixed(BLKM_INTEGER_PART downto BLKM_FRAC_PART);    
         
 
@@ -134,7 +157,7 @@ begin
     -- Stage 1  --
     --------------
 
-    dds_2pi_strb_i         <= strb_i;
+    dds_2pi_valid_i         <= valid_i;
     dds_2pi_phase_term     <= phase_term_i;
     dds_2pi_nb_points      <= nb_points_i;
     dds_2pi_nb_repetitions <= std_logic_vector( to_unsigned( 1, dds_2pi_nb_repetitions'length));
@@ -149,6 +172,7 @@ begin
             CORDIC_FRAC_PART                    => BLKM_FRAC_PART,
             N_CORDIC_ITERATIONS                 => BLKM_NB_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                       => REPT_WIDTH,
             EN_POSPROC                          => TRUE
         )
         port map(
@@ -157,7 +181,7 @@ begin
             areset_i                            => areset_i,
     
             -- Input interface
-            strb_i                              => dds_2pi_strb_i,
+            valid_i                              => dds_2pi_valid_i,
             phase_term_i                        => dds_2pi_phase_term,
             initial_phase_i                     => dds_2pi_initial_phase,
             nb_points_i                         => dds_2pi_nb_points,
@@ -168,7 +192,7 @@ begin
             restart_cycles_i                    => dds_2pi_restart_cycles,
             
             -- Output interface
-            strb_o                              => dds_2pi_strb_o,
+            valid_o                              => dds_2pi_valid_o,
             sine_phase_o                        => open,
             cos_phase_o                         => dds_2pi_cos_phase,
             done_cycles_o                       => open,
@@ -179,7 +203,7 @@ begin
     -- Stage 2 --
     -------------
 
-    dds_2pi_generic_shift_strb_i            <= dds_2pi_strb_o;
+    dds_2pi_generic_shift_valid_i            <= dds_2pi_valid_o;
     dds_2pi_generic_shift_input_data        <= to_slv(dds_2pi_cos_phase);
     --dds_2pi_generic_shift_sideband_data_i   <= ;
 
@@ -195,12 +219,12 @@ begin
             areset_i                            => areset_i,
 
             -- Input interface
-            strb_i                              => dds_2pi_generic_shift_strb_i,
+            valid_i                              => dds_2pi_generic_shift_valid_i,
             input_data_i                        => dds_2pi_generic_shift_input_data,
             sideband_data_i                     => dds_2pi_generic_shift_sideband_data_i,
             
             -- Output interface
-            strb_o                              => dds_2pi_generic_shift_strb_o,
+            valid_o                              => dds_2pi_generic_shift_valid_o,
             output_data_o                       => dds_2pi_generic_shift_output_data,
             sideband_data_o                     => open
         );
@@ -209,7 +233,7 @@ begin
     -- Stage 3 --
     -------------
 
-    phase_adjust_4pi_strb_i         <= strb_i;
+    phase_adjust_4pi_valid_i         <= valid_i;
     phase_adjust_4pi_phase_term     <= phase_term_i;
     phase_adjust_4pi_nb_points      <= nb_points_i;
     --phase_adjust_sideband_data_i <= ;
@@ -219,6 +243,7 @@ begin
             PHASE_INTEGER_PART                  => WIN_PHASE_INTEGER_PART,
             PHASE_FRAC_PART                     => WIN_PHASE_FRAC_PART,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                       => REPT_WIDTH,
             FACTOR                              => PHASE_FACTOR_A2,
             SIDEBAND_WIDTH                      => SIDEBAND_WIDTH
         )
@@ -228,7 +253,7 @@ begin
             areset_i                            => areset_i,
     
             -- Input interface
-            strb_i                              => phase_adjust_4pi_strb_i,
+            valid_i                              => phase_adjust_4pi_valid_i,
             phase_in_i                          => phase_adjust_4pi_phase_term,
             nb_cycles_in_i                      => phase_adjust_4pi_nb_points,
             
@@ -237,7 +262,7 @@ begin
             sideband_data_o                     => open,
             
             -- Output interface
-            strb_o                              => phase_adjust_4pi_strb_o,
+            valid_o                              => phase_adjust_4pi_valid_o,
             phase_out_o                         => phase_adjust_4pi_phase_term_o,
             nb_cycles_out_o                     => phase_adjust_4pi_nb_points_o,
             nb_rept_out_o                       => phase_adjust_4pi_nb_rept_o
@@ -247,7 +272,7 @@ begin
     -- Stage 4  --
     --------------
 
-    dds_4pi_strb_i         <= phase_adjust_4pi_strb_o;
+    dds_4pi_valid_i         <= phase_adjust_4pi_valid_o;
     dds_4pi_phase_term     <= phase_adjust_4pi_phase_term_o;
     dds_4pi_nb_points      <= phase_adjust_4pi_nb_points_o;
     dds_4pi_nb_repetitions <= phase_adjust_4pi_nb_rept_o;
@@ -262,6 +287,7 @@ begin
             CORDIC_FRAC_PART                    => BLKM_FRAC_PART,
             N_CORDIC_ITERATIONS                 => BLKM_NB_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                       => REPT_WIDTH,
             EN_POSPROC                          => TRUE
         )
         port map(
@@ -270,7 +296,7 @@ begin
             areset_i                            => areset_i,
     
             -- Input interface
-            strb_i                              => dds_4pi_strb_i,
+            valid_i                              => dds_4pi_valid_i,
             phase_term_i                        => dds_4pi_phase_term,
             initial_phase_i                     => dds_4pi_initial_phase,
             nb_points_i                         => dds_4pi_nb_points,
@@ -281,7 +307,7 @@ begin
             restart_cycles_i                    => dds_4pi_restart_cycles,
             
             -- Output interface
-            strb_o                              => dds_4pi_strb_o,
+            valid_o                              => dds_4pi_valid_o,
             sine_phase_o                        => open,
             cos_phase_o                         => dds_4pi_cos_phase,
             done_cycles_o                       => open,
@@ -293,19 +319,19 @@ begin
     -- Stage 5 --
     -------------
 
-    win_strb_i          <= dds_2pi_generic_shift_strb_o;
+    win_valid_i          <= dds_2pi_generic_shift_valid_o;
     win_cos_2pi_phase   <= to_sfixed(dds_2pi_generic_shift_output_data , win_cos_2pi_phase);
     win_cos_4pi_phase   <= dds_4pi_cos_phase;
     
     minus_a1_cos_and_a2_cos : process (clock_i,areset_i) 
     begin
         if (areset_i = '1') then
-            win_strb_1_reg  <= '0';
+            win_valid_1_reg  <= '0';
         elsif (rising_edge(clock_i)) then
 
-            win_strb_1_reg  <= win_strb_i;
+            win_valid_1_reg  <= win_valid_i;
 
-            if (win_strb_i = '1') then
+            if (win_valid_i = '1') then
                 win_minus_a1_cos_reg <= resize ( WIN_MINUS_A1 *  win_cos_2pi_phase , win_minus_a1_cos_reg);
                 win_a2_cos_reg       <= resize ( WIN_A2 * win_cos_4pi_phase , win_a2_cos_reg);
             end if;
@@ -314,12 +340,12 @@ begin
     a0_minus_a1_plus_a2 : process (clock_i,areset_i) 
     begin
         if (areset_i = '1') then
-            win_strb_2_reg  <= '0';
+            win_valid_2_reg  <= '0';
         elsif (rising_edge(clock_i)) then
 
-            win_strb_2_reg  <= win_strb_1_reg;
+            win_valid_2_reg  <= win_valid_1_reg;
 
-            if (win_strb_1_reg = '1') then
+            if (win_valid_1_reg = '1') then
                 win_a0_minus_a1_plus_a2_reg <= resize ( WIN_A0 +  win_minus_a1_cos_reg + win_a2_cos_reg , win_a0_minus_a1_plus_a2_reg);
             end if;
         end if;
@@ -328,7 +354,7 @@ begin
     ------------
     -- Output --
     ------------
-    strb_o              <= win_strb_2_reg;
+    valid_o              <= win_valid_2_reg;
     blkm_result_o       <= win_a0_minus_a1_plus_a2_reg ;
 
 end behavioral;

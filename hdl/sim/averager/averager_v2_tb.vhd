@@ -41,7 +41,7 @@ architecture testbench of averager_v2_tb is
     constant NB_REPETITIONS_WIDTH               : positive  := 6;
     constant WORD_FRAC_PART                     : integer   := -6;    
 
-    constant SIM_NB_REPETITIONS                 : positive  := 32;
+    constant SIM_NB_REPETITIONS                 : positive  := 4;
 
 
     -------------
@@ -53,7 +53,6 @@ architecture testbench of averager_v2_tb is
 
     signal config_valid_i                       : std_logic := '0';
     signal config_max_addr                      : std_logic_vector( (ADDR_WIDTH  - 1 ) downto 0 ) := std_logic_vector( to_unsigned (MAX_NB_POINTS - 1 ,ADDR_WIDTH ) );
-    signal config_reset_pointers                : std_logic := '0';
     signal config_nb_repetitions                : std_logic_vector( (NB_REPETITIONS_WIDTH - 1) downto 0 );
 
     -- Input interface 
@@ -94,8 +93,8 @@ begin
         generic map(
             -- Behavioral
             NB_REPETITIONS_WIDTH        => NB_REPETITIONS_WIDTH,
-            WORD_FRAC_PART              => WORD_FRAC_PART,     -- WORD_INT_PART is fixed at 2 bits [-1;+1]
-            MAX_NB_POINTS               => MAX_NB_POINTS    -- MAX_NB_POINTS power of 2, needed for BRAM inferece
+            WORD_FRAC_PART              => WORD_FRAC_PART,    
+            MAX_NB_POINTS               => MAX_NB_POINTS
         )
         port map (
             clock_i                     => clk,
@@ -103,9 +102,8 @@ begin
     
             -- Config  interface
             config_valid_i              => config_valid_i,
-            config_max_addr_i           => config_max_addr, -- (NB_POINTS - 1)
+            config_max_addr_i           => config_max_addr, 
             config_nb_repetitions_i     => config_nb_repetitions, -- Only powers of 2 ( 2^0, 2^1, 2^2, 2^3 ....)
-            config_reset_pointers_i     => config_reset_pointers,
     
             -- Input interface 
             input_valid_i               => input_valid_i,
@@ -191,12 +189,17 @@ begin
         wait until (rising_edge(clk));
         
         config_valid_i <= '0';
-        config_reset_pointers <= '0';
         
         write_memory(x"11223340BE",SIM_NB_REPETITIONS,8);
 
-        -- write_memory(x"5544332211",SIM_NB_REPETITIONS,8);
-        --write_memory(x"1122334455",SIM_NB_REPETITIONS,4);
+        wait for 10*CLK_PERIOD;
+        wait until (rising_edge(clk));
+        wait for CLK_PERIOD;
+        wait until (rising_edge(clk));
+        wait for CLK_PERIOD;
+        wait until (rising_edge(clk));
+        write_memory(x"BE40332211",SIM_NB_REPETITIONS,8);
+        write_memory(x"1122334455",SIM_NB_REPETITIONS,4);
         
         wait;
         

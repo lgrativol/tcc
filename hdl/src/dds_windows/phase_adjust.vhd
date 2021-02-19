@@ -42,6 +42,7 @@ entity phase_adjust is
         PHASE_INTEGER_PART                  : natural; -- phase integer part
         PHASE_FRAC_PART                     : integer; -- phase fractional part
         NB_POINTS_WIDTH                     : positive; -- Número de bits de nb_points
+        NB_REPT_WIDTH                       : positive; -- Número de bits de nb_rept
         FACTOR                              : positive; -- Fator para ajustar a fase
         SIDEBAND_WIDTH                      : natural
     );
@@ -64,7 +65,7 @@ entity phase_adjust is
         valid_o                             : out std_logic; -- Indica que as saída abaixo são válidas no ciclo atual
         phase_out_o                         : out ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Fase ajustada
         nb_cycles_out_o                     : out std_logic_vector((NB_POINTS_WIDTH - 1) downto 0); -- Número de pontos ajustado
-        nb_rept_out_o                       : out std_logic_vector((NB_POINTS_WIDTH - 1) downto 0) -- Número de repetições ajustado
+        nb_rept_out_o                       : out std_logic_vector((NB_REPT_WIDTH - 1) downto 0) -- Número de repetições ajustado
     );
 end phase_adjust;
 
@@ -102,7 +103,7 @@ architecture behavioral of phase_adjust is
     signal      output_valid                        : std_logic; 
     signal      phase_factor                        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal      nb_cycles_factor                    : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      nb_rept_factor                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      nb_rept_factor                      : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal      sideband_data_out                   : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
 

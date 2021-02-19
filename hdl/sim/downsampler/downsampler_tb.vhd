@@ -39,13 +39,15 @@ architecture testbench of downsampler_tb is
     constant NB_TAPS                            : natural   := 2;
     constant FIR_WORD_INT_PART                  : natural   := 1;
     constant FIR_WORD_FRAC_PART                 : integer   := -6;
+    constant FIR_WORD_WIDTH                     : natural   := FIR_WORD_INT_PART + 1 - FIR_WORD_FRAC_PART;
+    constant FIR_TYPE                           : string    := "TRANS"; -- DIREC
 
     -------------
     -- Signals --
     -------------
 
-    signal clk                                  : std_logic :='0';
-    signal areset                               : std_logic :='0';
+    signal clk                                    : std_logic :='0';
+    signal areset                                 : std_logic :='0';
 
 
     -- Upsampler
@@ -76,11 +78,10 @@ begin
 
     UTT_DOWNSAMPLER: entity work.downsampler
     generic map(
-        WEIGHT_INT_PART         => WEIGHT_INT_PART,
-        WEIGHT_FRAC_PART        => WEIGHT_FRAC_PART,
+        FIR_TYPE                => FIR_TYPE,
+        WEIGHT_WIDTH            => WEIGHT_WIDTH,
         NB_TAPS                 => NB_TAPS,
-        FIR_WORD_INT_PART       => FIR_WORD_INT_PART,
-        FIR_WORD_FRAC_PART      => FIR_WORD_FRAC_PART,
+        FIR_WIDTH               => FIR_WORD_WIDTH,
         MAX_FACTOR              => MAX_FACTOR,
         DATA_WIDTH              => DATA_WIDTH
     )

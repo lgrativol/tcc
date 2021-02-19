@@ -7,9 +7,30 @@
 -- Revision Date:                                                      
 -- Tool version: Vivado 2017.4                                                             
 --                                                                                         
--- Goal: 
+-- Goal: Implementa um slice, uma unidade replicável, do FIR transpose
 --          
--- Description: 
+-- Description: Implementa um registro, um multiplicador e somador,
+--              mais detalhes no documento "references/tcc_1321111_23_12_20.pdf"   
+--
+--      FIR TRANSPOSE SLICE
+--      +--------------------------------------------------------+
+--      |                                                        |
+--      |   +---------                                           |
+--      |            |                                           |
+--      |            v                                           |
+--      |          +-+--+                                        |
+--      |          |Mult|                                        |
+--      |          |    |                                        |
+--      |          +-+--+                                        |
+--      |            |                                           |
+--      |            v                                           |
+--      |          +-+--+            +----+                      |
+--      |   +----->+Soma+----------->+    +------------->        |
+--      |          |    |            |REG |                      |
+--      |          +----+            |    |                      |
+--      |                            |    |                      |
+--      |                            +----+                      |
+--      +--------------------------------------------------------+
 ---------------------------------------------------------------------------------------------
 
 ---------------

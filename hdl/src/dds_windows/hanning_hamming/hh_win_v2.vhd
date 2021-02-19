@@ -1,3 +1,18 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Outubro/2020                                                                         
+-- Module Name: hh_win_v2                                                                      
+-- Author Name: Lucas Grativol Ribeiro                          
+--                                                                                         
+-- Revision Date: 24/11/2020                                                                         
+-- Tool version: Vivado 2017.4                                                                           
+--                                                                      
+-- Goal: Gerador dsa janelas hamming e hanning ("hh")       
+--
+-- Description:  Segunda versão do arquivo que gera as janelas. Instância só as duas
+--               janelas. O arquivo "hh_blkm_blkh_win" possui todas as janelas de uma vez.
+--------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -20,13 +35,18 @@ use work.utils_pkg.all;
 
 entity hh_win_v2 is
     generic(
-        HH_MODE                            : string   := "HANN"; -- or HAMM
-        WIN_PHASE_INTEGER_PART             : natural  := 0;
-        WIN_PHASE_FRAC_PART                : integer  := -1;
-        HH_INTEGER_PART                    : positive := 2;
-        HH_FRAC_PART                       : integer  := -4;
-        HH_NB_ITERATIONS                   : positive := 10;
-        NB_POINTS_WIDTH                    : positive := 17             
+        PHASE_INTEGER_PART                 : natural; 
+        PHASE_FRAC_PART                    : integer; 
+        CORDIC_INTEGER_PART                : natural; 
+        CORDIC_FRAC_PART                   : integer;     
+        HH_MODE                            : string; -- String que define se a janela é Hamming ("HAMM") 
+                                                     -- ou Hanning "HANN"
+        WIN_PHASE_INTEGER_PART             : natural;
+        WIN_PHASE_FRAC_PART                : integer;
+        HH_INTEGER_PART                    : positive;
+        HH_FRAC_PART                       : integer;
+        HH_NB_ITERATIONS                   : positive;
+        NB_POINTS_WIDTH                    : positive             
    );
     port(
         -- Clock interface
@@ -34,13 +54,13 @@ entity hh_win_v2 is
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        valid_i                              : in  std_logic; -- Valid in
+        valid_i                             : in  std_logic; -- Valid in
         phase_term_i                        : in  ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART);
         nb_points_i                         : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0 );
         restart_cycles_i                    : in  std_logic; 
         
         -- Output interface
-        valid_o                              : out std_logic;
+        valid_o                             : out std_logic;
         hh_result_o                         : out sfixed(HH_INTEGER_PART downto HH_FRAC_PART)
     );
 end hh_win_v2;
@@ -54,6 +74,9 @@ architecture behavioral of hh_win_v2 is
     ---------------
     -- Constants --
     ---------------
+
+    constant    REPT_WIDTH          : natural := 4; -- Hardcode
+
     constant    CORDIC_FACTOR       : sfixed(HH_INTEGER_PART downto HH_FRAC_PART) := to_sfixed( (0.607253) , HH_INTEGER_PART, HH_FRAC_PART);
     constant    MULT_FACTOR         : positive := 1;
     constant    SIDEBAND_WIDTH      : natural  := 2;
@@ -104,7 +127,7 @@ architecture behavioral of hh_win_v2 is
     signal      dds_hh_phase_term               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);   
     signal      dds_hh_initial_phase            : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_hh_nb_points                : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      dds_hh_nb_repetitions           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      dds_hh_nb_repetitions           : std_logic_vector((REPT_WIDTH - 1) downto 0);
 
     signal      dds_hh_restart_cycles           : std_logic;
     signal      dds_hh_done_cycles              : std_logic;
@@ -144,6 +167,7 @@ begin
             CORDIC_FRAC_PART                    => HH_FRAC_PART,
             N_CORDIC_ITERATIONS                 => HH_NB_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                       => REPT_WIDTH,
             EN_POSPROC                          => TRUE
         )
         port map(

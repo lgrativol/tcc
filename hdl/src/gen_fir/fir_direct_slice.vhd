@@ -7,9 +7,31 @@
 -- Revision Date:                                                      
 -- Tool version: Vivado 2017.4                                                             
 --                                                                                         
--- Goal: 
+-- Goal: Implementa um slice, uma unidade replicável, do FIR direct
 --          
--- Description: 
+-- Description: Implementa dois registros (parte superior) e um multiplicador e somador
+--              (parte inferior), mais detalhes no documento "references/tcc_1321111_23_12_20.pdf"   
+--
+--          FIR DIRECT SLICE
+--          +---------------------------------------------------------+
+--          |                                                         |
+--          |  Upside_i             +----+      +----+    Upside_o    |
+--          |    +--------+-------->+    +----->+    +------->        |
+--          |             |         |REG |      |REG |                |
+--          |             v         |    |      |    |                |
+--          |           +-+--+      |    |      |    |                |
+--          |           |Mult|      +----+      +----+                |
+--          |           |    |                                        |
+--          |           +-+--+                                        |
+--          |             |                                           |
+--          |             v                                           |
+--          |Downside_i +-+--+            +----+          Downside_o  |
+--          |    +----->+Soma+----------->+    +------------->        |
+--          |           |    |            |REG |                      |
+--          |           +----+            |    |                      |
+--          |                             |    |                      |
+--          |                             +----+                      |
+--          +---------------------------------------------------------+
 ---------------------------------------------------------------------------------------------
 
 ---------------
@@ -89,8 +111,8 @@ architecture behavioral of fir_direct_slice is
     signal upside_out_data                  : sfixed(WORD_INT_PART downto WORD_FRAC_PART);
     
     -- Downside Logic
-    signal downside_mult                    : sfixed(WEIGHT_INT_PART downto WEIGHT_FRAC_PART);
-    signal downside_add_mult                : sfixed(WORD_INT_PART downto WORD_FRAC_PART);
+    signal downside_mult                    : sfixed(WORD_INT_PART downto WEIGHT_FRAC_PART);
+    signal downside_add_mult                : sfixed(WORD_INT_PART downto WEIGHT_FRAC_PART);
     signal downside_out_valid               : std_logic;
     signal downside_out_data                : sfixed(WORD_INT_PART downto WORD_FRAC_PART);
 
@@ -134,8 +156,8 @@ begin
         end if;
     end process;
 
-    downside_mult       <= resize(upside_data_i * weight , downside_mult);
-    downside_add_mult   <= resize(downside_mult + downside_data_i , downside_add_mult);
+    downside_mult       <= resize(upside_data_i * weight ,downside_mult);
+    downside_add_mult   <= resize(downside_mult + downside_data_i ,downside_add_mult);
 
     downside_logic : process(clock_i, areset_i)
     begin
@@ -146,7 +168,7 @@ begin
             downside_out_valid  <=  downside_valid_i;
 
             if (downside_valid_i = '1') then
-                downside_out_data   <= downside_add_mult;
+                downside_out_data   <= resize(downside_add_mult,downside_out_data);
             end if; 
         end if;
     end process;

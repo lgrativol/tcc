@@ -1,3 +1,17 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Dezembro/2020                                                                
+-- Module Name: top_rx
+-- Author Name: Lucas Grativol Ribeiro            
+--                                                                                         
+-- Revision Date: 15/01/2021
+-- Tool version: Vivado 2017.4                                                             
+--                                                                                         
+-- Goal: Implementar a estrutura top de recepçao (exemplo de implementação)
+--          
+-- Description: Instancia o averager_v2 
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -12,40 +26,34 @@ use ieee_proposed.fixed_pkg.all;
 
 library work;
 use work.utils_pkg.all;
+use work.defs_pkg.all;
 
 ------------
 -- Entity --
 ------------
 
 entity top_rx is
-    generic(
-        OUTPUT_WIDTH                        : positive                      := 10
-    );
     port(
 
         -- Clock interface
-        clock_i                             : in  std_logic; 
+        clock_i                             : in  std_logic; -- Clock
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Wave
-        wave_valid_i                        : in  std_logic;
-        wave_data_i                         : in  std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-        wave_done_i                         : in  std_logic;
+        wave_valid_i                        : in  std_logic; -- Indica que os outros sinais da interface são válidos nesse ciclo de clock
+        wave_data_i                         : in  std_logic_vector( (OUTPUT_WIDTH - 1) downto 0); -- Amostra do sinal
+        wave_done_i                         : in  std_logic; -- Indica que é a última amostra do sinal
 
         -- Control
-        control_sample_frequency_valid_i    : in  std_logic;
-        control_sample_frequency_i          : in  std_logic_vector(26 downto 0); --TBD
-
-        control_enable_rx_i                 : in  std_logic;
-        control_reset_averager_i            : in  std_logic;
-        control_config_valid_i              : in  std_logic;
-        control_nb_points_wave_i            : in  std_logic_vector(31 downto 0); -- TBD
-        control_nb_repetitions_wave_i       : in  std_logic_vector(5 downto 0);  -- TBD
+        control_enable_rx_i                 : in  std_logic; -- Indica que a recepção é válida
+        control_config_valid_i              : in  std_logic; -- India que as informações de configuração são válida nesse ciclo de clock
+        control_nb_points_wave_i            : in  std_logic_vector((WAVE_NB_POINTS_WIDTH - 1) downto 0); -- Número de pontos em um período do sinal gerado
+        control_nb_repetitions_wave_i       : in  std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0);  -- Número de shots do sinal (para cálculo da média)
 
         ----------------------------------
         -- Output  AXI Stream Interface --
         ----------------------------------
-        sending_o                           : out std_logic;
+        sending_o                           : out std_logic; -- Indica que a operação de envio para o host está acontecendo 
         s_axis_st_tready_i                  : in  std_logic;
         s_axis_st_tvalid_o                  : out std_logic;
         s_axis_st_tdata_o                   : out std_logic_vector ((OUTPUT_WIDTH - 1) downto 0);
@@ -63,9 +71,8 @@ architecture behavioral of top_rx is
     -- Constants --
     ---------------
 
-    constant AVG_NB_REPETITIONS_WIDTH       : positive := 6; -- TBD
-    constant AVG_WORD_FRAC_PART             : integer  := CORDIC_FRAC_PART;
-    constant AVG_MAX_NB_POINTS              : positive := 1024;
+    constant AVG_NB_REPETITIONS_WIDTH       : positive := control_nb_repetitions_wave_i'length; 
+    constant AVG_WORD_FRAC_PART             : integer  := -(OUTPUT_WIDTH - 2);
     constant ADDR_WIDTH                     : positive := ceil_log2(AVG_MAX_NB_POINTS + 1);
 
     -------------
@@ -76,8 +83,7 @@ architecture behavioral of top_rx is
     signal avg_output_ready                 : std_logic;
     signal avg_config_valid_i               : std_logic;
     signal avg_config_max_addr              : std_logic_vector( (ADDR_WIDTH  - 1 ) downto 0 );
-    signal avg_config_reset_pointers        : std_logic;
-    signal avg_config_nb_repetitions        : std_logic_vector( (AVG_NB_REPETITIONS_WIDTH - 1) downto 0 ); --TBD
+    signal avg_config_nb_repetitions        : std_logic_vector( (AVG_NB_REPETITIONS_WIDTH - 1) downto 0 ); 
 
     signal avg_input_valid                  : std_logic;
     signal avg_input_data                   : sfixed( 1 downto AVG_WORD_FRAC_PART );
@@ -98,7 +104,6 @@ begin
 
     avg_config_valid_i          <= control_config_valid_i;
     avg_config_max_addr         <= std_logic_vector(   resize( unsigned(control_nb_points_wave_i) - 1, ADDR_WIDTH) )  ;
-    avg_config_reset_pointers   <= control_reset_averager_i;
     avg_config_nb_repetitions   <= control_nb_repetitions_wave_i;
 
     avg_input_valid             <=          wave_valid_i
@@ -111,8 +116,8 @@ begin
         generic map(
             -- Behavioral
             NB_REPETITIONS_WIDTH        => AVG_NB_REPETITIONS_WIDTH,
-            WORD_FRAC_PART              => AVG_WORD_FRAC_PART,     -- WORD_INT_PART is fixed at 2 bits [-1;+1]
-            MAX_NB_POINTS               => AVG_MAX_NB_POINTS    -- MAX_NB_POINTS power of 2, needed for BRAM inferece
+            WORD_FRAC_PART              => AVG_WORD_FRAC_PART,    
+            MAX_NB_POINTS               => AVG_MAX_NB_POINTS   
         )
         port map (
             clock_i                     => clock_i,
@@ -120,9 +125,8 @@ begin
     
             -- Config  interface
             config_valid_i              => avg_config_valid_i,
-            config_max_addr_i           => avg_config_max_addr, -- (NB_POINTS - 1)
-            config_nb_repetitions_i     => avg_config_nb_repetitions, -- Only powers of 2 ( 2^0, 2^1, 2^2, 2^3 ....)
-            config_reset_pointers_i     => avg_config_reset_pointers,
+            config_max_addr_i           => avg_config_max_addr, 
+            config_nb_repetitions_i     => avg_config_nb_repetitions, 
     
             -- Input interface 
             input_valid_i               => avg_input_valid,

@@ -1,0 +1,247 @@
+---------------
+-- Libraries --
+---------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use ieee.math_real.all;
+
+library ieee_proposed;                      
+use ieee_proposed.fixed_float_types.all; 
+use ieee_proposed.fixed_pkg.all;         
+
+library work;
+use work.sim_input_pkg.all;
+
+use std.env.finish; -- VHDL 2008 
+
+------------
+-- Entity --
+------------
+
+entity double_driver_tb is
+end double_driver_tb;
+
+------------------
+-- Architecture --
+------------------
+architecture testbench of double_driver_tb is
+    
+    ---------------
+    -- Constants --
+    ---------------
+
+    -- Clock
+    constant CLK_PERIOD                        : time     := 10 ns; -- 100 MHz
+    
+    -- Phase accumulator phase 
+    constant PHASE_INTEGER_PART                : natural  := 4; 
+    constant PHASE_FRAC_PART                   : integer  := -27; 
+    constant PHASE_WIDTH                       : positive := PHASE_INTEGER_PART + (-PHASE_FRAC_PART) + 1;
+
+    constant NB_POINTS_WIDTH                   : positive := 10;
+    constant NB_REPT_WIDTH                     : positive := 10;
+
+    -- Cordic
+    constant CORDIC_INTEGER_PART               : natural  := 1;
+    constant N_CORDIC_ITERATIONS               : natural  := 10;
+    constant CORDIC_FRAC_PART                  : integer  := -(N_CORDIC_ITERATIONS - (CORDIC_INTEGER_PART + 1)); 
+
+    -- Write txt
+    constant CORDIC_OUTPUT_WIDTH               : positive := (N_CORDIC_ITERATIONS );
+    
+    -------------
+    -- Signals --
+    -------------
+
+    signal clk                                 : std_logic :='0';
+    signal areset                              : std_logic :='0';
+
+    signal valid_i                             : std_logic := '0';
+    signal phase_term                          : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal nb_points                           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_repetitions                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal initial_phase                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
+    signal mode_time                           : std_logic;
+    signal end_zones_cycle                     : std_logic;
+
+    signal tx_time                             : std_logic_vector(( TX_TIME_WIDTH - 1) downto 0);
+    signal tx_off_time                         : std_logic_vector(( DEADZONE_TIME_WIDTH - 1) downto 0);
+    signal rx_time                             : std_logic_vector(( RX_TIME_WIDTH - 1) downto 0);
+    signal off_time                            : std_logic_vector(( IDLE_TIME_WIDTH - 1) downto 0);
+
+    signal driver_a_valid_o                    : std_logic := '0';
+    signal driver_a_sine_phase                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal driver_a_done_cycles                : std_logic;
+    signal driver_a_flag_full_cycle            : std_logic;
+
+    signal driver_b_valid_o                    : std_logic := '0';
+    signal driver_b_sine_phase                 : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal driver_b_done_cycles                : std_logic;
+    signal driver_b_flag_full_cycle            : std_logic;
+
+    -- Simulation
+    signal write_driver_a_valid_o              : std_logic;
+    signal write_driver_a_valid_o_reg          : std_logic;
+    signal write_data_in_driver_a              : std_logic_vector((CORDIC_OUTPUT_WIDTH - 1) downto 0);
+    
+    signal write_driver_b_valid_o              : std_logic;
+    signal write_driver_b_valid_o_reg          : std_logic;
+    signal write_data_in_driver_b              : std_logic_vector((CORDIC_OUTPUT_WIDTH - 1) downto 0);
+
+    signal stop_clock                          : std_logic;
+    
+begin
+
+    stop_clock <= end_zones_cycle;
+
+    -- clock process definitions
+   clk_process :process
+   begin
+
+        clk <= '0';
+        wait for CLK_PERIOD/2;
+        clk <= '1';
+        wait for CLK_PERIOD/2;
+   end process;
+
+   UUT: entity work.double_driver
+    generic map (
+        PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+        PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+        CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
+        CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
+        N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
+        NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+        NB_REPT_WIDTH                       => NB_REPT_WIDTH,
+        EN_POSPROC                          => FALSE
+    )
+    port map(
+        -- Clock interface
+        clock_i                             => clk,
+        areset_i                            => areset,
+
+        -- Input interface
+        valid_i                             => valid_i,
+        phase_term_i                        => phase_term,
+        initial_phase_i                     => initial_phase,
+        nb_points_i                         => nb_points,
+        nb_repetitions_i                    => nb_repetitions,
+        mode_time_i                         => mode_time,
+           
+        -- Control Interface
+        tx_time_i                           => tx_time ,    
+        tx_off_time_i                       => tx_off_time,  
+        rx_time_i                           => rx_time,     
+        off_time_i                          => off_time,    
+        
+        -- Output driver A interface
+        A_valid_o                           => driver_a_valid_o,         
+        A_sine_phase_o                      => driver_a_sine_phase,     
+        A_done_cycles_o                     => driver_a_done_cycles,    
+        A_flag_full_cycle_o                 => driver_a_flag_full_cycle,
+        
+        -- Output driver B interface
+        B_valid_o                           => driver_b_valid_o,         
+        B_sine_phase_o                      => driver_b_sine_phase,     
+        B_done_cycles_o                     => driver_b_done_cycles,    
+        B_flag_full_cycle_o                 => driver_b_flag_full_cycle,
+
+        end_zones_cycle_o                   => end_zones_cycle
+    );
+
+    stim_proc : process
+    begin
+        areset <= '1';
+        valid_i <= '0';
+        
+        for I in 0 to 3 loop
+            wait for CLK_PERIOD;
+            wait until (rising_edge(clk));
+        end loop;
+        
+        areset <= '0';
+        valid_i <= '1';
+
+        -- Inputs --
+        phase_term      <=  to_ufixed(         SIM_INPUT_PHASE_TERM            , phase_term        ); 
+        nb_points       <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBPOINTS , NB_POINTS_WIDTH ) ); 
+        nb_repetitions  <=  std_logic_vector(  to_unsigned( SIM_INPUT_NBREPET  , NB_POINTS_WIDTH ) ); 
+        initial_phase   <=  to_ufixed(         SIM_INPUT_INIT_PHASE            , initial_phase     );
+
+        tx_time         <=  std_logic_vector(to_unsigned( SIM_INPUT_TX_TIME , tx_time'length));
+        tx_off_time     <=  std_logic_vector(to_unsigned( SIM_INPUT_TX_OFF_TIME , tx_off_time'length ));
+        rx_time         <=  std_logic_vector(to_unsigned( SIM_INPUT_RX_TIME , rx_time'length )); 
+        off_time        <=  std_logic_vector(to_unsigned( SIM_INPUT_OFF_TIME , off_time'length )); 
+
+        -- Inputs --
+        
+        wait for CLK_PERIOD;
+        wait until (rising_edge(clk));
+        valid_i <= '0';
+
+        wait for CLK_PERIOD;
+        wait until (rising_edge(clk));
+
+        wait;
+        
+    end process;
+
+    -- Simulation 
+
+    write_start : process(clk,areset)
+    begin
+        if(areset = '1') then
+            write_driver_a_valid_o_reg <= '0';
+            write_driver_b_valid_o_reg <= '0';
+        elsif(rising_edge(clk)) then
+            write_driver_a_valid_o_reg <= write_driver_a_valid_o;
+            write_driver_b_valid_o_reg <= write_driver_b_valid_o;    
+        end if;        
+    end process;
+
+
+    write_driver_a_valid_o   <=              driver_a_valid_o
+                                        or  write_driver_a_valid_o_reg;
+    
+    write_driver_b_valid_o   <=              driver_b_valid_o
+                                        or  write_driver_b_valid_o_reg;
+    
+    
+    write_data_in_driver_a <= to_slv(driver_a_sine_phase);
+
+    write2fileA : entity work.sim_write2file
+        generic map (
+            FILE_NAME    => "./output_dd_a.txt", 
+            INPUT_WIDTH  => CORDIC_OUTPUT_WIDTH
+        )
+        port map (
+            clock           => clk,
+            hold            => '0',
+            data_valid      => write_driver_a_valid_o_reg,
+            data_in         => write_data_in_driver_a
+        ); 
+    
+    write_data_in_driver_b <= to_slv(driver_b_sine_phase);
+
+    write2fileB : entity work.sim_write2file
+        generic map (
+            FILE_NAME    => "./output_dd_b.txt", 
+            INPUT_WIDTH  => CORDIC_OUTPUT_WIDTH
+        )
+        port map (
+            clock           => clk,
+            hold            => '0',
+            data_valid      => write_driver_b_valid_o_reg,
+            data_in         => write_data_in_driver_b
+        ); 
+
+    finish_sim : process    
+    begin
+    
+        wait until end_zones_cycle = '1';
+        finish;    
+    end process;
+
+end testbench;

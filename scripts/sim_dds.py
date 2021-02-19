@@ -12,6 +12,7 @@ import sys
 import shutil
 import math
 from scipy import signal
+import csv
 
 ###########
 ## Class ##
@@ -21,7 +22,7 @@ class SimDDS:
 
     SAMPLING_FREQ         = 100E6 ## DDS Cordic clock 
     SIM_INPUT_FILE        = "hdl/sim/sim_input_pkg.vhd"
-    CONFIG_FILE           = "hdl/pkg/utils_pkg.vhd"
+    CONFIG_FILE           = "hdl/pkg/defs_pkg.vhd"
 
     SRC_FILE_DDS_PATH     = "work/output_dds_cordic_sine.txt"
     SRC_FILE_DDA_PATH     = "work/output_dd_a.txt"
@@ -34,9 +35,9 @@ class SimDDS:
     
     NB_CYCLES_WIDTH       = 5 # bits
     TX_TIME_WIDTH         = 18 # bits
-    TX_OFF_TIME_WIDTH     = 18 # bits
+    DEADZONE_TIME_WIDTH     = 18 # bits
     RX_TIME_WIDTH         = 18 # bits
-    OFF_TIME_WIDTH        = 18 # bits
+    IDLE_TIME_WIDTH        = 18 # bits
     PHASE_WIDTH           = 32 # bits
     PHASE_INTEGER_PART    = 4
     PHASE_FRAC_PART       = PHASE_WIDTH - PHASE_INTEGER_PART - 1 # 1 for sign bit
@@ -47,23 +48,7 @@ class SimDDS:
     ACCEPTABLE_TIME_UNIT  = ['ns','us','ms']
     
     def __init__(self,target_freq = 500e3,  nb_cycles = 10, initial_phase = 0.0 ,mode_time = False):
-        """
-        target_freq = Generated sine frequency
-        nb_cycles   = Number of periods of the generated sine 
-
-        Notes:
-        
-        For <tx_time> | <tx_off_time> | <rx_time> | <off_time>
-
-        Two possibilities:
-        1) Integer value, meaning the *number o cycles*, considering the SAMPLING_FREQ (FPFA clock)
-        2) A string with a number and a time constant, e.g. 10 us, 2.62 ms, 800 ns
-            Minimum value :  (1 / SAMPLING_FREQ), with 100e6 -> 10 ns
-            Acceptable time constants : n (nano), u "micro", m "mili", nothing "seconds"
-        **MAX TIME = 2.62 ms**
-        
-        If <tx_time> is an empty string "" or zero 0, tx_time = ((SAMPLING_FREQ/target_freq) * nb_cycles)
-        
+        """       
         """
         self._target_freq = target_freq
         self._nb_cycles = nb_cycles
@@ -73,9 +58,9 @@ class SimDDS:
         self._rx_time = "3 us"
         self._off_time = 100
         self._mode_time = mode_time
-        self._cordic_word_interger_width = 2 # bits FIX VALUE
+        self._cordic_word_int_width = 2 # bits FIX VALUE
         self._cordic_word_frac_width = 8 # bits
-        self._cordic_word_width = self.cordic_word_interger_width + self.cordic_word_frac_width  # bits
+        self._cordic_word_width = self.cordic_word_int_width + self.cordic_word_frac_width  # bits
         self._nb_cordic_stages = 10
         self._win_mode = "NONE"
         self.need_reconfig = False
@@ -115,13 +100,13 @@ class SimDDS:
         self._initial_phase = value
 
     @property
-    def cordic_word_interger_width(self):
-        return self._cordic_word_interger_width
+    def cordic_word_int_width(self):
+        return self._cordic_word_int_width
 
-    @cordic_word_interger_width.setter
-    def cordic_word_interger_width(self,value):
+    @cordic_word_int_width.setter
+    def cordic_word_int_width(self,value):
         self.need_reconfig = True
-        self._cordic_word_interger_width = value
+        self._cordic_word_int_width = value
     
     @property
     def cordic_word_frac_width(self):
@@ -177,8 +162,8 @@ class SimDDS:
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._tx_off_time = value
         else:
-            if (value > (2** self.TX_OFF_TIME_WIDTH - 1)):
-                self._tx_off_time = (2** self.TX_OFF_TIME_WIDTH - 1)
+            if (value > (2** self.DEADZONE_TIME_WIDTH - 1)):
+                self._tx_off_time = (2** self.DEADZONE_TIME_WIDTH - 1)
             else:
                 self._tx_off_time = value if value > 0 else 1
 
@@ -209,8 +194,8 @@ class SimDDS:
             if(value[-2:-1] in self.ACCEPTABLE_TIME_UNIT):
                 self._off_time = value
         else:
-            if (value > (2** self.OFF_TIME_WIDTH - 1)):
-                self._off_time = (2** self.OFF_TIME_WIDTH - 1)
+            if (value > (2** self.IDLE_TIME_WIDTH - 1)):
+                self._off_time = (2** self.IDLE_TIME_WIDTH - 1)
             else:
                 self._off_time = value if value > 0 else 1
     @property
@@ -318,16 +303,18 @@ class SimDDS:
                 return int(time_zone)
  
     def _write_config(self):
-        
-        search_cordic_frac_part     = "CORDIC_FRAC_PART"     
-        search_nb_cordic_iterations = "N_CORDIC_ITERATIONS"
+       
+        #search_cordic_frac_part     = "CORDIC_FRAC_PART"     
+        search_nb_cordic_iterations = "constant N_CORDIC_ITERATIONS"
 
-        search_list = [search_cordic_frac_part,search_nb_cordic_iterations]
+        #search_list = [search_cordic_frac_part,search_nb_cordic_iterations]
+        search_list = [search_nb_cordic_iterations]
 
-        term_cordic_frac_part     = "    constant N_CORDIC_ITERATIONS    : natural  := %d;\n" %(self.cordic_word_frac_width)
-        term_nb_cordic_iterations = "    constant CORDIC_FRAC_PART       : integer  := %d;\n" %(self.nb_cordic_stages)
+        term_nb_cordic_iterations     = "    constant N_CORDIC_ITERATIONS    : natural  := %d;\n" %(self.cordic_word_frac_width + self.cordic_word_int_width)
+        #term_cordic_frac_part  = "    constant CORDIC_FRAC_PART       : integer  := %d;\n" %(self.nb_cordic_stages)
 
-        term_list = [term_cordic_frac_part,term_nb_cordic_iterations]
+        #term_list = [term_cordic_frac_part,term_nb_cordic_iterations]
+        term_list = [term_nb_cordic_iterations]
 
         self._replace_all(self.CONFIG_FILE,search_list,term_list)
         self.need_reconfig = False      
@@ -336,14 +323,17 @@ class SimDDS:
 
         value = int(shex,16)
 
-        if value & (1 << (self.cordic_word_width-1)):
-            value -= 1 << self.cordic_word_width
+        cordic_word_width = self.cordic_word_int_width + self.cordic_word_frac_width
+
+        if value & (1 << (cordic_word_width-1)):
+            value -= 1 << cordic_word_width
     
         value /= (2**self.cordic_word_frac_width)
         
         return FXnum(value,FXfamily(self.cordic_word_frac_width)).toDecimalString()
     
     def _annot_max(self,x,y,ax=None,xlabel="",ylabel="",xytext = (0.9,0.92)):
+
         xmax = x[np.argmax(y)]
         ymax = y.max()
         annot_pos = (xmax,ymax)
@@ -363,7 +353,6 @@ class SimDDS:
             if freq < 1000 :
                 return "%3.1f %s" % (freq , freq_mag[i])
             freq /= 1000.0
-        return "%3.2f %s" % (freq , freq_mag[i])
 
     def _time_stringformat (self,time):
         time_cte = ["s","ms","us","ns"]
@@ -387,7 +376,7 @@ class SimDDS:
         print("Simulating ....")
 
         vsim_cmd_sim = "vsim -batch -do \"cd work ; vsim work.%s ; run %s ; quit -f \" " % (hdl_entity,sim_time)
-        sb.call(vsim_cmd_sim) 
+        sb.call(vsim_cmd_sim,stdout=sb.DEVNULL) 
 
         print("Simulation done!")
 
@@ -399,8 +388,9 @@ class SimDDS:
 
         print("Compiling ....")
 
-        vsim_cmd_compile = "vsim -batch -do \" cd work ; do ../comp.do ; quit -f \" "
-        sb.call(vsim_cmd_compile) ## TODO: add support for compilation errors
+        #vsim_cmd_compile = "vsim -batch -do \" cd work ; do ../comp.do ; quit -f \" "
+        vsim_cmd_compile = "vsim -batch -do \" cd work ; do ../comp_dds.do ; quit -f \" "
+        sb.call(vsim_cmd_compile,stdout=sb.DEVNULL) ## TODO: add support for compilation errors
 
         print("Compilation done!")
 
@@ -419,13 +409,15 @@ class SimDDS:
 
         return [data, nb_samples, x_axis]
  
-    def do_dds(self, simulate = True,save_plot = True, dB_fft = True, normalized_freq = False):
+    def do_dds(self, simulate = True, save_plot = True, dB_fft = True, normalized_freq = False, no_plot = False):
 
         if (simulate):
             hdl_entity = "dds_cordic_tb"
             self._sim_hdl(hdl_entity)
 
         [cordic_data, nb_samplepoints, x_axis] = self.extract_data(self.SRC_FILE_DDS_PATH)
+
+        print("cordic data 0",cordic_data[0])
 
         if (self.mode_time):
             ref_sin_y                 = np.sin(self.target_freq * 2.0 * np.pi * x_axis)
@@ -463,6 +455,7 @@ class SimDDS:
         cordic_fft_freq = cordic_freqs[:nb_samplepoints//2]
 
         ## Plot
+        #if(not no_plot):
         fig, ax = plt.subplots(2,2,figsize=self.FIGSIZE)
 
         ax[0][0].grid(True)
@@ -486,7 +479,7 @@ class SimDDS:
         ax[1][0].set_xlabel("Frequency")
         self._annot_max (cordic_fft_freq , cordic_fft_plot, ax[1][0], xlabel=" Hz",ylabel=y_fftlabel)
         cordic_fft_plot[np.argmax(cordic_fft_plot)] = -1000
-        self._annot_max (cordic_fft_freq , cordic_fft_plot, ax[1][0], xlabel=" Hz",ylabel=y_fftlabel,xytext=(0.8,0.82))
+        self._annot_max (cordic_fft_freq , cordic_fft_plot, ax[1][0], xlabel=" Hz",ylabel=y_fftlabel,xytext=(0.7,0.72))
 
         ax[1][1].set_visible(False)
 
@@ -494,8 +487,11 @@ class SimDDS:
             fig_name = "fig_dds_%s_%d.png" % (self._freq_stringformat(self.target_freq) , self.nb_cycles)
             plt.savefig(fig_name)
 
-        plt.tight_layout()
+    
+        #plt.tight_layout()
         plt.show()    
+
+        return max(mae)
     
     def do_double_driver(self, simulate = True,save_plot = True):
         
@@ -631,6 +627,7 @@ class SimDDS:
         if (not no_plot):
             plt.show()       
 
+
 ##########
 ## MAIN ##
 ##########
@@ -640,14 +637,41 @@ def main():
     win_list = ["TKEY","HANN","HAMM","BLKM","BLKH","NONE"]
 
     sim = SimDDS()
-    sim.target_freq = 500e3
-    sim.nb_cycles = 4
-    sim.initial_phase = math.pi / 2.0
-    sim.mode_time = True
+    sim.nb_cycles = 10
+    sim.initial_phase = 0.0
     sim.win_mode = "NONE"
-    sim.compile()
-    sim.do_dds()
-    #sim.do_win(no_plot=True)
+
+    word_fracs = [6,8,10]
+
+    # target_freqs = np.linspace(20e3,500e3,240)
+    # #target_freqs = [100e3]
     
+    # results = [ [] for _ in range(len(word_fracs)) ]
+    
+    # for i,frac in enumerate(word_fracs):
+    #     sim.cordic_word_frac_width = frac
+    #     print("############### Executing %d bits ###############" %(frac + 2))
+    #     for j,freq in enumerate(target_freqs):
+    #         print("#### Doing %d of %d freqs ####" %(j+1,len(target_freqs)))
+    #         sim.target_freq = freq
+    #         sim.compile()
+    #         mae_max = sim.do_dds(save_plot=False, no_plot=True)
+    #         results[i].append(mae_max)
+
+    # with open("out.csv","w") as f:
+    #     wr = csv.writer(f)
+    #     wr.writerows(results)
+
+    sim.target_freq = 500e3
+
+    #print(sim.cordic_word_width)
+
+    sim.compile()
+    sim.do_dds(save_plot=True)
+    
+    #sim.do_win()
+    #print(mae_max)
+
+ 
 if __name__ == "__main__":
     main()

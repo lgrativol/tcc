@@ -65,7 +65,8 @@ entity dds_cordic_win_v2 is
         CORDIC_INTEGER_PART                 : natural; -- Cordic integer part
         CORDIC_FRAC_PART                    : integer; -- Cordic frac part
         N_CORDIC_ITERATIONS                 : natural; -- Número de iterações do CORDIC (tamanho do pipeline)
-        NB_POINTS_WIDTH                     : natural; -- Número de bits de nb_points e nb_repetitions 
+        NB_POINTS_WIDTH                     : natural; -- Número de bits de nb_points
+        NB_REPT_WIDTH                       : natural; -- Número de bits nb_repetitions 
         WIN_INTEGER_PART                    : natural; -- Windows integer part
         WIN_FRAC_PART                       : integer; -- Windows frac part
         WIN_NB_ITERATIONS                   : positive -- Número de iterações das janelas (tamanho do pipeline)
@@ -82,7 +83,7 @@ entity dds_cordic_win_v2 is
         window_term_i                       : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver descrição acima
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver descrição acima 
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0); -- Ver descrição acima
-        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0); -- Ver descrição acima
+        nb_repetitions_i                    : in  std_logic_vector( (NB_REPT_WIDTH - 1) downto 0); -- Ver descrição acima
         mode_time_i                         : in  std_logic;  -- Ver descrição acima
         
         restart_cycles_i                    : in  std_logic; -- Restart a geração da onda definina nos parâmetros anteriores
@@ -120,7 +121,7 @@ architecture behavioral of dds_cordic_win_v2 is
     -- Window phase
     constant    WIN_PHASE_INTEGER_PART              : natural := PHASE_INTEGER_PART;
     constant    WIN_PHASE_FRAC_PART                 : integer := PHASE_FRAC_PART;    
-    constant    WIN_NB_POINTS_WIDTH                 : natural := 17; -- Harcode TODO: review 
+    constant    WIN_NB_POINTS_WIDTH                 : natural := NB_POINTS_WIDTH; -- Harcode TODO: review 
     constant    WIN_WORD_WIDTH                      : natural := (WIN_INTEGER_PART - WIN_FRAC_PART + 1);
    
     -- Shift register
@@ -140,13 +141,15 @@ architecture behavioral of dds_cordic_win_v2 is
  
     -- Latency
     -- O conjunto de janelas representado por "hh_blkm_blkh" (Haninng, Hamming, Blackman e Blackman-Harris)
-    -- possui uma latência fixa de 10 ciclos, ignorando o número de iterações, a janela Tukey possui 11 ciclos fixos. 
-    -- Para sincronizar com o CORDIC que possui menos ciclos totais, é utilizado um shift-register genérico que 
-    -- gera toda a sincronia baseado no tamanhos abaixo. 
-    -- Um tamanho zero ou menor, transformar o shift-register genérico em apenas signals nem registros.
-    constant    WIN_LATENCY                         : natural := TKEY_LATENCY;
-    constant    WIN_TO_DDS_LATENCY                  : integer  := (WIN_LATENCY  -  DDS_CORDIC_LATENCY );
-    constant    DDS_TO_WIN_LATENCY                  : integer  := (- WIN_TO_DDS_LATENCY );
+    -- possui uma latência fixa de 11 ciclos, ignorando o número de iterações, a janela Tukey possui 10 ciclos fixos. 
+    -- Para sincronizar com o CORDIC que possui menos ciclos, é utilizado um shift-register genérico que 
+    -- gera toda a sincronia, baseado no tamanhos abaixo. 
+    -- Um tamanho zero ou menor, transformar o shift-register genérico em apenas fios, sem registros.
+    constant    EXTRA_LATENCY                       : natural  := 4;
+    constant    WIN_LATENCY                         : natural  := HH_BLKM_BLKH_LATENCY + EXTRA_LATENCY;
+    constant    WIN_TO_DDS_LATENCY                  : integer  := (WIN_LATENCY  -  DDS_CORDIC_LATENCY + 1);
+    constant    DDS_TO_WIN_LATENCY                  : integer  := EXTRA_LATENCY;
+    constant    WIN_TUKEY_LATENCY                   : integer  := EXTRA_LATENCY + 1;
 
     -------------
     -- Signals --
@@ -156,7 +159,7 @@ architecture behavioral of dds_cordic_win_v2 is
     signal      dds_cordic_valid_i                  : std_logic;
     signal      dds_cordic_phase_term               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_cordic_nb_points                : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      dds_cordic_nb_repetitions           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      dds_cordic_nb_repetitions           : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal      dds_cordic_initial_phase            : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_cordic_mode_time                : std_logic;
     signal      dds_cordic_restart_cycles           : std_logic;
@@ -167,14 +170,15 @@ architecture behavioral of dds_cordic_win_v2 is
     signal      dds_cordic_flag_full_cycle          : std_logic;
     
     -- Stage 2 Windows
+    signal      valid_reg                           : std_logic;
     signal      win_mode                            : std_logic_vector(2 downto 0);
 
     signal      win_hh_blkm_blkh_valid_i            : std_logic;
     signal      win_hh_blkm_blkh_restart_cycles     : std_logic;
     signal      win_hh_blkm_blkh_valid_o            : std_logic;
     signal      win_hh_blkm_blkh_result             : sfixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
-    signal      sync_win_hh_blkm_blkh_valid_o       : std_logic;
-    signal      sync_win_hh_blkm_blkh_result        : sfixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
+    signal      sync_win_tukey_valid_o              : std_logic;
+    signal      sync_win_tukey_result               : sfixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
     
     signal      win_tukey_valid_i                   : std_logic;
     signal      win_tukey_valid_o                   : std_logic;
@@ -201,15 +205,34 @@ architecture behavioral of dds_cordic_win_v2 is
     signal      win_generic_shift_output_data       : std_logic_vector((WIN_WORD_WIDTH - 1) downto 0);
     signal      win_generic_shift_sideband_data_o   : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
 
+    signal      tukey_generic_shift_valid_i         : std_logic;
+    signal      tukey_generic_shift_input_data      : std_logic_vector((WIN_WORD_WIDTH - 1) downto 0);
+    signal      tukey_generic_shift_sideband_data_i : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+
+    signal      tukey_generic_shift_valid_o         : std_logic;
+    signal      tukey_generic_shift_output_data     : std_logic_vector((WIN_WORD_WIDTH - 1) downto 0);
+    signal      tukey_generic_shift_sideband_data_o : std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+
     -- Stage 4 Multiply
     signal      stage_4_valid_i                     : std_logic;
     signal      stage_4_sine_phase                  : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
     signal      stage_4_win_result                  : sfixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
+    signal      stage_4_tukey_result                : sfixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
 
     signal      stage_4_valid_reg                   : std_logic;
-    signal      stage_4_result                      : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); 
+    signal      stage_4_sine_reg                    : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART);
+    signal      stage_4_win_result_reg              : sfixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
+    signal      stage_4_tukey_result_reg            : sfixed(WIN_INTEGER_PART downto WIN_FRAC_PART);
     signal      stage_4_done                        : std_logic;
 
+    -- Output
+    signal      output_valid                        : std_logic;
+    signal      output_result                       : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); 
+    signal      output_last                         : std_logic; 
+
+    signal      output_valid_reg                    : std_logic;
+    signal      output_result_reg                   : sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); 
+    signal      output_last_reg                     : std_logic; 
 begin
 
     -------------
@@ -232,6 +255,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                       => NB_REPT_WIDTH,
             EN_POSPROC                          => FALSE
         )
         port map(
@@ -273,7 +297,8 @@ begin
     --   Input: valid_i;
     --          win_mode_i;
     --
-    --   Output: win_mode;
+    --   Output:valid_reg; 
+    --          win_mode;
     --           
     --   Result: Salva o win_mode em um registro
     ------------------------------------------------------------------
@@ -282,6 +307,8 @@ begin
         if (areset_i = '1') then
             win_mode <= (others => '0');
         elsif(rising_edge(clock_i)) then
+            valid_reg   <= valid_i;
+
             if (valid_i = '1') then
                 win_mode    <= win_mode_i;
             end if;
@@ -289,13 +316,13 @@ begin
     end process;
 
 
-    win_hh_blkm_blkh_valid_i            <=          valid_i             when (      win_mode = WIN_MODE_HANN  
+    win_hh_blkm_blkh_valid_i            <=          valid_reg           when (      win_mode = WIN_MODE_HANN  
                                                                                 or  win_mode = WIN_MODE_HAMM  
                                                                                 or  win_mode = WIN_MODE_BLKM  
                                                                                 or  win_mode = WIN_MODE_BLKH )  
                                             else    '0';
 
-    win_tukey_valid_i                   <=          valid_i             when (      win_mode = WIN_MODE_TUKEY)
+    win_tukey_valid_i                   <=          valid_reg             when (      win_mode = WIN_MODE_TUKEY)
                                             else    '0';
 
     win_hh_blkm_blkh_restart_cycles     <=          restart_cycles_i    when (      win_mode = WIN_MODE_HANN  
@@ -312,6 +339,10 @@ begin
 
     stage_2_hh_blkm_blkh_win : entity work.hh_blkm_blkh_win
         generic map( 
+            PHASE_INTEGER_PART                 => PHASE_INTEGER_PART,
+            PHASE_FRAC_PART                    => PHASE_FRAC_PART,
+            CORDIC_INTEGER_PART                => CORDIC_INTEGER_PART,
+            CORDIC_FRAC_PART                   => CORDIC_FRAC_PART,
             WIN_PHASE_INTEGER_PART             => WIN_PHASE_INTEGER_PART,
             WIN_PHASE_FRAC_PART                => WIN_PHASE_FRAC_PART,
             WORD_INTEGER_PART                  => WIN_INTEGER_PART,
@@ -361,37 +392,6 @@ begin
                 tk_result_o                         => win_tukey_result
             );
 
-    ------------------------------------------------------------------
-    --                     Sync windows                           
-    --                                                                
-    --   Goal: Sincronizar as duas janelas
-    --
-    --   Clock & reset domain: clock_i & areset_i
-    --
-    --
-    --   Input: win_hh_blkm_blkh_valid_o;
-    --          win_hh_blkm_blkh_result;
-    --
-    --   Output: sync_win_hh_blkm_blkh_valid_o;
-    --           sync_win_hh_blkm_blkh_result;
-    --           
-    --   Result: O resultado das duas entidades que produzem as janelas
-    --           tem a mesma latência relativa
-    ------------------------------------------------------------------
-    sync_windows_latency : process(clock_i,areset_i)
-    begin
-        if (areset_i = '1') then
-            sync_win_hh_blkm_blkh_valid_o <= '0';
-        elsif(rising_edge(clock_i)) then
-
-            sync_win_hh_blkm_blkh_valid_o <= win_hh_blkm_blkh_valid_o;
-
-            if (win_hh_blkm_blkh_valid_o = '1') then
-                sync_win_hh_blkm_blkh_result    <= win_hh_blkm_blkh_result;
-            end if;
-        end if;
-    end process;
-
     -------------
     -- Stage 3 --
     -------------
@@ -425,11 +425,9 @@ begin
             sideband_data_o                     => dds_generic_shift_sideband_data_o
         );
 
-    win_generic_shift_valid_i           <=              sync_win_hh_blkm_blkh_valid_o
-                                                    or  win_tukey_valid_o;
+    win_generic_shift_valid_i           <=              win_hh_blkm_blkh_valid_o;
 
-    win_generic_shift_input_data        <=              to_slv(win_tukey_result)                when(win_mode = WIN_MODE_TUKEY)
-                                                else    to_slv(sync_win_hh_blkm_blkh_result);
+    win_generic_shift_input_data        <=              to_slv(win_hh_blkm_blkh_result);
    
     stage_3_win_generic_shift: entity work.generic_shift_reg 
         generic map(
@@ -451,6 +449,32 @@ begin
             valid_o                             => win_generic_shift_valid_o,
             output_data_o                       => win_generic_shift_output_data,
             sideband_data_o                     => win_generic_shift_sideband_data_o
+        );
+
+    tukey_generic_shift_valid_i           <=              win_tukey_valid_o;
+
+    tukey_generic_shift_input_data        <=              to_slv(win_tukey_result);
+   
+    stage_3_tukey_generic_shift: entity work.generic_shift_reg 
+        generic map(
+            WORD_WIDTH                          => DDS_WORD_WIDTH,
+            SHIFT_SIZE                          => WIN_TUKEY_LATENCY,
+            SIDEBAND_WIDTH                      => SIDEBAND_WIDTH
+        )
+        port map(
+            -- Clock interface
+            clock_i                             => clock_i,
+            areset_i                            => areset_i,
+
+            -- Input interface
+            valid_i                             => tukey_generic_shift_valid_i,
+            input_data_i                        => tukey_generic_shift_input_data,
+            sideband_data_i                     => tukey_generic_shift_sideband_data_i,
+            
+            -- Output interface
+            valid_o                             => tukey_generic_shift_valid_o,
+            output_data_o                       => tukey_generic_shift_output_data,
+            sideband_data_o                     => tukey_generic_shift_sideband_data_o
         );
 
     -------------
@@ -477,11 +501,12 @@ begin
     --   Result: Produz o sinal janelado resultante
     ------------------------------------------------------------------
 
-    stage_4_valid_i     <=   win_generic_shift_valid_o;   
+    stage_4_valid_i     <=   dds_generic_shift_valid_o;   
 
     stage_4_sine_phase  <= to_sfixed( dds_generic_shift_output_data, stage_4_sine_phase);
 
-    stage_4_win_result  <=  to_sfixed(win_generic_shift_output_data, stage_4_win_result);
+    stage_4_win_result      <=  to_sfixed(win_generic_shift_output_data, stage_4_win_result);
+    stage_4_tukey_result    <=  to_sfixed(tukey_generic_shift_output_data, stage_4_win_result);
     
     stage_4_result_proc : process(clock_i,areset_i)
     begin
@@ -492,9 +517,33 @@ begin
             stage_4_valid_reg <= stage_4_valid_i;
 
             if (stage_4_valid_i = '1') then
+                -- Hint: Check DSP inference
+                stage_4_win_result_reg      <= resize( (stage_4_sine_phase *  stage_4_win_result) ,stage_4_win_result_reg);
+                stage_4_tukey_result_reg    <= resize( (stage_4_sine_phase *  stage_4_tukey_result) ,stage_4_tukey_result_reg);
+                stage_4_sine_reg            <= resize( (stage_4_sine_phase) ,stage_4_sine_reg);
+                stage_4_done                <= dds_generic_shift_sideband_data_o(0);
+            end if;
+        end if;
+    end process;
 
-                stage_4_result  <= resize( (stage_4_sine_phase *  stage_4_win_result) ,stage_4_result);
-                stage_4_done    <= dds_generic_shift_sideband_data_o(0);
+    output_valid        <=          stage_4_valid_reg;
+                                
+    output_result       <=          stage_4_tukey_result_reg    when (win_mode = WIN_MODE_TUKEY)
+                            else    stage_4_sine_reg            when (win_mode = WIN_MODE_NONE)
+                            else    stage_4_win_result_reg;
+
+    output_last         <=          stage_4_done;
+
+    output_reg : process(clock_i,areset_i) -- Improve timming
+    begin
+        if ( areset_i = '1') then
+            output_valid_reg <= '0';
+        elsif (rising_edge(clock_i)) then
+            output_valid_reg <= output_valid;
+
+            if (output_valid = '1') then
+                output_result_reg  <= output_result;
+                output_last_reg    <= output_last;
             end if;
         end if;
     end process;
@@ -502,12 +551,8 @@ begin
     ------------
     -- Output --
     ------------
-    valid_o             <=          dds_cordic_valid_o      when (win_mode = WIN_MODE_NONE)
-                            else    stage_4_valid_reg;
-                                
-    sine_win_phase_o    <=          dds_cordic_sine_phase   when (win_mode = WIN_MODE_NONE)
-                            else    stage_4_result;
+    valid_o             <=          output_valid_reg;
+    sine_win_phase_o    <=          output_result_reg;
+    last_word_o         <=          output_last_reg;
 
-    last_word_o         <=          dds_cordic_done         when (win_mode = WIN_MODE_NONE)
-                            else    stage_4_done;
 end behavioral;

@@ -1,6 +1,25 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Outubro/2020                                                                
+-- Module Name: pulser
+-- Author Name: Lucas Grativol Ribeiro            
+--                                                                                         
+-- Revision Date: 24/11/2020                                                      
+-- Tool version: Vivado 2017.4                                                             
+--                                                                                         
+-- Goal: Implementa um gerador de sinal quadrado configurável
+--          
+-- Description: Uma máquina de estado que controla a produção de um sinal quadrado
+--              seguindo os tempos da figura abaixo. Qualquer um dos tempos pode ser
+--              O ciclo normal de produção do sinal é circular entre os tempos t1->t4,
+--              nb_repetitions_i vezes e transitar por fim para tdamp.
 --
--- Timers Figure
---
+--              Opções: 
+--                      1 - invert_i -> Inverte o sinal dos patamares abaixo.
+--                      2 - triple_pulser_i -> Faz com que o patamar em "tdamp"
+--                          possua valor. Por padrão o valor é -1
+--                      
+-- Timers 
 --
 --                        
 --                 _____
@@ -10,12 +29,9 @@
 --   |  t1 | 
 --   |_____|
 --
--- Any timer (t1,t2,t3,t4 or tdamp) can be zero, the zone will be skipped
--- The "invert_i" signal inteverts t1, t3 and tdamp (when in triple pulser mode) 
--- 
---
---
---
+---------------------------------------------------------------------------------------------
+ 
+
 ---------------
 -- Libraries --
 ---------------
@@ -30,35 +46,37 @@ use ieee.numeric_std.all;
 
 entity pulser is
     generic(
-        NB_REPETITIONS_WIDTH                : positive  := 5;
-        TIMER_WIDTH                         : positive  := 10  
+        NB_REPETITIONS_WIDTH                : positive; -- Número de repetições do sinal
+        TIMER_WIDTH                         : positive  -- Tamanho em bits dos timers
     );
     port(
         -- Clock interface
-        clock_i                             : in  std_logic; 
+        clock_i                             : in  std_logic; -- Clock
         areset_i                            : in  std_logic; -- Positive async reset
 
         -- Input interface
-        strb_i                              : in  std_logic; -- Valid in for all inputs and mode interface
-        restart_i                           : in  std_logic;
-        nb_repetitions_i                    : in  std_logic_vector( (NB_REPETITIONS_WIDTH - 1) downto 0);
-        t1_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0); 
-        t2_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0);
-        t3_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0);
-        t4_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0);
-        tdamp_i                             : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0);
+        valid_i                             : in  std_logic; -- Valid in para todos os sinais da interface Input
+        restart_i                           : in  std_logic; -- Restart a geração da onda definina nos parâmetros anteriores
+                                                              -- todos os parâmetros são salvos, com um tick de restart
+                                                              -- a onda é gerada com os últimos parâmetros, não depende do "valid_i" 
+        nb_repetitions_i                    : in  std_logic_vector( (NB_REPETITIONS_WIDTH - 1) downto 0); --Número de repetições do sinal (t1->t4)
+        t1_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0); -- Duração do timer em número de ciclos
+        t2_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0); -- Duração do timer em número de ciclos
+        t3_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0); -- Duração do timer em número de ciclos
+        t4_i                                : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0); -- Duração do timer em número de ciclos
+        tdamp_i                             : in  std_logic_vector( (TIMER_WIDTH - 1) downto 0); -- Duração do timer em número de ciclos
         
         -- Control Interface
-        bang_i                              : in  std_logic; 
+        bang_i                              : in  std_logic; -- Sinal para iniciar a geração do sinal
 
         -- Mode Interface 
-        invert_pulser_i                     : in std_logic;
-        triple_pulser_i                     : in std_logic;
+        invert_pulser_i                     : in std_logic; -- Ver acima
+        triple_pulser_i                     : in std_logic; -- Ver acima
         
         -- Output interface
-        strb_o                              : out std_logic;
-        pulser_done_o                       : out std_logic;
-        pulser_data_o                       : out std_logic_vector(1 downto 0)
+        valid_o                             : out std_logic; -- Valid out para todos os sinais da interface Input
+        pulser_done_o                       : out std_logic; -- Last word
+        pulser_data_o                       : out std_logic_vector(1 downto 0) -- Data
     );
 end pulser;
 
@@ -88,7 +106,7 @@ architecture behavioral of pulser is
     -------------
     
     -- Input 
-    signal input_strb                          : std_logic; -- Valid in for all inputs and mode interface
+    signal input_valid                         : std_logic;
     signal nb_repetitions                      : std_logic_vector( (NB_REPETITIONS_WIDTH - 1) downto 0);
     signal timer1                              : std_logic_vector( (TIMER_WIDTH - 1) downto 0); 
     signal timer2                              : std_logic_vector( (TIMER_WIDTH - 1) downto 0);
@@ -121,7 +139,7 @@ architecture behavioral of pulser is
     signal pulser_neg_amplitude                : std_logic_vector ( 1 downto 0) ; 
     signal pulser_pos_amplitude                : std_logic_vector ( 1 downto 0) ; 
 
-    signal pulser_strb                         : std_logic;
+    signal pulser_valid                         : std_logic;
     signal pulser_done                         : std_logic;
     signal pulser_data                         : std_logic_vector(1 downto 0);
     
@@ -153,14 +171,14 @@ architecture behavioral of pulser is
     signal all_zero_lock                       : std_logic;
 
     -- Output
-    signal output_strb                         : std_logic;
+    signal output_valid                         : std_logic;
     signal done                                : std_logic;
     signal data                                : std_logic_vector(1 downto 0);
 
 begin
     
     -- Input
-    input_strb          <= strb_i;
+    input_valid         <= valid_i;
     restart             <= restart_i;
     nb_repetitions      <= nb_repetitions_i;
     timer1              <= t1_i;
@@ -173,6 +191,33 @@ begin
 
     bang                <= bang_i;
 
+    ------------------------------------------------------------------
+    --                     Input registering                           
+    --                                                                
+    --   Goal: Registrar os parâmetros fornecidos
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: input_valid;
+    --          nb_repetitions;
+    --          timer1;
+    --          timer2;
+    --          timer3;
+    --          timer_damp;
+    --          invert_pulser;
+    --          triple_pulser;
+    --
+    --   Output: nb_repetitions_reg;
+    --           timer1_reg;
+    --           timer2_reg;
+    --           timer3_reg;
+    --           timer_damp_reg;
+    --           invert_pulser_reg;
+    --           triple_pulser_reg;
+    --           
+    --   Result: Salva os parâmetros (inputs) em registros
+    ------------------------------------------------------------------
     input_reg : process (clock_i,areset_i)
     begin
         if (areset_i = '1') then
@@ -180,7 +225,7 @@ begin
             triple_pulser_reg   <= '0';
 
         elsif(rising_edge(clock_i)) then
-            if (input_strb = '1') then
+            if (input_valid = '1') then
                 nb_repetitions_reg      <= nb_repetitions;
                 timer1_reg              <= timer1;
                 timer2_reg              <= timer2;
@@ -193,32 +238,69 @@ begin
         end if;
     end process;
 
+    -- MUXs para trocar entre -1 e +1
     pulser_neg_amplitude <=             PULSER_AMP2     when invert_pulser_reg = '1'
                                 else    PULSER_AMP1;
 
     pulser_pos_amplitude <=             PULSER_AMP1     when invert_pulser_reg = '1'
                                 else    PULSER_AMP2;
 
-    -- FSM
+    ------------------------------------------------------------------
+    --                     FSM                           
+    --                                                                
+    --   Goal: Máquina de estados para produzir o sinal quadrado
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: bang;
+    --          restart;
+    --          next_state;
+    --          timer1_done;
+    --          timer2_done;
+    --          timer3_done;
+    --          timer4_done;
+    --          timer_damp_done;
+    --          counter_timer1;
+    --          counter_timer2;
+    --          counter_timer3;
+    --          counter_timer4;
+    --          counter_timer_damp;
+    --
+    --   Output: pulser_valid;
+    --           pulser_done;
+    --           reset_repetitions_counter;
+    --           pulser_data;
+    --           pulser_state;
+    --           counter_timer1;
+    --           counter_timer2;
+    --           counter_timer3;
+    --           counter_timer4;
+    --           counter_timer_damp;
+    --
+    --   Result: Variação de pulser_data[-1;0;+1]
+    --           seguindo o esquema de tempos e as opções
+    --           Incremento dos contadores associaidos aos tempos
+    ------------------------------------------------------------------
     time_zones_fsm : process (clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            pulser_state            <= ST_WAIT_BANG;
-            pulser_strb             <= '0';
-            pulser_done             <= '0';
-            reset_repetitions_counter <= '0';
-            counter_timer1          <= TIMER_ONE_CTE;
-            counter_timer2          <= TIMER_ONE_CTE;
-            counter_timer3          <= TIMER_ONE_CTE;
-            counter_timer4          <= TIMER_ONE_CTE;
+            pulser_state                <= ST_WAIT_BANG;
+            pulser_valid                <= '0';
+            pulser_done                 <= '0';
+            reset_repetitions_counter   <= '0';
+            counter_timer1              <= TIMER_ONE_CTE;
+            counter_timer2              <= TIMER_ONE_CTE;
+            counter_timer3              <= TIMER_ONE_CTE;
+            counter_timer4              <= TIMER_ONE_CTE;
             counter_timer_damp          <= TIMER_ONE_CTE;
             
         elsif (rising_edge(clock_i)) then
 
-            pulser_strb    <= '0';
-            pulser_done    <= '0';
-            reset_repetitions_counter <= '0';
-            pulser_data      <= PULSER_ZERO;
+            pulser_valid                <= '0';
+            pulser_done                 <= '0';
+            reset_repetitions_counter   <= '0';
+            pulser_data                 <= PULSER_ZERO;
                                     
             case pulser_state is
                 
@@ -235,7 +317,7 @@ begin
                 when ST_T1 =>
                     
                     pulser_data         <= pulser_neg_amplitude;
-                    pulser_strb         <= '1';                  
+                    pulser_valid         <= '1';                  
                    
                     if( timer1_done = '1' ) then
                         pulser_state        <= next_state;
@@ -248,7 +330,7 @@ begin
                 when ST_T2 =>
     
                     pulser_data         <= PULSER_ZERO;
-                    pulser_strb         <= '1';                  
+                    pulser_valid         <= '1';                  
 
                     if( timer2_done = '1' ) then
                         pulser_state        <= next_state;
@@ -261,7 +343,7 @@ begin
                 when ST_T3 =>
             
                     pulser_data         <= pulser_pos_amplitude;
-                    pulser_strb         <= '1';       
+                    pulser_valid         <= '1';       
 
                     if( timer3_done = '1' ) then
                         pulser_state        <= next_state;
@@ -274,7 +356,7 @@ begin
                 when ST_T4 =>
                     
                     pulser_data         <= PULSER_ZERO;
-                    pulser_strb         <= '1';                  
+                    pulser_valid         <= '1';                  
                    
                     if( timer4_done = '1' ) then
                         pulser_state        <= next_state;
@@ -287,10 +369,10 @@ begin
                 when ST_TDAMP =>
 
                     if (triple_pulser_reg = '1') then
-                        pulser_strb         <= '1';
+                        pulser_valid         <= '1';
                         pulser_data         <= pulser_neg_amplitude;
                     else
-                        pulser_strb         <= '1';                  
+                        pulser_valid         <= '1';                  
                         pulser_data         <= PULSER_ZERO;
                     end if;
                 
@@ -340,17 +422,45 @@ begin
     timer_damp_zero                 <=              '1'   when ( timer_damp_reg = std_logic_vector(to_unsigned( 0 ,timer_damp_reg'length )))
                                             else    '0';                                        
 
+    -- Seguindo a prioridade dos estados (ver descrição)
+    -- determina o primeiro estado sem um tempo zero
     first_non_zero_state            <=              ST_T1   when timer1_zero = '0'
                                             else    ST_T2   when timer2_zero = '0'
                                             else    ST_T3   when timer3_zero = '0'
                                             else    ST_T4   when timer4_zero = '0'
                                             else    ST_TDAMP;
 
+    -- Caso todos sejam zero, ignorar "bang"
     all_zero_lock                   <=              '1' when   (    first_non_zero_state = ST_TDAMP
                                                                 or  timer_damp_zero = '1'            )
                                             else    '0';
 
-        -- FSM next state decision
+    ------------------------------------------------------------------
+    --                     FSM next state                          
+    --                                                                
+    --   Goal: Decidir qual o próximo estado da FSM principal
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: pulser_state;
+    --          timer1_done;
+    --          timer2_done;
+    --          timer3_done;
+    --          timer4_done;
+    --          nb_repetitions_done;
+    --          timer1_zero;
+    --          timer2_zero;
+    --          timer3_zero;
+    --          timer4_zero;
+    --          first_non_zero_state;
+    --          all_zero_lock;
+    --
+    --   Output: next_state;
+    --
+    --   Result: Decide qual é o próximo estado da máquina de estados
+    --           considerando a prioridade da máquina de estados e os estados zeros
+    ------------------------------------------------------------------    
     next_state_proc : process(pulser_state,timer1_done,timer2_done,timer3_done,timer4_done,nb_repetitions_done,
                               timer1_zero, timer2_zero, timer3_zero, timer4_zero, first_non_zero_state , all_zero_lock)
         variable temp_state : tp_pulser_state;
@@ -392,8 +502,32 @@ begin
         next_state <= temp_state;
     end process;
 
-
-    -- Repetitions Counter
+    ------------------------------------------------------------------
+    --                     Repetitions Counter                         
+    --                                                                
+    --   Goal: Contar o número de repetições já executadas
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: reset_repetitions_counter;
+    --          enable_repetitions_counter;
+    --          repetitions_counter;
+    --          timer3_done;
+    --          timer4_done;
+    --          nb_repetitions_done;
+    --          timer1_zero;
+    --          timer2_zero;
+    --          timer3_zero;
+    --          timer4_zero;
+    --          first_non_zero_state;
+    --          all_zero_lock;
+    --
+    --   Output: repetitions_counter;
+    --
+    --   Result: Incrementa o contador de repetições repetitions_counter,
+    --           ou reset no caso que o número de repetições seja completado
+    ------------------------------------------------------------------    
     repetitions_counter_proc : process(clock_i,areset_i)
     begin
         if ( areset_i = '1') then
@@ -412,23 +546,42 @@ begin
     nb_repetitions_done             <=              '1'   when ( repetitions_counter = unsigned(nb_repetitions_reg) - 1 )
                                             else    '0';
 
-    output_proc : process(clock_i,areset_i) -- Removable
+    ------------------------------------------------------------------
+    --                     Output register                   
+    --                                                                
+    --   Goal: Registrar a saída
+    --
+    --   Clock & reset domain: clock_i & areset_i
+    --
+    --
+    --   Input: pulser_valid;
+    --          pulser_done;
+    --          pulser_data;
+
+    --   Output: output_valid;
+    --           done;
+    --           data;
+    --
+    --   Result: Registro dos sinais de valid, data e done
+    --           para a saída.
+    ------------------------------------------------------------------  
+    output_proc : process(clock_i,areset_i) 
     begin
         if (areset_i = '1') then
-            output_strb   <= '0';
+            output_valid   <= '0';
         elsif (rising_edge(clock_i)) then
 
-            output_strb <= pulser_strb;
+            output_valid <= pulser_valid;
             done        <= pulser_done;
 
-            if (pulser_strb = '1') then
-                data         <= pulser_data;
+            if (pulser_valid = '1') then
+                data     <= pulser_data;
             end if;
         end if;
     end process;
 
     -- Output
-    strb_o            <= output_strb;
+    valid_o           <= output_valid;
     pulser_done_o     <= done;
     pulser_data_o     <= data;
 

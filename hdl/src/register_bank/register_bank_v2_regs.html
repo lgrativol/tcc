@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>register_bank_v2 Register Map</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">        
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+        <style>
+            .dl-horizontal dt {
+                text-align: left;
+                margin-bottom: 1em;
+            }
+            
+            .dl-horizontal dl {
+                margin-bottom: 1em;
+            }        
+        </style>
+    </head>
+    <body>
+        <div class="row">
+            <div class="col-md-offset-2 col-md-8">
+                <h2 class="page-header">register_bank_v2
+                    <small>register map</small>
+                </h2>
+
+                <dl class="dl-horizontal">
+                    <dt><strong>Description</strong></dt><dd>Register&#39;s map</dd>
+                    <dt><strong>Default base address</strong></dt><dd style="font-family:monospace;">0x0</dd>
+                    <dt><strong>Register Width</strong></dt><dd>32 bits</dd>
+                    <dt><strong>Register Count</strong></dt><dd>20</dd>
+                    <dt>Range</dt>
+                    <dd>96 bytes 
+                    </dd>                    
+                    <dt><strong>Revision</strong></dt><dd>34</dd>
+                </dl>
+<a id="OVERVIEW"></a>
+                <h3 class="page-header">Overview</h3>
+                <div class="panel panel-default">
+                    <table class="table table-hover">
+                        <colgroup>
+                            <col class="col-md-1">
+                            <col class="col-md-2">
+                            <col class="col-md-9">
+                        </colgroup>                    
+                        <tr class="active">
+                            <th style="padding-left: 2em;">Offset</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr onclick="window.location='#REG@version';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x0</td>
+                            <td>version</td>
+                            <td>Implementation version</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@bang';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x4</td>
+                            <td>bang</td>
+                            <td>The start &quot;button&quot; with auto-reset</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@sample_frequency';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x8</td>
+                            <td>sample_frequency</td>
+                            <td>Sampling frequency</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@wave_nb_periods';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0xC</td>
+                            <td>wave_nb_periods</td>
+                            <td>Number of periods for the wave</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@wave_nb_points';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x10</td>
+                            <td>wave_nb_points</td>
+                            <td>Number of points in one period of the wave, useful for the DDS CORDIC and table methods</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@fsm_nb_repetitions';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x24</td>
+                            <td>fsm_nb_repetitions</td>
+                            <td>Number of shots for the FSM Control</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@fsm_setup_timer';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x28</td>
+                            <td>fsm_setup_timer</td>
+                            <td>Number of cycles for the Setup Time Zone</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@fsm_tx_timer';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x2C</td>
+                            <td>fsm_tx_timer</td>
+                            <td>Number of cycles for the Tx Time Zone</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@fsm_deadzone_timer';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x30</td>
+                            <td>fsm_deadzone_timer</td>
+                            <td>Number of cycles for the Deadzone Time Zone</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@fsm_rx_timer';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x34</td>
+                            <td>fsm_rx_timer</td>
+                            <td>Number of cycles for the Rx Time Zone</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@fsm_idle_timer';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x38</td>
+                            <td>fsm_idle_timer</td>
+                            <td>Number of cycles for the Idle Time Zone</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@pulser_t1';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x3C</td>
+                            <td>pulser_t1</td>
+                            <td>Pulser t1 step size (number of cycles)</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@pulser_t2';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x40</td>
+                            <td>pulser_t2</td>
+                            <td>Pulser t2 step size (number of cycles)</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@pulser_t3';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x44</td>
+                            <td>pulser_t3</td>
+                            <td>Pulser t3 step size (number of cycles)</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@pulser_t4';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x48</td>
+                            <td>pulser_t4</td>
+                            <td>Pulser t4 step size (number of cycles)</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@pulser_t5';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x4C</td>
+                            <td>pulser_t5</td>
+                            <td>Pulser t5 step size (number of cycles)</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@pulser_config';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x50</td>
+                            <td>pulser_config</td>
+                            <td>Pulser configuration for inverted and triple pulse options</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@dds_phase_term';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x54</td>
+                            <td>dds_phase_term</td>
+                            <td>DDS CORDIC phase term</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@dds_init_phase';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x58</td>
+                            <td>dds_init_phase</td>
+                            <td>DDS CORDIC Initial phase</td>
+                        </tr>
+                        <tr onclick="window.location='#REG@dds_mode';">                        
+                            <td style="font-family: monospace; padding-left: 2em;">0x5C</td>
+                            <td>dds_mode</td>
+                            <td>DDS CORDIC mode time option</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <h3 class="page-header">Registers</h3>
+
+<a id="REG@version"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>version&nbsp;</span></strong><br/>Implementation version</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x0
+                            <br/>Access: READ_ONLY
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[7:0]</td>
+                        <td><strong>field</strong><br/>
+                        <p>Implementation version</p>
+
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@bang"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>bang&nbsp;</span></strong><br/>The start &quot;button&quot; with auto-reset</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x4
+                            <br/>Access: WRITE_ONLY
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[0]</td>
+                        <td><strong>field</strong><br/>
+                        <p>The start</p>
+
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                                <br/><span class="badge">Self-clearing</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@sample_frequency"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>sample_frequency&nbsp;</span></strong><br/>Sampling frequency</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x8
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[26:0]</td>
+                        <td><strong>value</strong><br/>
+                        <p>Default 100 MHz</p>
+
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x5F5E100</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@wave_nb_periods"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>wave_nb_periods&nbsp;</span></strong><br/>Number of periods for the wave</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0xC
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[7:0]</td>
+                        <td><strong>value</strong><br/>
+                        <p>Number of periods for the wave</p>
+
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@wave_nb_points"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>wave_nb_points&nbsp;</span></strong><br/>Number of points in one period of the wave, useful for the DDS CORDIC and table methods</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x10
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[31:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@fsm_nb_repetitions"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>fsm_nb_repetitions&nbsp;</span></strong><br/>Number of shots for the FSM Control</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x24
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[5:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@fsm_setup_timer"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>fsm_setup_timer&nbsp;</span></strong><br/>Number of cycles for the Setup Time Zone</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x28
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[17:0]</td>
+                        <td><strong>value</strong><br/>
+                        <p>Number of cycles for the Setup Time Zone</p>
+
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@fsm_tx_timer"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>fsm_tx_timer&nbsp;</span></strong><br/>Number of cycles for the Tx Time Zone</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x2C
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[17:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@fsm_deadzone_timer"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>fsm_deadzone_timer&nbsp;</span></strong><br/>Number of cycles for the Deadzone Time Zone</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x30
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[17:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@fsm_rx_timer"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>fsm_rx_timer&nbsp;</span></strong><br/>Number of cycles for the Rx Time Zone</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x34
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[17:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@fsm_idle_timer"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>fsm_idle_timer&nbsp;</span></strong><br/>Number of cycles for the Idle Time Zone</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x38
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[17:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@pulser_t1"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>pulser_t1&nbsp;</span></strong><br/>Pulser t1 step size (number of cycles)</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x3C
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[9:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@pulser_t2"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>pulser_t2&nbsp;</span></strong><br/>Pulser t2 step size (number of cycles)</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x40
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[9:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@pulser_t3"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>pulser_t3&nbsp;</span></strong><br/>Pulser t3 step size (number of cycles)</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x44
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[9:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@pulser_t4"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>pulser_t4&nbsp;</span></strong><br/>Pulser t4 step size (number of cycles)</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x48
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[9:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@pulser_t5"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>pulser_t5&nbsp;</span></strong><br/>Pulser t5 step size (number of cycles)</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x4C
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[9:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@pulser_config"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>pulser_config&nbsp;</span></strong><br/>Pulser configuration for inverted and triple pulse options</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x50
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[0]</td>
+                        <td><strong>invert</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[1]</td>
+                        <td><strong>triple</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@dds_phase_term"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>dds_phase_term&nbsp;</span></strong><br/>DDS CORDIC phase term</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x54
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[31:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@dds_init_phase"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>dds_init_phase&nbsp;</span></strong><br/>DDS CORDIC Initial phase</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x58
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[31:0]</td>
+                        <td><strong>value</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+<a id="REG@dds_mode"></a>
+<div class="panel panel-default">
+                <table class="table">
+                    <tr class="active">
+                        <td colspan="3"><span class="lead"><strong>dds_mode&nbsp;</span></strong><br/>DDS CORDIC mode time option</td>
+                        <td colspan="2" style="font-family:monospace;">
+                            Register
+                            <br/>Offset: 0x5C
+                            <br/>Access: READ_WRITE
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-right" style="font-family:monospace; width:4em;">[0]</td>
+                        <td><strong>time</strong><br/>
+                        
+                        </td>
+                        <td>
+                            &nbsp;                            
+                        </td>
+                        <td class="text-left" style="width:20em;">Reset: <span style="font-family:monospace;">0x0</span>
+                        </td>
+                    </tr>
+                </table>
+</div>
+            </div>
+        </div>        
+        <div class="row">
+            <div class="col-md-offset-3 col-md-6">
+                <p class="text-center" style="padding-top:1em; color:#888;">Generated on 2020-12-10 at 20:07 (UTC) by airhdl version 2020.10.1</p>
+            </div>
+        </div>
+    </body>
+</html>

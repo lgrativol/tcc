@@ -8,9 +8,11 @@
 -- Revision Date:                                                      
 -- Tool version: Vivado 2017.4                                                             
 --                                                                                         
--- Goal: 
+-- Goal: Implementar o FIR com ntaps
 --          
--- Description: 
+-- Description: O FIR transpose core instancia o slice do FIR transpose slice Ntaps vezes.
+--              A arquitetura transpose proposta pela Xilinx, tendo como vantagem a economia
+--              de recursos, em troca de um pior timming que a versão direct (high fanout)
 ---------------------------------------------------------------------------------------------
 
 ---------------
@@ -34,31 +36,33 @@ use work.fir_weights_pkg;
 
 entity fir_transpose_core is
     generic(
-        WEIGHT_INT_PART                 : natural;
-        WEIGHT_FRAC_PART                : integer;  
-        NB_TAPS                         : positive;
-        WORD_INT_PART                   : natural;
-        WORD_FRAC_PART                  : integer;
-        SIDEBAND_WIDTH                  : natural
+        WEIGHT_INT_PART                 : natural; -- Weight int parte (número de bits), o sinal já é levado
+                                                   -- em conta pelo "sfixed"
+        WEIGHT_FRAC_PART                : integer; -- Weight fractional part
+        NB_TAPS                         : positive;-- Número de taps do filtro
+        WORD_INT_PART                   : natural; -- Word int parte (número de bits), o sinal já é levado
+                                                   -- em conta pelo "sfixed"
+        WORD_FRAC_PART                  : integer; -- Word fractional part
+        SIDEBAND_WIDTH                  : natural -- Tamanho da palavra sideband, usado para transitar sinais pelo pipeline
     );
     port(
         -- Clock interface
-        clock_i                         : in  std_logic;
-        areset_i                        : in  std_logic; 
+        clock_i                         : in std_logic; -- Clock
+        areset_i                        : in std_logic; -- Positive async reset
         
         -- Weights
-        weights_valid_i                 : in std_logic_vector((NB_TAPS - 1) downto 0);
-        weights_data_i                  : in std_logic_vector( ((NB_TAPS *(WEIGHT_INT_PART + 1 - WEIGHT_FRAC_PART)) - 1) downto  0);
-
+        weights_valid_i                 : in std_logic_vector((NB_TAPS - 1) downto 0); -- Indica que os pesos são válidos nesse ciclo de clock
+        weights_data_i                  : in std_logic_vector(((NB_TAPS * (WEIGHT_INT_PART + 1 - WEIGHT_FRAC_PART)) - 1) downto  0); -- Vetor com todos os pesos
+        
         --Input
-        valid_i                         : in  std_logic; 
-        data_i                          : in  sfixed(WORD_INT_PART downto WORD_FRAC_PART);
-        sideband_data_i                 : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
+        valid_i                         : in  std_logic;  -- Indica que os outros sinais da interface são válidos nesse ciclo de clock
+        data_i                          : in  sfixed(WORD_INT_PART downto WORD_FRAC_PART); -- Palavra entrando no FIR
+        sideband_data_i                 : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0); -- Indica que é a última palavra do sinal
     
         -- Ouput 
-        valid_o                         : out std_logic; 
-        data_o                          : out sfixed(WORD_INT_PART downto WORD_FRAC_PART);   
-        sideband_data_o                 : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0)
+        valid_o                         : out std_logic; -- Indica que os outros sinais da interface são válidos nesse ciclo de clock
+        data_o                          : out sfixed(WORD_INT_PART downto WORD_FRAC_PART); -- Palavra saindo no FIR   
+        sideband_data_o                 : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0) -- Indica que é a última palavra do sinal
     );
 end fir_transpose_core;
 

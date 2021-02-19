@@ -30,6 +30,8 @@
 --               * mode_time : Modo "especial" que transforma a fase inicial em um delay para o seno
 --                             no tempo, da forma : número_de_ciclos_delay = initial_phase / phase_term
 --
+--               Obs.: O arquivo dds_cordic_win_v2 é uma versão mais nova com todas as janelas ao msm tempo
+--
 ---------------------------------------------------------------------------------------------
 
 ---------------
@@ -54,16 +56,17 @@ use work.utils_pkg.all;
 
 entity dds_cordic_win is
     generic(
-        PHASE_INTEGER_PART                  : natural  :=   4;
-        PHASE_FRAC_PART                     : integer  := -27;
-        CORDIC_INTEGER_PART                 : natural  :=   1; 
-        CORDIC_FRAC_PART                    : integer  := -19;
-        N_CORDIC_ITERATIONS                 : natural  :=  21;
-        NB_POINTS_WIDTH                     : natural  :=  10;  
-        WIN_MODE                            : string   := "HANN"; -- or "HAMM"
-        WIN_INTEGER_PART                    : positive := 1;
-        WIN_FRAC_PART                       : integer  := -19;
-        WIN_NB_ITERATIONS                   : positive := 10    
+        PHASE_INTEGER_PART                  : natural;
+        PHASE_FRAC_PART                     : integer;
+        CORDIC_INTEGER_PART                 : natural; 
+        CORDIC_FRAC_PART                    : integer;
+        N_CORDIC_ITERATIONS                 : natural;
+        NB_POINTS_WIDTH                     : natural;  
+        NB_REPT_WIDTH                       : natural;  
+        WIN_MODE                            : string;-- "HANN" "HAMM" "BLKM" "BLKH" "TKEY" "NONE"
+        WIN_INTEGER_PART                    : positive;
+        WIN_FRAC_PART                       : integer;
+        WIN_NB_ITERATIONS                   : positive    
     );
     port(
         -- Clock interface
@@ -76,7 +79,7 @@ entity dds_cordic_win is
         window_term_i                       : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); 
         nb_points_i                         : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
-        nb_repetitions_i                    : in  std_logic_vector( (NB_POINTS_WIDTH - 1) downto 0);
+        nb_repetitions_i                    : in  std_logic_vector( (NB_REPT_WIDTH - 1) downto 0);
         mode_time_i                         : in  std_logic; 
         restart_cycles_i                    : in  std_logic; 
         
@@ -128,7 +131,7 @@ architecture behavioral of dds_cordic_win is
 
 
     begin
-        if    (win = "HANN") then
+        if    (win = "HANN") then 
             return HH_LATENCY;
         elsif (win = "HAMM") then
             return HH_LATENCY;
@@ -175,7 +178,7 @@ architecture behavioral of dds_cordic_win is
     signal      dds_cordic_valid_i                   : std_logic;
     signal      dds_cordic_phase_term               : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_cordic_nb_points                : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      dds_cordic_nb_repetitions           : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      dds_cordic_nb_repetitions           : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal      dds_cordic_initial_phase            : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);  
     signal      dds_cordic_mode_time                : std_logic;
     signal      dds_cordic_restart_cycles           : std_logic;
@@ -241,6 +244,7 @@ begin
             CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
             N_CORDIC_ITERATIONS                 => N_CORDIC_ITERATIONS,
             NB_POINTS_WIDTH                     => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                       => NB_REPT_WIDTH,
             EN_POSPROC                          => FALSE
         )
         port map(
@@ -281,6 +285,10 @@ begin
         if  (WIN_MODE = "HANN" or WIN_MODE = "HAMM") generate
             stage_2_window : entity work.hh_win_v2 
                 generic map(
+                    PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+                    PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+                    CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
+                    CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
                     HH_MODE                             => WIN_MODE, -- or HAMM
                     WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
                     WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
@@ -310,6 +318,10 @@ begin
         if  (WIN_MODE = "BLKM" ) generate
             stage_2_window : entity work.blackman_win 
                 generic map(
+                    PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+                    PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+                    CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
+                    CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
                     WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
                     WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
                     BLKM_INTEGER_PART                   => WIN_INTEGER_PART,
@@ -338,6 +350,10 @@ begin
         if  (WIN_MODE = "BLKH" ) generate
             stage_2_window : entity work.blackman_harris_win 
                 generic map(
+                    PHASE_INTEGER_PART                  => PHASE_INTEGER_PART,
+                    PHASE_FRAC_PART                     => PHASE_FRAC_PART,
+                    CORDIC_INTEGER_PART                 => CORDIC_INTEGER_PART,
+                    CORDIC_FRAC_PART                    => CORDIC_FRAC_PART,
                     WIN_PHASE_INTEGER_PART              => WIN_PHASE_INTEGER_PART,
                     WIN_PHASE_FRAC_PART                 => WIN_PHASE_FRAC_PART,
                     BLKH_INTEGER_PART                   => WIN_INTEGER_PART,

@@ -1,3 +1,19 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Dezembro/2020                                                                         
+-- Module Name: wave_fifo.vhd                                                                           
+-- Author Name: Lucas Grativol Ribeiro                          
+--                                                                                         
+-- Revision Date: 08/01/2021                                                                         
+-- Tool version: Vivado 2017.4                                                                           
+--                                                                      
+-- Goal: Implementar uma FIFO circular compatível com a interface usada para a wave (valid, data, last)
+--       e possuir o rd_enable para ser usado em combinação com o upsampler    
+--
+-- Description: A implementação é parecida com "ring_fifo.vhd" sem a opção de configuração de address
+--              e implementando wave_valid, wave_data e wave_last.
+--
+---------------------------------------------------------------------------------------------
 
 -------------
 -- Library --
@@ -16,27 +32,27 @@ use work.utils_pkg.all;
 
 entity wave_fifo is
     generic (
-        DATA_WIDTH              : natural := 10;
-        RAM_DEPTH               : natural := 512-- RAM_DEPTH = 2^N
+        DATA_WIDTH              : natural := 10; -- Tamanho em bits da palavra input/output
+        RAM_DEPTH               : natural := 512 -- Profundidade da RAM, potência de 2
     );
     port (
-        clock_i                 : in std_logic;
-        areset_i                : in std_logic;
+        clock_i                 : in std_logic; -- Clock
+        areset_i                : in std_logic; -- Positive async reset
 
         -- Write port
-        wave_valid_i            : in std_logic;
-        wave_data_i             : in std_logic_vector(DATA_WIDTH - 1 downto 0);
-        wave_last_i             : in std_logic;
+        wave_valid_i            : in  std_logic; -- Indica que os outros sinais da interface são válidos nesse ciclo de clock
+        wave_data_i             : in  std_logic_vector(DATA_WIDTH - 1 downto 0); -- Amostra do sinal
+        wave_last_i             : in  std_logic; -- Indica que é a última amostra do sinal
 
         -- Read port
-        wave_rd_enable_i        : in  std_logic;
-        wave_valid_o            : out std_logic;
-        wave_data_o             : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-        wave_last_o             : out std_logic;
+        wave_rd_enable_i        : in  std_logic; -- Sinal para requisição de uma amostra da FIFO (1 ciclo de delay RAM)
+        wave_valid_o            : out std_logic; -- Indica que os outros sinais da interface são válidos nesse ciclo de clock
+        wave_data_o             : out std_logic_vector(DATA_WIDTH - 1 downto 0); -- Amostra resultante
+        wave_last_o             : out std_logic; -- Indica que é a última amostra do sinal
 
         -- Flags
-        empty_o                 : out std_logic;
-        full_o                  : out std_logic
+        empty_o                 : out std_logic; -- Indica FIFO vazia no ciclo de clock atual 
+        full_o                  : out std_logic -- Indica FIFO cheia no ciclo de clock atual   
     );
 end wave_fifo;
 

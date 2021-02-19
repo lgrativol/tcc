@@ -47,7 +47,8 @@ entity tukey_phase_acc is
         WIN_ALFA                           : real; -- Coeficiente alfa da janela Tukey
         PHASE_INTEGER_PART                 : natural; -- phase integer part
         PHASE_FRAC_PART                    : integer; -- phase fractional part
-        NB_POINTS_WIDTH                    : positive  -- nb_points/nb_repetitions width
+        NB_POINTS_WIDTH                    : positive;  -- nb_points width
+        NB_REPT_WIDTH                      : positive  -- nb_rept width
     );
     port(
         -- Clock interface
@@ -58,7 +59,7 @@ entity tukey_phase_acc is
         valid_i                             : in  std_logic; -- Indica que os parâmetros da interface são válidos no ciclo atual
         phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver acima
         nb_points_one_period_i              : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0); -- Ver acima
-        nb_repetitions_i                    : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0); -- Ver acima
+        nb_repetitions_i                    : in  std_logic_vector((NB_REPT_WIDTH - 1) downto 0); -- Ver acima
 
         -- Control interface
         restart_acc_i                       : in  std_logic;  -- Em falling_edge reseta o acumulador -- Ver acima
@@ -95,7 +96,7 @@ architecture behavioral of tukey_phase_acc is
     signal phase_term                           : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal initial_phase                        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal nb_points_one_period                 : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal nb_repetitions                       : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_repetitions                       : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     
     signal restart_acc                          : std_logic; 
     
@@ -107,7 +108,7 @@ architecture behavioral of tukey_phase_acc is
     signal phase_term_reg                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);    
     signal initial_phase_reg                    : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal nb_points_one_period_reg             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal nb_repetitions_reg                   : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_repetitions_reg                   : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     
     signal nb_l_points_reg                      : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
     signal ufixed_nb_l_points_reg               : ufixed((NB_POINTS_WIDTH - 1) downto 0);  

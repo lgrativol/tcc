@@ -181,14 +181,9 @@ begin
             wave_done_o                         => wave_done,
     
             -- Control
-            control_bang_o                      => control_bang,
-            
-            control_sample_frequency_valid_o     => control_sample_frequency_valid_o,
-            control_sample_frequency_o          => control_sample_frequency,
-    
+            control_rx_last_word_o              => open,
             control_enable_rx_o                 => open,
             control_system_sending_i            => '0',
-            control_reset_averager_o            => control_reset_averager,
             control_config_valid_o              => control_config_valid_o,
             control_nb_points_wave_o            => control_nb_points_wave,
             control_nb_repetitions_wave_o       => control_nb_repetitions_wave

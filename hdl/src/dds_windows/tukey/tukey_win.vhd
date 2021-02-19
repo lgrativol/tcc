@@ -84,6 +84,9 @@ architecture behavioral of tukey_win is
     ---------------
     -- Constants --
     ---------------
+
+    constant REPT_WIDTH : natural := 4; --Hardcode
+
     -- 0,607253 = 1/Ak = limit(k->+infinito) prod(k=0)^(k=infinito) cos(arctg(2^-k))
     constant    CORDIC_FACTOR           : sfixed(TK_INTEGER_PART downto TK_FRAC_PART) := to_sfixed( (0.607253) , TK_INTEGER_PART, TK_FRAC_PART);
     constant    SIDEBAND_WIDTH          : natural := 2;
@@ -102,7 +105,7 @@ architecture behavioral of tukey_win is
     signal      phase_acc_valid_i               : std_logic;
     signal      phase_acc_phase_term            : ufixed(WIN_PHASE_INTEGER_PART downto WIN_PHASE_FRAC_PART);   
     signal      phase_acc_nb_points             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal      phase_acc_nb_repetitions        : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal      phase_acc_nb_repetitions        : std_logic_vector((REPT_WIDTH - 1) downto 0);
 
     signal      phase_acc_restart_cycles        : std_logic;
     signal      phase_acc_done_cycles           : std_logic;
@@ -178,7 +181,8 @@ begin
             WIN_ALFA                           => 0.5,
             PHASE_INTEGER_PART                 => WIN_PHASE_INTEGER_PART,
             PHASE_FRAC_PART                    => WIN_PHASE_FRAC_PART,
-            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH
+            NB_POINTS_WIDTH                    => NB_POINTS_WIDTH,
+            NB_REPT_WIDTH                      => REPT_WIDTH
         )
         port map(
             -- Clock interface

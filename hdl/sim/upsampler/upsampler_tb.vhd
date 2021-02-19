@@ -33,13 +33,19 @@ architecture testbench of upsampler_tb is
     constant MAX_FACTOR                         : positive  := 4;
     constant MAX_FACTOR_WIDTH                   : positive  := ceil_log2(MAX_FACTOR + 1);
 
-    constant WEIGHT_INT_PART                    : natural   := 1;
-    constant WEIGHT_FRAC_PART                   : integer   := -6;
+    constant WEIGHT_INT_PART                    : natural   := 0;
+    constant WEIGHT_FRAC_PART                   : integer   := -15;
     constant WEIGHT_WIDTH                       : positive  := WEIGHT_INT_PART + 1 - WEIGHT_FRAC_PART;
-    constant NB_TAPS                            : natural   := 2;
+    constant NB_TAPS                            : natural   := 10;
     constant FIR_WORD_INT_PART                  : natural   := 1;
     constant FIR_WORD_FRAC_PART                 : integer   := -6;
+    constant FIR_WORD_WIDTH                     : natural   := FIR_WORD_INT_PART + 1 - FIR_WORD_FRAC_PART;
+    constant FIR_TYPE                           : string    := "DIREC";
 
+    type weights_tp                         is array (natural range <>) of std_logic_vector( (WEIGHT_WIDTH - 1) downto 0 );
+
+    constant WEIGHTS_DATA                       : std_logic_vector := x"00EE" & x"042D" & x"0A71" & x"1218" &  x"177D" &  x"177D" & x"1218" & x"0A71" & x"042D" & x"00EE";
+                                                            
     -------------
     -- Signals --
     -------------
@@ -118,11 +124,10 @@ begin
 
     UTT_UPSAMPLER: entity work.upsampler
     generic map(
-        WEIGHT_INT_PART         => WEIGHT_INT_PART,
-        WEIGHT_FRAC_PART        => WEIGHT_FRAC_PART,
+        FIR_TYPE                => FIR_TYPE,
+        WEIGHT_WIDTH            => WEIGHT_WIDTH,
         NB_TAPS                 => NB_TAPS,
-        FIR_WORD_INT_PART       => FIR_WORD_INT_PART,
-        FIR_WORD_FRAC_PART      => FIR_WORD_FRAC_PART,
+        FIR_WIDTH               => FIR_WORD_WIDTH,
         MAX_FACTOR              => MAX_FACTOR,
         DATA_WIDTH              => DATA_WIDTH
     )
@@ -197,20 +202,20 @@ begin
         
         upsampler_factor_valid          <= '1';
         upsampler_weights_valid         <= (others => '1');
-        upsampler_weights_data          <= (others => '0');
-        upsampler_factor                <= std_logic_vector( to_unsigned(  1  ,upsampler_factor'length)); 
+        --upsampler_weights_data          <= WEIGHTS_DATA;
+        upsampler_weights_data          <= (others =>'0');
+        upsampler_factor                <= std_logic_vector( to_unsigned(  8  ,upsampler_factor'length)); 
         
         wait for CLK_PERIOD;
         wait until (rising_edge(clk));
         
         upsampler_factor_valid      <= '0';
-        upsampler_weights_valid     <= (others => '0');
         
         write_memory(x"0102030405060708090A0B0C0D0E0F");
 
         wait until upsampler_out_wave_last = '1';
         wait until (rising_edge(clk));
-        write_memory(x"0102030405060708090A0B0C0D0E0F");
+        --write_memory(x"0102030405060708090A0B0C0D0E0F");
 
         wait;
         

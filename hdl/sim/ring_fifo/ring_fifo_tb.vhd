@@ -40,13 +40,13 @@ architecture testbench of ring_fifo_tb is
     signal clk                                  : std_logic :='0';
     signal areset                               : std_logic :='0';
 
-    signal config_valid_i                        : std_logic := '0';
+    signal config_valid_i                       : std_logic := '0';
     signal config_max_addr                      : std_logic_vector( (ADDR_WIDTH  - 1 ) downto 0 ) := std_logic_vector( to_unsigned (RAM_DEPTH - 1 ,ADDR_WIDTH ) );
     signal config_reset_pointers                : std_logic := '0';
-    signal wr_valid_i                            : std_logic := '0';
+    signal wr_valid_i                           : std_logic := '0';
     signal wr_data                              : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal rd_en                                : std_logic := '0';
-    signal rd_valid_o                            : std_logic;
+    signal rd_valid_o                           : std_logic;
     signal rd_data                              : std_logic_vector(DATA_WIDTH - 1 downto 0);
     signal empty                                : std_logic;
     signal full                                 : std_logic;
@@ -72,17 +72,17 @@ begin
         areset_i                    => areset,
 
         -- Config  port
-        config_valid_i               => config_valid_i,
+        config_valid_i              => config_valid_i,
         config_max_addr_i           => config_max_addr,
         config_reset_pointers_i     => config_reset_pointers,
 
         -- Write port
-        wr_valid_i                   => wr_valid_i,
+        wr_valid_i                  => wr_valid_i,
         wr_data_i                   => wr_data,
 
         -- Read port
         rd_en_i                     => rd_en,
-        rd_valid_o                   => rd_valid_o, 
+        rd_valid_o                  => rd_valid_o, 
         rd_data_o                   => rd_data, 
 
         -- Flags

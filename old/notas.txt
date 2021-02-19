@@ -1,0 +1,245 @@
+
+====
+
+A documentacao fala que para atualizar um pacote na imagem basta fazer:
+
+$ petalinux-build -c interfaces-static
+
+  e depois:
+
+$ petalinux-build -x package
+
+porem isso nao parece atualizar a imagem do qemu. ate agora nao descobri
+como fazer. a unica forma que funcionou foi o (bem mais demorado)
+
+$ petalinux-build
+
+mas isso recompila ate o kernel!
+
+===
+
+nao consegui ainda fazer a placa de rede funcionar no qemu. ele sempre
+da a mensagem "Warning: vlan 0 is not connected to host network" e dentro
+da vm a eth0 aparece como desconectada (nunca da "running").
+tentei tanto com:
+
+$ petalinux-boot --qemu --kernel
+
+e tambem com:
+
+# petalinux-boot --qemu --root --kernel
+
+com root, teoricamente usaria outra forma de virtualizacao de rede atraves
+de uma interface virtual (tap ou tun, algo assim). mas nao fez diferenca.
+
+===
+
+quando modifica as configuracoes do kernel ele acrescenta um novo arquivo
+./project-spec/meta-user/recipes-kernel/linux/linux-xlnx/user_*
+
+este arquivo precisa ser adicionado ao repositorio (pois ele sera referenciado
+em ./project-spec/meta-user/recipes-kernel/linux/linux-xlnx_%.bbappend)
+
+===
+
+quando faz o clone inicial do projeto, ele nao consegue fazer config do kernel:
+
+$ petalinux-config -c kernel
+(...)
+ERROR: Nothing PROVIDES 'petalinux-user-image'. Close matches:
+  petalinux-image
+  petalinux-minimal
+ERROR: Required build target 'virtual/kernel' has no buildable providers.
+Missing or unbuildable dependency chain was: ['virtual/kernel', 'petalinux-user-image']                                                            
+(...)
+
+para resolver, fazer um config petalinux-config sem parametros primeiro:
+
+$ petalinux-config
+
+===
+
+o utilitario petalinux-config gosta de inserir/remover linhas em branco nos arquivos
+project-spec/configs/config
+project-spec/meta-plnx-generated/recipes-bsp/u-boot/configs/config.cfg
+project-spec/meta-plnx-generated/recipes-bsp/u-boot/u-boot-xlnx_%.bbappend
+project-spec/meta-plnx-generated/recipes-dt/device-tree/device-tree-generation_%.bbappend
+
+alem de mover de lugar a funcao find_cfgs em 
+project-spec/meta-plnx-generated/recipes-kernel/linux/linux-xlnx_%.bbappend
+
+como resolver? fazer hg up -C?
+
+
+===
+
+dmesg do myir mostrando conexao de rede ok:
+[    0.856579] macb e000b000.ethernet eth0: Cadence GEM at 0xe000b000 irq 54 (00:0a:35:00:01:22)
+[    0.863731] macb e000b000.ethernet eth0: attached PHY driver [Generic PHY] (mii_bus:phy_addr=e000b000.etherne:03, irq=-1)
+[ 2418.856688] macb e000b000.ethernet eth0: link up (1000/Full)
+
+===
+
+para regerar o BOOT.BIN que deve ser copiado na 1a particao do sdcard:
+$ petalinux-package --force --boot --u-boot --fpga images/linux/*.bit
+
+INFO: File in BOOT BIN: "/home/miguel/arm/picozed/petalinux/project-tst/reference_proj2/images/linux/zynq_fsbl.elf"
+INFO: File in BOOT BIN: "/home/miguel/arm/picozed/petalinux/project-tst/reference_proj2/images/linux/design_1_wrapper.bit"
+INFO: File in BOOT BIN: "/home/miguel/arm/picozed/petalinux/project-tst/reference_proj2/images/linux/u-boot.elf"
+INFO: Generating zynq binary package BOOT.BIN...
+INFO: Binary is ready.
+
+obs: a documentacao diz que ele procura os *.bit neste diretorio, mas isso nao aconteceu.
+     precisei colocar o parametro --fpga explicito
+
+$ cp images/linux/BOOT.BIN /mnt/sdc1/
+
+Outro arquivo q deve ser copiado (foi gerado no petalinux-build)
+$ cp images/linux/image.ub /mnt/sdc1/
+
+"FIT image is the default bootable image format. By default the FIT image is composed of
+kernel image, DTB and rootfs image."
+
+Nao precisaria copiar o dtb (ja esta no FIT image), mas parece que tem um bug quando
+tenta usar o root no sdcard (ver abaixo). Ai precisa copiar:
+$ cp images/linux/system.dtb /mnt/sdc1/
+
+===
+
+1) Descompactar o images/linux/rootfs.cpio no sdcard para rodar o petalinux sem ser initramfs:
+
+(Copy the BOOT.BIN, image.ub onto the first partition)
+Do a
+mkfs.ext3 <second partition>
+
+in the second partition do:
+
+/mnt/sdc2/$ sudo pax -r -c -f rootfs.cpio
+
+2) Alterar a linha de comando do kernel para mudar o root para o sdcard:
+
+In petalinux-config:
+Image Packaging Configuration => Root filesystem type => SD card
+
+isso muda a bootcmd de (tem q dar build de novo):
+"Kernel command line: console=ttyPS0,115200 earlyprintk"
+para:
+"Kernel command line: console=ttyPS0,115200 earlyprintk root=/dev/mmcblk0p2 rw rootwait"
+
+obs1: a linha bootcmd aparece no dtb, no BOOT.BIN e no image.ub.
+      o que vale e' o do image.ub (kernel "FIT" image) se nao mudar a opcao abaixo (3).
+
+obs2: com essa mudanca parece que o rootfs.cpio deixa de ser atualizado
+no petalinux-build e ai passa a gerar um rootfs.ext4 que e' uma imagem
+(tem que usar mount -o loop para acessar)
+
+3) Ha um bug no petalinux que nao remonta o rootfs mesmo com a linha de comando
+   correta do kernel. Para resolver mudar tambem no petalinux-config:
+
+Subsystem AUTO Hardware Settings → Advanced bootable images storage Settings → dtb image settings→primary SD
+
+Isso vai obrigar que a gente copie tambem o system.dtb para a 1a particao do sdcard.
+
+===
+
+a especificacao de hardware (configuracao do zynq) foi adaptada de um tcl fornecido
+pela myir e incluindo no board file disponivel neste repositorio:
+
+https://github.com/miguelfreitas/zturn-stuff
+
+o tcl original e' o arquivo "myd-xc7z020.tcl"
+No vivado: abrir as configuracoes do bloco Zynq, Presets->Apply Configuration...
+
+===
+
+o linux desabilita o fclk_clk0, nao sei pq pois aparentemente esta habilitado no dts
+com fclk-enable = <0x1> ou fclk-enable = <0xf> na secao slcr.clkc.
+sem esse clock a logica nao funciona e o debug core nao aparece no hw manager.
+
+para habilitar tem que escrever no registro FPGA0_THR_CNT:
+./poke 0xF8000178 0
+obs1: o registro estava com valor 1.
+obs2: poke e' um aplicativo exemplo do petalinux para escrever na memoria fisica.
+
+===
+
+Instalando no QSPI/eMMC:
+
+- QSPI (/dev/mtdX) fica com boot, dtb e kernel.
+- eMMC (4GB em /dev/mmcblk1) fica com root em particao ext4.
+
+dev:    size   erasesize  name
+mtd0: 00500000 00010000 "boot"
+mtd1: 00020000 00010000 "bootenv"
+mtd2: 01000000 00010000 "kernel"
+mtd3: 00020000 00010000 "dtb"
+mtd4: 00ac0000 00010000 "spare"
+
+obs: essas definicoes MTD foram alteradas no commit c3c65eb2723a.
+
+1) Para instalar na QSPI primeiro precisa dar um boot no cartao SD gerado anteriormente.
+   (sem isso não tem como acessar a QSPI para gravar o boot e o kernel.)
+
+2) Aplicar o patch switch_SD-to-eMMC.patch.
+   (se houver conflito: a parte importante e' a do project-spec/configs/config,
+    os scripts sao regerados automaticamente pelo petalinux-config)
+
+3) Regerar images com petalinux-build + petalinux-package --boot (vide nota anterior)
+
+4) A particao /dev/mmcblk1p1 poder ser gerada com a mesma imagem do rootfs sdcard
+   (bootar SD e copiar os arquivos de /run/media/mmcblk0p2 para /run/media/mmcblk1p1)
+
+5) Bootar no cartao SD, instalar imagem no QSPI com:
+
+# flashcp -v BOOT.BIN-emmc   /dev/mtd0
+# flash_erase                /dev/mtd1 0 0
+# flashcp -v image.ub-emmc   /dev/mtd2
+# flashcp -v system.dtb-emmc /dev/mtd3
+
+obs: se a imagem fit (image.ub) nao couber na particao mtd pode-se remover a ramdisk
+de dentro do arquivo. nao ha como fazer isso via configuracao, usar procedimento abaixo.
+
+===
+
+To build image.ub without embedded initramfs, you need to follow these steps:
+Once you done with petalinux-build (I mean after build gets succeed), go to
+ <project-dir>/build/tmp/deploy/images/plnx_arm
+1) Edit fitimage.its. Remove the ramdisk@0 node from the images and 
+   configurations part of the fitImage.its file. 
+2) Run the following command:
+$ mkimage -f fitimage.its ${plnx_project_folder}/images/linux/image.ub
+
+obs: instalar u-boot-tools para ter o mkimage.
+
+===
+
+mapeamento GPIO linux => banks
+static unsigned int zynq_gpio_pin_table[] = {
+        31, /* 0 - 31   (MIO) */
+        53, /* 32 - 53  (MIO) */
+        85, /* 54 - 85  (EMIO  0-31) */ => GPIO  0-31 no block design
+        117 /* 86 - 117 (EMIO 32-63) */ => GPIO 32-63 no block design
+
+do DTS da MYIR:
+GPIO do key = 47  => bank 1 pin 15 => MIO 47 => B14
+  Obs: o MIO 47 e' tb o SD0_WP, isso tb aparece no esquematico da placa. Pq? nao sei.
+
+GPIO do led = 113 => bank 3 pin 27 => EMIO 59 => U13
+  Obs: vi sys_led_io no projeto de exemplo, esta ligado na sintese, mas nao
+       achei onde ele faz o GPIO 59 virar sys_led_io. parece q o chines editou o
+       "wrapper" diretamente (design_1_wrapper.v) para fazer essa ligacao.
+
+Outros pinos mapeados no projeto exemplo:
+EMIO/GPIO 60 = lcd_disp_io  = T19
+EMIO/GPIO 61 = lcd_bl_en_io = R19
+EMIO/GPIO 62 = tp_resetn_io = P15 (touchscreen reset)
+
+Obs: o kernel mudou o mapeamento userspace do GPIO comeca agora no 906 (nao entendo!)
+     ou seja, para piscar o led GPIO 113 + 906 = 1019
+# echo 1019 > /sys/class/gpio/export
+# echo out  > /sys/class/gpio1019/direction
+# echo 0    > /sys/class/gpio1019/value
+# echo 1    > /sys/class/gpio1019/value
+
+===
+

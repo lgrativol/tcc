@@ -34,6 +34,7 @@ use ieee_proposed.fixed_pkg.all;
 
 library work;
 use work.utils_pkg.all;
+use work.defs_pkg.all;
 
 ------------
 -- Entity --

@@ -1,4 +1,19 @@
 
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Outubro/2020                                                                         
+-- Module Name: ring_fifo                                                                           
+-- Author Name: Lucas Grativol Ribeiro                          
+--                                                                                         
+-- Revision Date: 08/01/2021                                                                         
+-- Tool version: Vivado 2017.4                                                                           
+--                                                                      
+-- Goal: Implementar uma FIFO circular
+--
+-- Description: A implementação é baseada na implementação de (https://vhdlwhiz.com/ring-buffer-fifo/)
+--
+---------------------------------------------------------------------------------------------
+
 -------------
 -- Library --
 -------------
@@ -16,12 +31,12 @@ use work.utils_pkg.all;
 
 entity ring_fifo is
     generic (
-        DATA_WIDTH      : natural := 10;
-        RAM_DEPTH       : natural := 512-- RAM_DEPTH = 2^N
+        DATA_WIDTH      : natural := 10; -- Tamanho em bits da palavra input/output
+        RAM_DEPTH       : natural := 512 -- Profundidade da RAM, potência de 2
     );
     port (
-        clock_i                 : in std_logic;
-        areset_i                : in std_logic;
+        clock_i                 : in std_logic; -- Clock
+        areset_i                : in std_logic; -- Positive async reset
 
         -- Config  port
         config_valid_i          : in std_logic;
@@ -29,17 +44,18 @@ entity ring_fifo is
         config_reset_pointers_i : in std_logic;
 
         -- Write port
-        wr_valid_i              : in std_logic;
-        wr_data_i               : in std_logic_vector(DATA_WIDTH - 1 downto 0);
+        wr_valid_i              : in std_logic; -- Indica que os outros sinais da interface são válidos nesse ciclo de clock
+        wr_data_i               : in std_logic_vector(DATA_WIDTH - 1 downto 0); -- Palavra
 
         -- Read port
-        rd_en_i                 : in std_logic;
-        rd_valid_o              : out std_logic;
-        rd_data_o               : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+        rd_en_i                 : in std_logic;  -- Sinal para requisição de uma amostra da FIFO (1 ciclo de delay RAM)
+        rd_valid_o              : out std_logic; -- Indica que os outros sinais da interface são válidos nesse 
+                                                 -- ciclo de clock (o sinal rd_en) não se aplica
+        rd_data_o               : out std_logic_vector(DATA_WIDTH - 1 downto 0); -- Palavra
 
         -- Flags
-        empty                   : out std_logic;
-        full                    : out std_logic
+        empty                   : out std_logic; -- Indica FIFO vazia no ciclo de clock atual 
+        full                    : out std_logic -- Indica FIFO cheia no ciclo de clock atual 
     );
 end ring_fifo;
 

@@ -41,27 +41,27 @@ use ieee_proposed.fixed_pkg.all;
 
 entity cordic_core is
     generic (
-        SIDEBAND_WIDTH                      : integer; -- Define tamanho do sinal sideband_data, se 0, o sinal não é sintetizado.
-        CORDIC_INTEGER_PART                 : integer; -- sfixed integer part;    ex: sfixed(0 downto -19) --> 0.1111111111111111111 ~ +1.000 
-        CORDIC_FRAC_PART                    : integer; -- sfixed fractional part; ex: sfixed(0 downto -19) --> 1.1010000000000000000 = -0.750
-        N_CORDIC_ITERATIONS                 : natural  -- número de iterações do CORDIC (número de cordic_slices instanciados)
+        SIDEBAND_WIDTH                      : integer; --! Define tamanho do sinal sideband_data, se 0, o sinal não é sintetizado.
+        CORDIC_INTEGER_PART                 : integer; --! sfixed integer part;    ex: sfixed(0 downto -19) --> 0.1111111111111111111 ~ +1.000 
+        CORDIC_FRAC_PART                    : integer; --! sfixed fractional part; ex: sfixed(0 downto -19) --> 1.1010000000000000000 = -0.750
+        N_CORDIC_ITERATIONS                 : natural  --! número de iterações do CORDIC (número de cordic_slices instanciados)
     );
     port(
-        clock_i                             : in  std_logic; 
-        areset_i                            : in  std_logic; -- Positive async reset
+        clock_i                             : in  std_logic; --! Clock
+        areset_i                            : in  std_logic; --! Positive async reset
         
         sideband_data_i                     : in  std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
         sideband_data_o                     : out std_logic_vector((SIDEBAND_WIDTH - 1) downto 0);
         
-        valid_i                             : in  std_logic; -- Indica que os sinais de dados (X_i,Y_i,Z_i) são válidos no ciclo atual       
-        X_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); -- Componente x do vetor de entrada
-        Y_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); -- Componente y do vetor de entrada
-        Z_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); -- Componente z do vetor de entrada (o ângulo)
+        valid_i                             : in  std_logic; --! Indica que os sinais de dados (X_i,Y_i,Z_i) são válidos no ciclo atual       
+        X_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --! Componente x do vetor de entrada
+        Y_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --! Componente y do vetor de entrada
+        Z_i                                 : in  sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --! Componente z do vetor de entrada (o ângulo)
         
-        valid_o                             : out std_logic; -- Indica que os sinais de dados (X_o,Y_o,Z_o) são válidos no ciclo atual       
-        X_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); -- Componente x do vetor de entrada
-        Y_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); -- Componente y do vetor de entrada
-        Z_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)  -- Componente z do vetor de entrada (o ângulo)
+        valid_o                             : out std_logic; --! Indica que os sinais de dados (X_o,Y_o,Z_o) são válidos no ciclo atual       
+        X_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --! Componente x do vetor de entrada
+        Y_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART); --! Componente y do vetor de entrada
+        Z_o                                 : out sfixed(CORDIC_INTEGER_PART downto CORDIC_FRAC_PART)  --! Componente z do vetor de entrada (o ângulo)
     );
 end cordic_core;
 

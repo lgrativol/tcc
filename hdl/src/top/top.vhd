@@ -1,3 +1,17 @@
+---------------------------------------------------------------------------------------------
+--                                                                                         
+-- Create Date: Dezembro/2020                                                                
+-- Module Name: top
+-- Author Name: Lucas Grativol Ribeiro            
+--                                                                                         
+-- Revision Date: 16/01/2021
+-- Tool version: Vivado 2017.4                                                             
+--                                                                                         
+-- Goal: Implementar a estrutura top (exemplo de implementação)
+--          
+-- Description: Instancia TOP RX E TOP TX
+---------------------------------------------------------------------------------------------
+
 ---------------
 -- Libraries --
 ---------------
@@ -8,17 +22,13 @@ use ieee.numeric_std.all;
 
 library work;
 use work.utils_pkg.all;
+use work.defs_pkg.all;
 
 ------------
 -- Entity --
 ------------
 
 entity top is
-    generic(
-        OUTPUT_WIDTH                        : positive                      := 10;
-        AXI_ADDR_WIDTH                      : positive                      := 32;  -- width of the AXI address bus
-        BASEADDR                            : std_logic_vector(31 downto 0) := x"00000000" -- the register file's system base address		
-    );
     port(
         -- Clock and Reset
         axi_aclk                            : in  std_logic;
@@ -56,16 +66,16 @@ entity top is
         ----------------------
         -- TX - Wave Output --
         ----------------------
-        tx_wave_valid_o                     : out std_logic;
-        tx_wave_data_o                      : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-        tx_wave_done_o                      : out std_logic;
+        tx_wave_valid_o                     : out std_logic; -- Indica a validade do sinal de saída no clico atual de clock
+        tx_wave_data_o                      : out std_logic_vector( (OUTPUT_WIDTH - 1) downto 0); -- Amostra
+        tx_wave_done_o                      : out std_logic; -- Indica que a última amostra do sinal
 
         ---------------------
         -- RX - Wave Input --
         ---------------------
-        rx_wave_valid_i                     : in  std_logic;
-        rx_wave_data_i                      : in  std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
-        rx_wave_done_i                      : in  std_logic;
+        rx_wave_valid_i                     : in  std_logic; -- Indica a validade do sinal de saída no clico atual de clock
+        rx_wave_data_i                      : in  std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);  -- Amostra
+        --rx_wave_done_i                      : in  std_logic; -- Indica que a última amostra do sinal
 
         -------------------------------
         -- RX - AXI Stream Interface --
@@ -94,16 +104,12 @@ architecture rtl of top is
     signal areset                              : std_logic;
 
     -- TOP TX
-    signal tx_control_bang                     : std_logic;
-    signal tx_control_sample_frequency_valid_o : std_logic;
-    signal tx_control_sample_frequency         : std_logic_vector(26 downto 0); --TBD
-
+    signal tx_control_rx_last_word             : std_logic;
     signal tx_control_enable_rx                : std_logic;
     signal tx_control_system_sending           : std_logic;
-    signal tx_control_reset_averager           : std_logic;
     signal tx_control_config_valid_o           : std_logic;
-    signal tx_control_nb_points_wave           : std_logic_vector(31 downto 0); -- TBD
-    signal tx_control_nb_repetitions_wave      : std_logic_vector(5 downto 0);  -- TBD
+    signal tx_control_nb_points_wave           : std_logic_vector((WAVE_NB_POINTS_WIDTH - 1) downto 0); 
+    signal tx_control_nb_repetitions_wave      : std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0); 
 
     signal tx_output_wave_valid                : std_logic;
     signal tx_output_wave_data                 : std_logic_vector( (OUTPUT_WIDTH - 1) downto 0);
@@ -113,38 +119,28 @@ architecture rtl of top is
     signal rx_input_wave_valid                 : std_logic;
     signal rx_input_wave_data                  : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
     signal rx_input_wave_done                  : std_logic;
-
-    signal rx_control_bang                     : std_logic;
-    signal rx_control_sample_frequency_valid_i : std_logic;
-    signal rx_control_sample_frequency         : std_logic_vector(26 downto 0); --TBD
-    
+   
     signal rx_control_enable_rx                : std_logic;
-    signal rx_control_reset_averager           : std_logic;
     signal rx_control_config_valid_i           : std_logic;
-    signal rx_control_nb_points_wave           : std_logic_vector(31 downto 0); -- TBD
-    signal rx_control_nb_repetitions_wave      : std_logic_vector(5 downto 0);  -- TBD
+    signal rx_control_nb_points_wave           : std_logic_vector((WAVE_NB_POINTS_WIDTH - 1) downto 0);
+    signal rx_control_nb_repetitions_wave      : std_logic_vector((NB_SHOTS_WIDTH - 1) downto 0);
 
     signal rx_input_wave_ready_i               : std_logic;
     signal rx_output_wave_sending              : std_logic;
     signal rx_output_wave_valid                : std_logic;
     signal rx_output_wave_data                 : std_logic_vector((OUTPUT_WIDTH - 1) downto 0);
     signal rx_output_wave_done                 : std_logic;
-
+    
 begin
-
+    
     areset                              <= not axi_aresetn;
 
     --------
     -- TX --
     --------
     tx_control_system_sending  <= rx_output_wave_sending;
-
-    TX_entity : entity work.top_tx
-        generic map(
-            OUTPUT_WIDTH                        => OUTPUT_WIDTH,
-            AXI_ADDR_WIDTH                      => C_S_AXI_ADDR_WIDTH,
-            BASEADDR                            => x"0000_0000"
-        )
+    
+    TX : entity work.top_tx
         port map(
             -- Clock and Reset
             axi_aclk                            => axi_aclk,
@@ -189,14 +185,9 @@ begin
             wave_done_o                         => tx_output_wave_done, 
 
             -- Control
-            control_bang_o                      => tx_control_bang,
-            
-            control_sample_frequency_valid_o    => tx_control_sample_frequency_valid_o,
-            control_sample_frequency_o          => tx_control_sample_frequency,
-            
+            control_rx_last_word_o              => tx_control_rx_last_word,
             control_enable_rx_o                 => tx_control_enable_rx,
             control_system_sending_i            => tx_control_system_sending,
-            control_reset_averager_o            => tx_control_reset_averager,
             control_config_valid_o              => tx_control_config_valid_o,
             control_nb_points_wave_o            => tx_control_nb_points_wave,
             control_nb_repetitions_wave_o       => tx_control_nb_repetitions_wave
@@ -208,23 +199,18 @@ begin
 
     rx_input_wave_valid                 <= rx_wave_valid_i;
     rx_input_wave_data                  <= rx_wave_data_i;
-    rx_input_wave_done                  <= rx_wave_done_i;
+    --rx_input_wave_done                  <= rx_wave_done_i;
+    rx_input_wave_done                  <= tx_control_rx_last_word;
     
     rx_input_wave_ready_i               <= s_axis_s2mm_0_tready;
       
-    rx_control_sample_frequency_valid_i <= tx_control_sample_frequency_valid_o;
-    rx_control_sample_frequency         <= tx_control_sample_frequency;
 
     rx_control_enable_rx                <= tx_control_enable_rx;
-    rx_control_reset_averager           <= tx_control_reset_averager;
     rx_control_config_valid_i           <= tx_control_config_valid_o;
     rx_control_nb_points_wave           <= tx_control_nb_points_wave;
     rx_control_nb_repetitions_wave      <= tx_control_nb_repetitions_wave;
 
-    UUT_RX : entity work.top_rx
-        generic map(
-            OUTPUT_WIDTH                        => OUTPUT_WIDTH
-        )
+   RX : entity work.top_rx
         port map(
 
             clock_i                             => axi_aclk,
@@ -235,12 +221,8 @@ begin
             wave_data_i                         => rx_input_wave_data,
             wave_done_i                         => rx_input_wave_done,
     
-            -- Control
-            control_sample_frequency_valid_i    => rx_control_sample_frequency_valid_i,
-            control_sample_frequency_i          => rx_control_sample_frequency,
-    
+            -- Control  
             control_enable_rx_i                 => rx_control_enable_rx,
-            control_reset_averager_i            => rx_control_reset_averager,
             control_config_valid_i              => rx_control_config_valid_i,
             control_nb_points_wave_i            => rx_control_nb_points_wave,
             control_nb_repetitions_wave_i       => rx_control_nb_repetitions_wave,
@@ -266,4 +248,3 @@ begin
     s_axis_s2mm_0_tlast     <= rx_output_wave_done;
     
 end rtl;
-

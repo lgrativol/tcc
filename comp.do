@@ -14,6 +14,7 @@ vmap work work
 ########################
 
 vcom -93 ../hdl/pkg/utils_pkg.vhd
+vcom -93 ../hdl/pkg/defs_pkg.vhd
 vcom -93 ../hdl/pkg/random_pkg.vhd
 
 
@@ -33,11 +34,7 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic/posproc.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/dds_cordic/dds_cordic.vhd
 
 ## FSM Control
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_control/fsm_time_zones.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/fsm_control/fsm_time_zones_v2.vhd
-
-## Double Driver
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/double_driver/double_driver.vhd
 
 ## Generic Shift-reg
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/generic_shift_reg/generic_shift_reg.vhd
@@ -65,15 +62,21 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/lookup_wave/lookup_wave.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/ring_fifo/ring_fifo.vhd
 
 ## Averager
-vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/averager/averager_v2.vhd
 
 ## Register Bank
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_regs_pkg.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_regs.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_v1_regs_pkg.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_v1_regs.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_cordic_weights_regs_pkg.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_cordic_weights_regs.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_win_regs_pkg.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/register_bank/register_bank_win_regs.vhd
 
 ## Wave Generator
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_generator/wave_generator.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_generator/wave_generator_win.vhd
 
 ## FIR
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/gen_fir/fir_weights_pkg.vhd
@@ -87,14 +90,22 @@ vcom -93 -check_synthesis -novopt -O0 ../hdl/src/wave_fifo/wave_fifo.vhd
 
 ## Upsamplper
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/upsampler/upsampler.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/upsampler/fifo_upsampler.vhd
 
-## Upsamplper
+## Downsamplper
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/downsampler/downsampler.vhd
+
+## Cordic Weights
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_weights(sim)/cordic_up_weights.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/cordic_weights(sim)/cordic_down_weight.vhd
 
 ## TOP
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_tx.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_tx_win.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_rx_down.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_rx.vhd
 vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top.vhd
+vcom -93 -check_synthesis -novopt -O0 ../hdl/src/top/top_win.vhd
 
 
 ################################
@@ -115,12 +126,6 @@ vcom -93  -novopt -O0 ../hdl/sim/cordic/cordic_tb.vhd
 ## DDS cordic
 vcom -93  -novopt -O0 ../hdl/sim/dds_cordic/dds_cordic_tb.vhd
 
-## FSM Control
-vcom -93  -novopt -O0 ../hdl/sim/fsm_control/fsm_time_zones_tb.vhd
-
-## Double Driver
-vcom  -novopt -O0 ../hdl/sim/double_driver/double_driver_tb.vhd
-
 ## DDS Win
 vcom -93  -novopt -O0 ../hdl/sim/dds_win/dds_cordic_win_tb.vhd
 
@@ -136,17 +141,17 @@ vcom -93 -novopt -O0 ../hdl/sim/ring_fifo/ring_fifo_tb.vhd
 ## Upsampler
 vcom -93 -novopt -O0 ../hdl/sim/upsampler/upsampler_tb.vhd
 
-## Upsampler
+## Downsampler
 vcom -93 -novopt -O0 ../hdl/sim/downsampler/downsampler_tb.vhd
 
 ## Averager
-vcom -93 -novopt -O0 ../hdl/sim/averager/averager_tb.vhd
 vcom -93 -novopt -O0 ../hdl/sim/averager/averager_v2_tb.vhd
 
 ## TOP
 vcom -93 -novopt -O0 ../hdl/sim/top/top_tx_tb.vhd
 vcom -93 -novopt -O0 ../hdl/sim/top/top_tb.vhd
+vcom -93 -novopt -O0 ../hdl/sim/top/top_win_tb.vhd
 
-## Misc
-##vcom -93  -novopt -O0 ../hdl/sim/misc/phase_adjust_tb.vhd
-##vcom -93  -novopt -O0 ../hdl/sim/misc/hh_win_tb.vhd
+## Cordic Weights
+vcom -93 -novopt -O0 ../hdl/sim/cordic_weights/cordic_up_weights_tb.vhd
+vcom -93 -novopt -O0 ../hdl/sim/cordic_weights/cordic_down_weights_tb.vhd

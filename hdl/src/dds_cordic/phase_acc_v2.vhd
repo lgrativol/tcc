@@ -54,7 +54,8 @@ entity phase_acc_v2 is
     generic(
         PHASE_INTEGER_PART                 : natural ; -- phase integer part
         PHASE_FRAC_PART                    : integer ; -- phase fractional part
-        NB_POINTS_WIDTH                    : positive -- nb_points/nb_repetitions width
+        NB_POINTS_WIDTH                    : positive; -- nb_points width
+        NB_REPT_WIDTH                      : positive  -- nb_repetitions width
     );
     port(
         -- Clock interface
@@ -66,7 +67,7 @@ entity phase_acc_v2 is
         phase_term_i                        : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver acima
         initial_phase_i                     : in  ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART); -- Ver acima
         nb_points_one_period_i              : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0); -- Ver acima
-        nb_repetitions_i                    : in  std_logic_vector((NB_POINTS_WIDTH - 1) downto 0); -- Ver acima
+        nb_repetitions_i                    : in  std_logic_vector((NB_REPT_WIDTH - 1) downto 0); -- Ver acima
         mode_time_i                         : in  std_logic;
 
         -- Control interface
@@ -101,7 +102,7 @@ architecture behavioral of phase_acc_v2 is
     signal phase_term                           : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal initial_phase                        : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal nb_points_one_period                 : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal nb_repetitions                       : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_repetitions                       : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal mode_time                            : std_logic; 
     signal restart_acc                          : std_logic; 
     
@@ -111,7 +112,7 @@ architecture behavioral of phase_acc_v2 is
     signal phase_term_reg                       : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);    
     signal initial_phase_reg                    : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
     signal nb_points_one_period_reg             : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
-    signal nb_repetitions_reg                   : std_logic_vector((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_repetitions_reg                   : std_logic_vector((NB_REPT_WIDTH - 1) downto 0);
     signal mode_time_reg                        : std_logic; 
     
     signal start_new_cycle                      : std_logic;
@@ -127,7 +128,7 @@ architecture behavioral of phase_acc_v2 is
     signal nb_points_one_period_counter         : unsigned((NB_POINTS_WIDTH - 1) downto 0);
     signal full_period_done                     : std_logic;
     
-    signal nb_repetitions_counter               : unsigned((NB_POINTS_WIDTH - 1) downto 0);
+    signal nb_repetitions_counter               : unsigned((NB_REPT_WIDTH - 1) downto 0);
     signal full_wave_done                       : std_logic;
 
     signal phase_time_counter                   : ufixed(PHASE_INTEGER_PART downto PHASE_FRAC_PART);
@@ -173,8 +174,8 @@ begin
     input_regs : process(clock_i,areset_i)
     begin
         if (areset_i = '1') then
-            valid_new_term_reg <= '0';
-            mode_time_reg     <= '0';
+            valid_new_term_reg  <= '0';
+            mode_time_reg       <= '0';
 
         elsif (rising_edge(clock_i) ) then                       
             valid_new_term_reg <= input_valid;

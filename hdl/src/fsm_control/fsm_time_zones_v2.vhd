@@ -40,6 +40,7 @@ use ieee.numeric_std.all;
 
 library work;
 use work.utils_pkg.all;
+use work.defs_pkg.all;
 
 ------------
 -- Entity --
@@ -73,6 +74,7 @@ entity fsm_time_zones_v2 is
         -- Control Interface
         enable_rx_o                         : out std_logic; -- Enable o sinal de recepção
         restart_cycles_o                    : out std_logic; -- Reinicia o sinal TX uma vez, esse sinal é acionado "nb_shots" vezes
+        rx_last_word_o                      : out std_logic; -- Indica que é a última amostra esperada pelo sistema
         end_zones_cycle_o                   : out std_logic -- Indica o fim das operações
     );
 end fsm_time_zones_v2;
@@ -86,7 +88,7 @@ architecture behavioral of fsm_time_zones_v2 is
     -- Types --
     -----------
 
-    type tp_time_state is (ST_INPUT, ST_DELAY_START , ST_TX , ST_DEADZONE , ST_RX, ST_IDLE); 
+    type tp_time_state is (ST_INPUT, ST_SETUP , ST_TX , ST_DEADZONE , ST_RX, ST_IDLE); 
  
     -------------
     -- Signals --
@@ -106,6 +108,7 @@ architecture behavioral of fsm_time_zones_v2 is
 
     -- Behavioral
     signal enable_system                        : std_logic;
+    signal enable_input                         : std_logic;
 
     signal  nb_shots_reg                        : unsigned((NB_SHOTS_WIDTH - 1) downto 0);
     signal  delay_time_reg                      : unsigned(( DELAY_TIME_WIDTH - 1) downto 0);
@@ -131,6 +134,7 @@ architecture behavioral of fsm_time_zones_v2 is
     signal  counter_idle_time_done              : std_logic;
 
     -- Output
+    signal rx_last_word                         : std_logic;
     signal  enable_rx                           : std_logic;
     signal  restart_cycles                      : std_logic;
     signal  end_zones_cycle                     : std_logic;
@@ -140,6 +144,7 @@ begin
     
     -- Input
     nb_shots            <= nb_shots_i;
+    delay_time          <= delay_time_i;
     tx_time             <= tx_time_i;      
     deadzone_time       <= deadzone_time_i;
     rx_time             <= rx_time_i;      
@@ -154,13 +159,16 @@ begin
     --
     --
     --   Input: bang_i;
+    --          enable_input;
     --          nb_shots;
+    --          delay_time;          
     --          tx_time;
     --          deadzone_time;
     --          rx_time;
     --          idle_time;
     --
     --   Output: nb_shots_reg;
+    --           delay_time_reg;
     --           tx_time_reg;
     --           deadzone_time_reg;
     --           rx_time_reg;
@@ -171,12 +179,15 @@ begin
     input_reg : process (clock_i)
     begin
         if(rising_edge(clock_i)) then
-            if (bang_i = '1') then
-                nb_shots_reg        <= unsigned(nb_shots);
-                tx_time_reg         <= unsigned(tx_time);      
-                deadzone_time_reg   <= unsigned(deadzone_time);
-                rx_time_reg         <= unsigned(rx_time);      
-                idle_time_reg       <= unsigned(idle_time); 
+            if (enable_input = '1') then
+                if (bang_i = '1') then
+                    nb_shots_reg        <= unsigned(nb_shots);
+                    delay_time_reg      <= unsigned(delay_time);      
+                    tx_time_reg         <= unsigned(tx_time) - unsigned(deadzone_time);      
+                    deadzone_time_reg   <= unsigned(deadzone_time);
+                    rx_time_reg         <= unsigned(rx_time);      
+                    idle_time_reg       <= unsigned(idle_time); 
+                end if;
             end if;
         end if;
     end process;
@@ -205,6 +216,8 @@ begin
     --           restart_cycles;
     --           end_zones_cycle;
     --           enable_bang;
+    --           enable_input;
+    --           rx_last_word;
     --           counter_delay_time;
     --           counter_tx_time;
     --           counter_deadzone_time;
@@ -223,13 +236,17 @@ begin
             restart_cycles          <= '0';
             end_zones_cycle         <= '0';
             enable_bang             <= '0';
-            
+            enable_input            <= '0';
+            rx_last_word            <= '0';
+
         elsif (rising_edge(clock_i)) then
 
             restart_cycles      <= '0';
             enable_rx           <= '0';
             enable_bang         <= '0';
             end_zones_cycle     <= '0';
+            enable_input        <= '0';
+            rx_last_word        <= '0';
             
             case time_state is
                 
@@ -237,26 +254,27 @@ begin
 
                     if(enable_system = '1') then                        
                         counter_delay_time  <= (others => '0');
-                        time_state          <= ST_TX;
+                        time_state          <= ST_SETUP;
                     else
-                        time_state          <= ST_DELAY_START;
+                        enable_input        <= '1';
+                        time_state          <= ST_INPUT;
                     end if;
 
-                when ST_DELAY_START =>
+                when ST_SETUP =>
 
                     if (counter_delay_time_done = '1') then 
                         time_state          <= ST_TX;
                         counter_tx_time     <= (others => '0');
+                        enable_bang  <= '1';
                     else
-                        time_state          <= ST_DELAY_START;
+                        time_state          <= ST_SETUP;
                         counter_delay_time  <= counter_delay_time + 1 ;
                     end if;
 
                 when ST_TX =>
 
-                    if(counter_tx_time = to_unsigned(0,counter_tx_time'length))then
-                        enable_bang  <= '1';
-                    end if;
+                    --if(counter_tx_time = to_unsigned(0,counter_tx_time'length))then
+                    --end if;
                     
                     if(output_valid_i = '1') then
                         if (counter_tx_time_done = '1') then
@@ -281,10 +299,10 @@ begin
                     end if;
 
                 when ST_RX =>
-
-                    enable_rx        <= '1';
+                    enable_rx           <= '1';
 
                     if (counter_rx_time_done = '1') then
+                        rx_last_word <= '1';
                         time_state          <= ST_IDLE;
                         counter_idle_time   <= (others => '0');
                     else
@@ -319,7 +337,7 @@ begin
         end if;
     end process;
     
-    -- 0 protection
+    -- Não existe proteção contra valores zero na FSM time zones, nenhum valor deve ser colocado em zero.
     counter_nb_shots_done         <=                    '1'     when (counter_nb_shots = (nb_shots_reg - 1))
                                                 else    '0';
 
@@ -344,9 +362,10 @@ begin
     ------------
     -- Output --
     ------------
-    
+    bang_o             <= enable_bang;
     enable_rx_o        <= enable_rx;
     restart_cycles_o   <= restart_cycles;
+    rx_last_word_o     <= rx_last_word;
     end_zones_cycle_o  <= end_zones_cycle;
 
 end behavioral;
