@@ -1,19 +1,18 @@
 # tcc
-Repositório TCC 2020: Lucas Grativol Ribeiro.
+Repo TCC 2020: Lucas Grativol Ribeiro.
 
-email de contato : lucasgrativolr@gmail.com
+Contact email: lucasgrativolr@gmail.com
 
-* Todos os detalhes importantes do projeto são encontrados no manuscrito e na apresentação de slides
-* referentes ao projeto. Ambos se encontram na pasta references.
+*All important project details are found in the manuscript and the slide presentation. Both can be found in the references folder.
 
 --------------------------------------------------------------------------------------------------------------
-* Arborescência do projeto:
+* Project directory structure :
 
-├───figures  (Figuras do script python)     
-├───hdl      (todos os arquivos HDL do projeto)
-│   ├───pkg (pacotes HDL do projeto)
+├───figures  (Figures for the python script)     
+├───hdl      (All HLD sources)
+│   ├───pkg (VHDL packages)
 │   │   └───ieee_proposed
-│   ├───sim (testebenchs)
+│   ├───sim (Testebenchs)
 │   │   ├───averager
 │   │   ├───cordic
 │   │   ├───cordic_weights
@@ -26,10 +25,10 @@ email de contato : lucasgrativolr@gmail.com
 │   │   ├───testbench_tools
 │   │   ├───top
 │   │   └───upsampler
-│   └───src (descrição dos blocos do projeto, cada um com sua pasta e arquivos associados)
+│   └───src (Description of the project blocks, each with its own folder and associated files)
 │       ├───averager
 │       ├───cordic
-│       ├───cordic_weights(sim)
+│       ├───cordic_weights (simulation only)
 │       ├───dds_cordic
 │       ├───dds_windows
 │       │   ├───blackman
@@ -48,43 +47,38 @@ email de contato : lucasgrativolr@gmail.com
 │       ├───upsampler
 │       ├───wave_fifo
 │       └───wave_generator
-├───old (antigos arquivos ou versões de arquivo que não são mais úteis/utilizadas)
-├───references (Pdfs de referência para o projeto)
-├───scripts (Scripts em python para simulação (depreciado))
-└───work (Pasta para compilar arquivos do modelsim/questim)
+├───old (old files, not used)
+├───references (Reference work)
+├───scripts (Old simulation files)
+└───work (Modelsim/Questasim folder)
 
 --------------------------------------------------------------------------------------------------------------
 
-* Sobre a library ieee_proposed :
+* About the library ieee_proposed :
 
-É a biblioteca que implementa a aritmética de ponto-fixo em VHDL. No VHDL 2008 essa library é suportada
-nativamente, nas versões anteriores não. O Vivado só passou a suportar nativamente a ieee_proposed nas
-versões mais recentes 2020.1+ (na 2019 o suporte existe mais é precário, padrão Xilinx.)
+It is the library that implements fixed-point arithmetic in VHDL. In VHDL 2008 this library is supported
+natively, but not in earlier versions. Vivado only began to support ieee_proposed natively in more recent versions, 2020.1+.
 
-O projeto foi baseado em VHDL-93 ( mesmo que utilize coisas de VHDL-2002 e 2008, por comodidade)
+The project was based on VHDL-93 (even though it uses some features from VHDL-2002 and 2008, for convenience).
 
+To compile the ieee_proposed library to be used in QuestaSim/ModelSim, follow these steps
+only needed once:
 
-Para compilar a biblioteca ieee_proposed para ser usada no questasim/modelsim siga os passos
-só necessário uma vez:
-
-Dentro do terminal do questasim/modelsim ou usando a versão terminal dele:
+In the QuestaSim/ModelSim terminal or using its terminal version:
 
 $ mkdir work
 $ cd work
 $ vsim -c -do "do ../scripts/comp_lib.do ; quit -f" 
 
----------------------
+--------------------------------------------------------------------------------------------------------------
+To run ieee_proposed in Vivado, there are two options:
 
-Para rodar o ieee_proposed no Vivado existem duas Opções
+1) In Vivado versions that support the library, mark all files as VHDL-2008
+natively all files are considered as VHDL-93 (at least in Vivado 2017.4 it was like this)
 
-1) Em versões que suportam a biblioteca, marcar todos os arquivos como VHDL-2008
-   nativamente todos os arquivos são considerados como sendo VHDL-93 
-   (pelo menos no vivado 2017.4 foi assim)
+2) Import the files that form the ieee_proposed library directly and request
+that Vivado identifies them as ieee_proposed link: [Xilinx Support Answer 52575](https://www.xilinx.com/support/answers/52575.html)
 
-2) Importar os arquivos que formam a library ieee_proposed diretamente e pedir
-   que o Vivado identifique eles como ieee_proposed
-   link : https://www.xilinx.com/support/answers/52575.html
+--------------------------------------------------------------------------------------------------------------
 
----------------------
-
-Os dois métodos foram testados no win10, questasim 10.6c 64 bits e vivado 2017.4 e 2019.2
+Both methods were tested on win10, QuestaSim 10.6c 64-bit, and Vivado 2017.4 and 2019.2
