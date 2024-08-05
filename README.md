@@ -3,11 +3,11 @@ Repo TCC 2020: Lucas Grativol Ribeiro.
 
 Contact email: lucasgrativolr@gmail.com
 
-*All important project details are found in the manuscript and the slide presentation. Both can be found in the references folder.
+* All important project details are found in the manuscript and the slide presentation. Both can be found in the references folder.
 
 --------------------------------------------------------------------------------------------------------------
 * Project directory structure :
-
+```
 ├───figures  (Figures for the python script)     
 ├───hdl      (All HLD sources)
 │   ├───pkg (VHDL packages)
@@ -51,7 +51,7 @@ Contact email: lucasgrativolr@gmail.com
 ├───references (Reference work)
 ├───scripts (Old simulation files)
 └───work (Modelsim/Questasim folder)
-
+```
 --------------------------------------------------------------------------------------------------------------
 
 * About the library ieee_proposed :
